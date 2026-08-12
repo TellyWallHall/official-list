@@ -1,0 +1,2032 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Request — Login</title>
+  <meta name="color-scheme" content="dark">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="preconnect" href="https://image.tmdb.org">
+  <style>
+    :root {
+      --bg-0: #080c0f;
+      --bg-1: #111827;
+      --bg-2: #1f2937;
+      --bg-3: #2a3648;
+      --border: #2d3748;
+      --text: #e5e7eb;
+      --text-dim: #9ca3af;
+      --text-faint: #6b7280;
+      --purple: #7c3aed;
+      --purple-hover: #6d28d9;
+      --purple-light: #c4b5fd;
+      --green: #10b981;
+      --yellow: #f59e0b;
+      --red: #ef4444;
+      --shadow: 0 20px 60px rgba(0,0,0,.6);
+      --font: Inter, ui-sans-serif, -apple-system, Segoe UI, Roboto, sans-serif;
+      --bottom-nav-h: 60px;
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+      --topbar-h: 54px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%;
+      background: var(--bg-1);
+      color: var(--text);
+      font-family: var(--font);
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+      touch-action: manipulation;
+    }
+
+    button { font-family: inherit; }
+
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-thumb { background: #2a3342; border-radius: 999px; }
+
+    /* ============================ LOGIN ============================ */
+    .login-overlay {
+      position: fixed; inset: 0; z-index: 200;
+      background: radial-gradient(1000px 600px at 30% -10%, rgba(124,58,237,.25), transparent),
+                  radial-gradient(800px 500px at 90% 20%, rgba(59,130,246,.18), transparent), #0b1117;
+      display: grid; place-items: center;
+      padding: 16px;
+      overflow-y: auto;
+    }
+
+    .login-card {
+      width: 100%; max-width: 420px;
+      background: linear-gradient(180deg, rgba(31,41,55,.92), rgba(17,24,39,.97));
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+      padding: 28px 22px;
+      backdrop-filter: blur(20px);
+      animation: pop .3s ease;
+    }
+
+    @keyframes pop {
+      from { transform: translateY(14px) scale(.97); opacity: 0; }
+      to   { transform: none; opacity: 1; }
+    }
+
+    .login-logo { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+
+    .login-mark {
+      width: 46px; height: 46px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, var(--purple), #4f46e5);
+      display: grid; place-items: center;
+      font-weight: 900; font-size: 20px;
+      box-shadow: 0 8px 20px rgba(124,58,237,.4);
+      flex-shrink: 0;
+    }
+
+    .login-title { font-weight: 800; font-size: 22px; letter-spacing: -.5px; line-height: 1.1; }
+    .login-title span { color: var(--purple-light); }
+    .login-eyebrow { font-size: 10px; color: var(--text-faint); letter-spacing: .1em; text-transform: uppercase; margin-top: 3px; }
+    .login-sub { color: var(--text-dim); font-size: 13px; margin-bottom: 20px; line-height: 1.55; }
+
+    .field { margin-bottom: 14px; }
+    .field label { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--text-dim); font-weight: 700; margin-bottom: 7px; display: block; }
+
+    .input {
+      width: 100%; height: 48px;
+      border-radius: 12px;
+      border: 1.5px solid var(--border);
+      background: rgba(17,24,39,.8);
+      color: var(--text);
+      padding: 0 16px;
+      font-size: 16px;
+      outline: none; transition: .18s;
+      -webkit-appearance: none;
+    }
+    .input:focus { border-color: var(--purple); box-shadow: 0 0 0 3px rgba(124,58,237,.25); background: var(--bg-2); }
+
+    .btn {
+      border: 0; cursor: pointer;
+      border-radius: 12px;
+      padding: 13px 16px;
+      font-weight: 700; font-size: 15px;
+      transition: .18s;
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      width: 100%; min-height: 48px;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn-primary { background: var(--purple); color: white; box-shadow: 0 8px 24px rgba(124,58,237,.35); }
+    .btn-primary:hover { background: var(--purple-hover); transform: translateY(-1px); }
+    .btn-primary:active { transform: none; }
+    .btn-primary:disabled { opacity: .6; transform: none; cursor: not-allowed; }
+    .btn-ghost { background: var(--bg-2); color: var(--text); border: 1px solid var(--border); font-size: 13px; padding: 9px 14px; min-height: 38px; }
+    .btn-ghost:hover { background: var(--bg-3); }
+    .btn-sm { font-size: 12px; padding: 7px 12px; min-height: 34px; }
+
+    .hint { font-size: 12px; color: var(--text-faint); line-height: 1.4; margin-top: 10px; }
+    .proxy-status { font-size: 11px; color: var(--text-faint); margin-top: 8px; text-align: center; line-height: 1.4; }
+
+    .error-box {
+      display: none; padding: 10px 14px; border-radius: 10px;
+      background: rgba(239,68,68,.12); border: 1px solid rgba(239,68,68,.25);
+      color: #fca5a5; font-size: 13px; line-height: 1.4; margin-bottom: 14px;
+    }
+
+    /* ============================ APP LAYOUT (mobile-first) ============================ */
+    .app {
+      display: flex; flex-direction: column;
+      min-height: 100dvh;
+      background: var(--bg-1);
+      opacity: 0; pointer-events: none;
+      transition: opacity .25s;
+    }
+    .app.logged { opacity: 1; pointer-events: auto; }
+
+    /* SIDEBAR — desktop only by default */
+    .sidebar {
+      display: none;
+      width: 260px; flex-shrink: 0;
+      background: rgba(17,24,39,.95);
+      backdrop-filter: blur(16px);
+      border-right: 1px solid var(--border);
+      flex-direction: column;
+      position: sticky; top: 0; height: 100vh;
+      z-index: 30; overflow-y: auto;
+    }
+    .sidebar-top {
+      display: flex; align-items: center; gap: 10px;
+      padding: 15px 14px;
+      border-bottom: 1px solid rgba(255,255,255,.05);
+      flex-shrink: 0;
+    }
+    .logo-mark {
+      width: 34px; height: 34px; border-radius: 10px;
+      background: linear-gradient(135deg, var(--purple), #4f46e5);
+      display: grid; place-items: center;
+      font-weight: 900; font-size: 15px; cursor: pointer; flex-shrink: 0;
+    }
+    .logo-text { font-weight: 800; font-size: 16px; letter-spacing: -.3px; cursor: pointer; }
+    .logo-text span { color: var(--purple-light); }
+
+    .status-pill {
+      display: flex; align-items: center; gap: 6px;
+      padding: 5px 9px;
+      background: var(--bg-2); border: 1px solid var(--border); border-radius: 999px;
+      font-size: 10px; color: var(--text-dim); white-space: nowrap;
+    }
+    .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); flex-shrink: 0; }
+
+    .nav { flex: 1; padding: 8px 8px; overflow-y: auto; }
+    .nav-label { font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--text-faint); font-weight: 700; padding: 12px 10px 5px; }
+    .nav-label.admin-only { display: none; }
+    .nav-label.admin-only.show { display: block; }
+
+    .nav-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 12px; border-radius: 10px;
+      cursor: pointer; color: var(--text-dim);
+      font-size: 13px; font-weight: 500;
+      transition: .15s; white-space: nowrap;
+      min-height: 44px; -webkit-tap-highlight-color: transparent;
+    }
+    .nav-item svg { width: 17px; height: 17px; flex-shrink: 0; }
+    .nav-item:hover { background: var(--bg-2); color: var(--text); }
+    .nav-item.active { background: rgba(124,58,237,.14); color: var(--purple-light); }
+    .nav-item.admin-only { display: none; }
+    .nav-item.admin-only.show { display: flex; }
+
+    .sidebar-bottom {
+      padding: 12px; border-top: 1px solid rgba(255,255,255,.06);
+      display: flex; flex-direction: column; gap: 10px; flex-shrink: 0;
+    }
+    .user-pill {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px; background: var(--bg-2); border: 1px solid var(--border); border-radius: 12px;
+    }
+    .user-avatar {
+      width: 34px; height: 34px; border-radius: 50%;
+      background: linear-gradient(135deg, #3b82f6, #7c3aed);
+      display: grid; place-items: center;
+      font-weight: 700; font-size: 13px; flex-shrink: 0;
+    }
+    .user-name { font-size: 13px; font-weight: 600; }
+    .user-role { font-size: 11px; color: var(--text-faint); }
+
+    /* MAIN */
+    .main {
+      flex: 1; min-width: 0;
+      display: flex; flex-direction: column;
+      padding-bottom: calc(var(--bottom-nav-h) + var(--safe-bottom));
+    }
+
+    /* TOPBAR */
+    .topbar {
+      height: var(--topbar-h); position: sticky; top: 0; z-index: 20;
+      display: flex; align-items: center; gap: 10px; padding: 0 12px;
+      background: rgba(17,24,39,.92); backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border); flex-shrink: 0;
+    }
+    .topbar-logo {
+      display: flex; align-items: center; gap: 8px;
+      flex-shrink: 0; cursor: pointer; -webkit-tap-highlight-color: transparent;
+    }
+    .topbar-logo-mark {
+      width: 30px; height: 30px; border-radius: 8px;
+      background: linear-gradient(135deg, var(--purple), #4f46e5);
+      display: grid; place-items: center; font-weight: 900; font-size: 13px;
+    }
+    .topbar-logo-text { font-weight: 800; font-size: 16px; letter-spacing: -.3px; }
+    .topbar-logo-text span { color: var(--purple-light); }
+
+    .menu-btn { display: none; } /* hidden — bottom nav handles mobile */
+
+    .search-wrap { flex: 1; position: relative; min-width: 0; }
+    .search-input {
+      width: 100%; height: 40px; border-radius: 999px;
+      border: 1.5px solid var(--border); background: var(--bg-2); color: var(--text);
+      padding: 0 16px 0 40px; font-size: 15px; outline: none; transition: .18s;
+      -webkit-appearance: none;
+    }
+    .search-input:focus { border-color: var(--purple); box-shadow: 0 0 0 3px rgba(124,58,237,.25); }
+    .search-icon {
+      position: absolute; left: 13px; top: 50%; transform: translateY(-50%);
+      width: 16px; height: 16px; color: var(--text-faint); pointer-events: none;
+    }
+    .top-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+    .icon-btn {
+      width: 36px; height: 36px; border-radius: 10px;
+      border: 1px solid var(--border); background: var(--bg-2);
+      display: grid; place-items: center; cursor: pointer;
+      font-size: 16px; color: var(--text-dim); -webkit-tap-highlight-color: transparent;
+    }
+    .icon-btn:hover { background: var(--bg-3); color: var(--text); }
+
+    .content {
+      flex: 1; padding: 12px 12px 0;
+      overflow-y: auto; overflow-x: hidden;
+    }
+
+    /* ============================ BOTTOM NAV ============================ */
+    .bottom-nav {
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 40;
+      height: calc(var(--bottom-nav-h) + var(--safe-bottom));
+      padding-bottom: var(--safe-bottom);
+      background: rgba(10,14,22,.97); backdrop-filter: blur(20px);
+      border-top: 1px solid var(--border);
+      display: flex; align-items: stretch;
+    }
+    .bn-item {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 3px;
+      cursor: pointer; color: var(--text-faint);
+      font-size: 9.5px; font-weight: 600; letter-spacing: .02em;
+      transition: color .15s; -webkit-tap-highlight-color: transparent;
+      border: none; background: none; padding: 0;
+    }
+    .bn-item svg { width: 23px; height: 23px; transition: transform .12s; }
+    .bn-item:active svg { transform: scale(.86); }
+    .bn-item.active { color: var(--purple-light); }
+
+    /* Override nav-item base styles for bottom-nav items */
+    .bottom-nav .nav-item {
+      flex-direction: column; gap: 3px;
+      padding: 0; border-radius: 0; min-height: unset;
+      font-size: 9.5px; font-weight: 600;
+      background: none !important;
+      white-space: normal; text-align: center;
+    }
+    .bottom-nav .nav-item.active { background: none !important; color: var(--purple-light); }
+    .bottom-nav .nav-item:hover { background: none !important; }
+    .bottom-nav .nav-item svg { width: 23px; height: 23px; }
+
+    /* ============================ MORE DRAWER ============================ */
+    .more-overlay {
+      position: fixed; inset: 0; z-index: 44;
+      background: rgba(0,0,0,.55);
+      opacity: 0; pointer-events: none; transition: opacity .25s;
+    }
+    .more-overlay.show { opacity: 1; pointer-events: auto; }
+
+    .more-drawer {
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 45;
+      background: var(--bg-1);
+      border-top: 1px solid var(--border);
+      border-radius: 20px 20px 0 0;
+      padding-bottom: calc(var(--bottom-nav-h) + var(--safe-bottom));
+      transform: translateY(100%);
+      transition: transform .28s cubic-bezier(.32,.72,0,1);
+      max-height: 70vh; overflow-y: auto;
+    }
+    .more-drawer.open { transform: translateY(0); }
+
+    .more-handle { width: 36px; height: 4px; border-radius: 999px; background: var(--border); margin: 12px auto 8px; }
+
+    .more-user-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 16px 14px;
+      border-bottom: 1px solid var(--border); margin-bottom: 4px;
+    }
+    .more-section-label {
+      font-size: 10px; letter-spacing: .1em; text-transform: uppercase;
+      color: var(--text-faint); font-weight: 700; padding: 10px 16px 4px;
+    }
+    .more-section-label.admin-only { display: none; }
+    .more-section-label.admin-only.show { display: block; }
+
+    .more-item {
+      display: flex; align-items: center; gap: 14px;
+      padding: 13px 18px; cursor: pointer; color: var(--text-dim);
+      font-size: 15px; font-weight: 500; transition: background .12s;
+      -webkit-tap-highlight-color: transparent; min-height: 52px;
+      border-radius: 0; white-space: normal;
+    }
+    .more-item svg { width: 20px; height: 20px; flex-shrink: 0; }
+    .more-item:active { background: var(--bg-2); }
+    .more-item.admin-only { display: none; }
+    .more-item.admin-only.show { display: flex; }
+    .more-item.active { color: var(--purple-light); }
+
+    /* Override nav-item for more-items */
+    .more-drawer .nav-item { flex-direction: row; gap: 14px; padding: 13px 18px; border-radius: 0; font-size: 15px; font-weight: 500; min-height: 52px; background: none !important; white-space: normal; }
+    .more-drawer .nav-item:active { background: var(--bg-2) !important; }
+    .more-drawer .nav-item.active { background: none !important; color: var(--purple-light); }
+    .more-drawer .nav-item svg { width: 20px; height: 20px; }
+
+    /* ============================ SIDEBAR OVERLAY ============================ */
+    .sidebar-overlay {
+      display: none; position: fixed; inset: 0; z-index: 25; background: rgba(0,0,0,.55);
+    }
+    .sidebar-overlay.show { display: block; }
+
+    /* ============================ HERO ============================ */
+    .hero {
+      position: relative; height: 290px;
+      border-radius: 16px; overflow: hidden; margin-bottom: 20px;
+    }
+    .hero-bg { position: absolute; inset: 0; background-size: cover; background-position: center 20%; }
+    .hero-overlay {
+      position: absolute; inset: 0;
+      background: linear-gradient(0deg, rgba(0,0,0,.92) 0%, rgba(0,0,0,.3) 60%, rgba(0,0,0,.05) 100%);
+    }
+    .hero-content {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column; justify-content: flex-end;
+      padding: 14px; pointer-events: none;
+    }
+    .hero-badge { font-size: 10px; color: var(--purple-light); font-weight: 700; text-transform: uppercase; letter-spacing: .08em; margin-bottom: 5px; }
+    .hero-title { font-size: 22px; font-weight: 900; letter-spacing: -.5px; line-height: 1.1; margin-bottom: 5px; text-shadow: 0 2px 12px rgba(0,0,0,.6); }
+    .hero-meta { display: flex; gap: 10px; flex-wrap: wrap; font-size: 11px; color: rgba(255,255,255,.6); margin-bottom: 8px; }
+    .hero-meta .star { color: var(--yellow); }
+    .hero-overview { font-size: 12px; color: #cbd5e1; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin-bottom: 10px; }
+    .hero-actions { display: flex; gap: 8px; flex-wrap: wrap; pointer-events: auto; }
+    .hero-dots { position: absolute; right: 12px; bottom: 12px; display: flex; gap: 6px; }
+    .hero-dot { width: 22px; height: 3px; border-radius: 999px; background: rgba(255,255,255,.3); cursor: pointer; }
+    .hero-dot.active { background: white; width: 30px; }
+
+    /* ============================ SLIDERS ============================ */
+    .section { margin-bottom: 24px; }
+    .section-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; gap: 10px; }
+    .section-title { font-size: 15px; font-weight: 800; letter-spacing: -.3px; display: flex; align-items: center; gap: 8px; }
+    .section-title .count { font-size: 10px; background: var(--bg-2); border: 1px solid var(--border); padding: 2px 7px; border-radius: 999px; color: var(--text-faint); }
+    .slider-controls { display: flex; gap: 6px; }
+    .slider-btn { width: 30px; height: 30px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-2); display: grid; place-items: center; cursor: pointer; color: var(--text-dim); -webkit-tap-highlight-color: transparent; }
+    .slider-track { display: flex; gap: 11px; overflow-x: auto; scroll-behavior: smooth; padding: 3px 1px 10px; scrollbar-width: none; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; }
+    .slider-track::-webkit-scrollbar { display: none; }
+
+    /* ============================ CARDS ============================ */
+    .card { width: 140px; flex: 0 0 140px; cursor: pointer; scroll-snap-align: start; -webkit-tap-highlight-color: transparent; }
+    .card-poster { position: relative; aspect-ratio: 2/3; border-radius: 12px; overflow: hidden; background: var(--bg-2); border: 1px solid var(--border); box-shadow: 0 5px 16px rgba(0,0,0,.3); transition: .22s; }
+    .card:active .card-poster { transform: scale(.96); }
+    .card-poster img { width: 100%; height: 100%; object-fit: cover; }
+    .card-gradient { position: absolute; inset: 0; background: linear-gradient(0deg, rgba(0,0,0,.85) 10%, rgba(0,0,0,0) 55%); }
+    .card-topbar { position: absolute; top: 7px; left: 7px; right: 7px; display: flex; justify-content: space-between; }
+    .badge { font-size: 9px; font-weight: 800; padding: 3px 6px; border-radius: 999px; border: 1px solid transparent; text-transform: uppercase; white-space: nowrap; }
+    .badge-type { background: rgba(0,0,0,.6); border-color: rgba(255,255,255,.14); color: white; }
+    .badge-available { background: rgba(16,185,129,.18); border-color: rgba(16,185,129,.35); color: #6ee7b7; }
+    .badge-pending { background: rgba(245,158,11,.18); border-color: rgba(245,158,11,.35); color: #fcd34d; }
+    .badge-processing { background: rgba(59,130,246,.18); border-color: rgba(59,130,246,.35); color: #93c5fd; }
+    .card-rating { position: absolute; bottom: 7px; left: 7px; background: rgba(0,0,0,.65); border: 1px solid rgba(255,255,255,.12); color: white; font-size: 10px; font-weight: 700; padding: 3px 6px; border-radius: 999px; }
+    .card-info { padding: 8px 2px 0; }
+    .card-title { font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text); }
+    .card-year { font-size: 11px; color: var(--text-faint); margin-top: 2px; }
+
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(138px, 1fr)); gap: 11px; padding-bottom: 16px; }
+    .sk-card { aspect-ratio: 2/3; border-radius: 12px; }
+
+    /* ============================ REQUESTS ============================ */
+    .tabs { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
+    .tab { padding: 8px 16px; border-radius: 999px; border: 1px solid var(--border); background: var(--bg-2); color: var(--text-dim); font-size: 13px; font-weight: 600; cursor: pointer; min-height: 38px; display: flex; align-items: center; -webkit-tap-highlight-color: transparent; }
+    .tab.active { background: rgba(124,58,237,.18); border-color: rgba(124,58,237,.35); color: var(--purple-light); }
+    .req-list { display: flex; flex-direction: column; gap: 10px; }
+    .req-item { display: flex; gap: 12px; align-items: flex-start; background: var(--bg-2); border: 1px solid var(--border); border-radius: 14px; padding: 12px; cursor: pointer; transition: background .12s; -webkit-tap-highlight-color: transparent; }
+    .req-item:active { background: var(--bg-3); }
+    .req-poster { width: 52px; flex: 0 0 52px; aspect-ratio: 2/3; border-radius: 8px; overflow: hidden; background: var(--bg-3); }
+    .req-poster img { width: 100%; height: 100%; object-fit: cover; }
+    .req-info { flex: 1; min-width: 0; }
+    .req-title { font-size: 14px; font-weight: 700; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .req-meta { font-size: 11px; color: var(--text-faint); margin-bottom: 6px; }
+    .req-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+
+    /* ============================ SKELETON ============================ */
+    .skeleton { background: linear-gradient(90deg, var(--bg-2) 25%, var(--bg-3) 50%, var(--bg-2) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 12px; }
+    @keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+
+    /* ============================ DETAIL MODAL ============================ */
+    .overlay { position: fixed; inset: 0; z-index: 100; background: rgba(0,0,0,.8); backdrop-filter: blur(4px); display: none; overflow-y: auto; padding: 12px; }
+    .overlay.show { display: flex; align-items: flex-start; justify-content: center; }
+    .modal { width: 100%; max-width: 860px; background: var(--bg-1); border: 1px solid var(--border); border-radius: 20px; overflow: hidden; box-shadow: var(--shadow); animation: pop .25s ease; margin: auto; }
+    .detail-hero { position: relative; min-height: 200px; }
+    .detail-backdrop { position: absolute; inset: 0; background-size: cover; background-position: center 20%; }
+    .detail-backdrop::after { content: ''; position: absolute; inset: 0; background: linear-gradient(0deg, var(--bg-1) 0%, rgba(0,0,0,.4) 100%); }
+    .detail-close { position: absolute; top: 12px; right: 12px; z-index: 5; width: 38px; height: 38px; border-radius: 50%; border: 1px solid rgba(255,255,255,.2); background: rgba(0,0,0,.6); color: white; cursor: pointer; font-size: 15px; display: grid; place-items: center; -webkit-tap-highlight-color: transparent; }
+    .detail-body { position: relative; z-index: 2; display: flex; gap: 14px; padding: 12px; flex-wrap: wrap; }
+    .detail-poster { width: 100px; flex: 0 0 100px; aspect-ratio: 2/3; border-radius: 12px; overflow: hidden; box-shadow: 0 8px 24px rgba(0,0,0,.5); }
+    .detail-poster img { width: 100%; height: 100%; object-fit: cover; }
+    .detail-main { flex: 1; min-width: 0; padding-top: 2px; }
+    .detail-title { font-size: 18px; font-weight: 900; letter-spacing: -.4px; margin-bottom: 4px; line-height: 1.2; }
+    .detail-tagline { font-size: 12px; color: var(--text-dim); font-style: italic; margin-bottom: 8px; }
+    .detail-meta-row { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 10px; }
+    .detail-pill { font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 999px; background: var(--bg-2); border: 1px solid var(--border); color: var(--text-dim); }
+    .detail-overview { font-size: 13px; line-height: 1.6; color: var(--text-dim); margin-bottom: 12px; }
+    .detail-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .detail-content { padding: 0 12px 20px; }
+    .detail-grid { display: grid; grid-template-columns: 1fr; gap: 16px; margin-top: 16px; }
+    .cast-track { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 6px; scrollbar-width: none; }
+    .cast-track::-webkit-scrollbar { display: none; }
+    .cast-card { flex: 0 0 68px; text-align: center; }
+    .cast-avatar { width: 54px; height: 54px; border-radius: 50%; overflow: hidden; margin: 0 auto 5px; background: var(--bg-2); }
+    .cast-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .cast-name { font-size: 10px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .cast-char { font-size: 9px; color: var(--text-faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .season-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .season-chip { font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 999px; background: var(--bg-2); border: 1px solid var(--border); cursor: pointer; color: var(--text-dim); -webkit-tap-highlight-color: transparent; }
+    .season-chip:active { background: var(--bg-3); }
+
+    /* ============================ TOAST ============================ */
+    .toasts { position: fixed; bottom: calc(var(--bottom-nav-h) + var(--safe-bottom) + 10px); right: 12px; z-index: 200; display: flex; flex-direction: column; gap: 8px; pointer-events: none; max-width: calc(100vw - 24px); }
+    .toast { display: flex; align-items: flex-start; gap: 10px; background: var(--bg-1); border: 1px solid var(--border); padding: 11px 14px; border-radius: 12px; box-shadow: var(--shadow); animation: slideUp .2s ease; pointer-events: auto; min-width: 200px; }
+    @keyframes slideUp { from { transform: translateY(10px); opacity: 0; } to { transform: none; opacity: 1; } }
+    .toast.ok { border-color: rgba(16,185,129,.35); }
+    .toast.err { border-color: rgba(239,68,68,.35); }
+    .toast .t-title { font-weight: 700; font-size: 13px; }
+    .toast .t-msg { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
+
+    /* ============================ MISC ============================ */
+    .filter-bar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; align-items: center; }
+    .select { height: 42px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg-2); color: var(--text); padding: 0 12px; font-size: 13px; -webkit-appearance: none; min-width: 150px; }
+    .empty { text-align: center; padding: 48px 20px; color: var(--text-dim); font-size: 14px; line-height: 1.7; }
+
+    #starBtn {
+      position: fixed;
+      bottom: calc(var(--bottom-nav-h) + var(--safe-bottom) + 18px); right: 18px;
+      z-index: 90; display: none;
+      width: 50px; height: 50px; border-radius: 50%; border: none;
+      background: var(--yellow); color: #000; font-size: 22px;
+      cursor: grab; box-shadow: 0 8px 24px rgba(0,0,0,.4);
+      align-items: center; justify-content: center;
+      -webkit-tap-highlight-color: transparent; touch-action: none;
+    }
+
+    @media (max-width: 500px) { #drawerLogout { max-width: 70px } } 
+    /* ============================ DESKTOP (≥ 768px) ============================ */
+    @media (min-width: 768px) {
+      .app { flex-direction: row; }
+      .sidebar { display: flex; }
+      .main { padding-bottom: 0; }
+      .topbar-logo { display: none; }
+      .content { padding: 18px 20px 0; }
+      .bottom-nav { display: none; }
+      .toasts { bottom: 20px; right: 20px; max-width: 340px; }
+      #starBtn { bottom: 24px; right: 24px; }
+      .hero { height: 370px; }
+      .hero-title { font-size: 28px; }
+      .hero-overview { -webkit-line-clamp: 3; }
+      .hero-content { padding: 22px; }
+      .card { width: 158px; flex: 0 0 158px; }
+      .card:hover .card-poster { transform: translateY(-4px) scale(1.02); border-color: rgba(124,58,237,.45); }
+      .grid { grid-template-columns: repeat(auto-fill, minmax(152px, 1fr)); gap: 14px; }
+      .detail-grid { grid-template-columns: 2fr 1fr; }
+      .detail-hero { min-height: 260px; }
+      .detail-poster { width: 140px; flex: 0 0 140px; }
+      .detail-title { font-size: 24px; }
+    }
+
+    @media (min-width: 1100px) {
+      .hero { height: 440px; }
+      .hero-title { font-size: 34px; }
+      .hero-overview { max-width: 58ch; }
+      .card { width: 172px; flex: 0 0 172px; }
+      .grid { grid-template-columns: repeat(auto-fill, minmax(162px, 1fr)); }
+      .content { padding: 24px 28px 0; }
+    }
+
+    /* Desktop-mode forced (from Killswitch settings) */
+    body.desktop-mode .bottom-nav { display: none !important; }
+    body.desktop-mode .app { flex-direction: row !important; }
+    body.desktop-mode .sidebar { display: flex !important; }
+    body.desktop-mode .main { padding-bottom: 0 !important; }
+    body.desktop-mode .topbar-logo { display: none !important; }
+    body.desktop-mode .toasts { bottom: 20px !important; right: 20px !important; }
+    body.desktop-mode #starBtn { bottom: 24px !important; right: 24px !important; }
+    body.desktop-mode .menu-btn { display: none !important; }
+  </style>
+</head>
+
+<body>
+
+  <!-- LOGIN OVERLAY -->
+  <div class="login-overlay" id="loginOverlay">
+    <div class="login-card">
+      <div class="login-logo">
+        <div class="login-mark">R</div>
+        <div>
+          <div class="login-title">Re<span>quest</span></div>
+          <div class="login-eyebrow">Jellyfin Login Required</div>
+        </div>
+      </div>
+      <div class="login-sub">Sign in with your Jellyfin account. Session expires on refresh — login required every time.</div>
+      <div class="error-box" id="loginError"></div>
+      <div class="field">
+        <label>Jellyfin Username</label>
+        <input id="jfUser" class="input" placeholder="username" autocomplete="username" autofocus>
+      </div>
+      <div class="field">
+        <label>Jellyfin Password</label>
+        <input id="jfPass" class="input" type="password" placeholder="••••••••" autocomplete="current-password">
+      </div>
+      <button class="btn btn-primary" id="loginBtn">Sign in with Jellyfin</button>
+      <div class="proxy-status" id="proxyStatus">Checking connection…</div>
+      <div class="hint" style="text-align:center;margin-top:6px">Powered by Jade's Project.</div>
+    </div>
+  </div>
+
+  <div class="app" id="app">
+    <!-- DESKTOP SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-top">
+        <div class="logo-mark">R</div>
+        <div class="logo-text">Re<span>quest</span></div>
+        <div style="margin-left:auto">
+          <div class="status-pill" id="statusPill"><span class="dot" id="statusDot"></span><span id="statusText">Loading</span></div>
+        </div>
+      </div>
+      <nav class="nav" id="nav">
+        <div class="nav-label">Discover</div>
+        <div class="nav-item active" data-view="discover"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.08 20.92 12 14 5.08 11.92 16.24 7.76"/></svg> Discover</div>
+        <div class="nav-item" data-view="movies"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="2.18"/></svg> Movies</div>
+        <div class="nav-item" data-view="tv"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="15" rx="2"/></svg> TV Shows</div>
+        <div class="nav-item" data-view="requests"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> My Requests</div>
+        <div class="nav-item" data-view="internet"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg> Internet</div>
+        <div class="nav-item" data-view="killswitch"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26"/></svg> Killswitch</div>
+        <div class="nav-label admin-only" id="adminLabel">Administration</div>
+        <div class="nav-item admin-only" data-view="all-requests"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><path d="M20 8v6M23 11v2M17 11v2"/></svg> All Requests</div>
+        <div class="nav-item admin-only" data-view="users"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> Users</div>
+        <div class="nav-item admin-only" data-view="admin-settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93A10 10 0 0 0 4.93 19.07M4.93 4.93a10 10 0 0 0 14.14 14.14"/></svg> Settings</div>
+        <div class="nav-item admin-only" data-view="status"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg> System Status</div>
+      </nav>
+      <div class="sidebar-bottom">
+        <div class="user-pill" id="userPill">
+          <div class="user-avatar" id="sideAvatar">U</div>
+          <div>
+            <div class="user-name" id="sideName">Not logged in</div>
+            <div class="user-role" id="sideRole">Jellyfin</div>
+          </div>
+        </div>
+        <button class="btn btn-ghost btn-sm" id="logoutBtn">Log out (requires login again)</button>
+      </div>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="main">
+      <div class="sidebar-overlay" id="sidebarOverlay"></div>
+      <header class="topbar">
+        <button class="menu-btn" id="menuBtn">☰</button>
+        <div class="topbar-logo" id="topbarLogo">
+          <div class="topbar-logo-mark">R</div>
+          <div class="topbar-logo-text">Re<span>quest</span></div>
+        </div>
+        <div class="search-wrap">
+          <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          <input id="searchInput" class="search-input" placeholder="Search movies, TV shows…">
+        </div>
+        <div class="top-actions">
+          <div class="icon-btn" id="refreshBtn" title="Refresh">↻</div>
+          <div class="user-avatar" id="topAvatar" style="cursor:pointer;flex-shrink:0;width:36px;height:36px;font-size:13px">U</div>
+        </div>
+      </header>
+      <div class="content" id="content"></div>
+    </main>
+
+    <!-- BOTTOM NAV (mobile) -->
+    <nav class="bottom-nav" id="bottomNav">
+      <button class="bn-item nav-item active" data-view="discover">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.08 20.92 12 14 5.08 11.92 16.24 7.76"/></svg>
+        Discover
+      </button>
+      <button class="bn-item nav-item" data-view="movies">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="2.18"/></svg>
+        Movies
+      </button>
+      <button class="bn-item nav-item" data-view="tv">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="15" rx="2"/></svg>
+        TV
+      </button>
+      <button class="bn-item nav-item" data-view="requests">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        Requests
+      </button>
+      <button class="bn-item" id="bn-more">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg>
+        More
+      </button>
+    </nav>
+  </div>
+
+  <!-- MORE DRAWER (mobile) -->
+  <div class="more-overlay" id="moreOverlay"></div>
+  <div class="more-drawer" id="moreDrawer">
+    <div class="more-handle"></div>
+    <div class="more-user-row">
+      <div class="user-avatar" style="width:40px;height:40px;font-size:15px" id="drawerAvatar">U</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" id="drawerName">Not logged in</div>
+        <div style="font-size:12px;color:var(--text-faint)" id="drawerRole">Jellyfin</div>
+      </div>
+      <button class="btn btn-ghost btn-sm" id="drawerLogout" style="flex-shrink:0;white-space:nowrap">Log out</button>
+    </div>
+    <div class="more-section-label">More</div>
+    <div class="more-item nav-item" data-view="internet">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+      Internet Connection
+    </div>
+    <div class="more-item nav-item" data-view="killswitch">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26"/></svg>
+      Killswitch
+    </div>
+    <div class="more-section-label admin-only" id="drawerAdminLabel">Administration</div>
+    <div class="more-item nav-item admin-only" data-view="all-requests">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/></svg>
+      All Requests (Admin)
+    </div>
+    <div class="more-item nav-item admin-only" data-view="users">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      Users (Admin)
+    </div>
+    <div class="more-item nav-item admin-only" data-view="admin-settings">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93A10 10 0 0 0 4.93 19.07M4.93 4.93a10 10 0 0 0 14.14 14.14"/></svg>
+      Admin Settings
+    </div>
+    <div class="more-item nav-item admin-only" data-view="status">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      System Status
+    </div>
+  </div>
+
+  <div class="overlay" id="detailModal">
+    <div class="modal" id="detailModalInner"></div>
+  </div>
+  <div class="toasts" id="toasts"></div>
+  <button id="starBtn" aria-label="Killswitch" title="Killswitch">★</button>
+
+  <script>
+    // CONFIG
+    const API_BASE = "https://jadesnova-proxy.abjack246.workers.dev";
+    let jellyfinToken = null; // IN MEMORY ONLY — never localStorage, forces login every time
+    let jellyfinUser = null;
+    let isAdmin = false;
+
+    const $ = (s, r = document) => r.querySelector(s),
+      $$ = (s, r = document) => [...r.querySelectorAll(s)];
+    const contentEl = $('#content'),
+      toastsEl = $('#toasts');
+
+    function showToast(t, m = '', ty = '') {
+      const el = document.createElement('div');
+      el.className = `toast ${ty==='ok'?'ok':ty==='err'?'err':''}`;
+      el.innerHTML = `<div style="flex:1"><div class="t-title">${t}</div>${m?`<div class="t-msg">${m}</div>`:''}</div>`;
+      toastsEl.appendChild(el);
+      setTimeout(() => el.remove(), 4500);
+    }
+
+    function tmdbImg(p, s = 'w500') {
+      return p ? `https://image.tmdb.org/t/p/${s}${p}` : `https://via.placeholder.com/300x450/1f2937/9ca3af?text=No+Image`;
+    }
+
+    function yearFrom(it) {
+      const d = it.releaseDate || it.firstAirDate || '';
+      return d ? d.slice(0, 4) : '';
+    }
+
+    function isReleased(it) {
+      const today = '2026-07-25';
+      const d = it.releaseDate || it.firstAirDate || '';
+      return d ? d <= today : true;
+    }
+
+    function mediaBadge(mi) {
+      const map = {
+        5: {
+          c: 'badge-available',
+          l: 'Available'
+        },
+        3: {
+          c: 'badge-processing',
+          l: 'Processing'
+        },
+        2: {
+          c: 'badge-pending',
+          l: 'Pending'
+        },
+        4: {
+          c: 'badge-available',
+          l: 'Partial'
+        }
+      };
+      const m = map[mi?.status];
+      return m ? `<span class="badge ${m.c}">${m.l}</span>` : '';
+    }
+
+    function requestBadge(s) {
+      if (s === 1) return `<span class="badge badge-pending">Pending</span>`;
+      if (s === 2) return `<span class="badge badge-processing">Approved</span>`;
+      if (s === 3) return `<span class="badge" style="background:rgba(239,68,68,.18);color:#fca5a5;border-color:rgba(239,68,68,.3)">Declined</span>`;
+      return `<span class="badge badge-type">${s}</span>`;
+    }
+
+    // --- RATING FILTERS FOR NON-ADMIN (PG-13 and below, TV-14 and below) ---
+    const MOVIE_ALLOWED = ['G', 'PG', 'PG-13']; // and also allow if no cert
+    const TV_ALLOWED = ['TV-Y', 'TV-Y7', 'TV-G', 'TV-PG', 'TV-14'];
+
+    function getMovieCert(details) {
+      if (!details) return null;
+      // details.releases?.results is array of {iso_3166_1, release_dates:[{certification}]}
+      const rel = details.releases?.results || [];
+      let us = rel.find(r => r.iso_3166_1 === 'US');
+      if (!us) us = rel[0];
+      if (!us) return null;
+      // find first non-empty cert, preferring the latest
+      for (let i = (us.release_dates || []).length - 1; i >= 0; i--) {
+        const c = (us.release_dates[i]?.certification || '').trim();
+        if (c) return c;
+      }
+      return null;
+    }
+
+    function getTvRating(details) {
+      if (!details) return null;
+      const cr = details.contentRatings?.results || [];
+      let us = cr.find(r => r.iso_3166_1 === 'US');
+      if (!us) us = cr[0];
+      return (us?.rating || '').trim() || null;
+    }
+
+    function isMovieAllowedForNonAdmin(cert) {
+      if (!cert) return true; // allow if no rating (safer, many indie have no US rating)
+      const c = cert.toUpperCase().trim();
+      // Normalize variations: "PG13" -> "PG-13"
+      const norm = c.replace('PG13', 'PG-13').replace('PG 13', 'PG-13');
+      if (MOVIE_ALLOWED.includes(norm)) return true;
+      // Also allow if cert is empty or NR, UR etc? For safety, block R and above only
+      const blocked = ['R', 'NC-17', 'NC17', 'X', 'NR', 'UR', 'AO'];
+      // If it's in allowed, allow; if it's blocked, block; if unknown like "PG-13", we already allowed
+      if (blocked.includes(norm)) return false;
+      // If cert contains R (like "R") but not "PG-13", block
+      if (norm === 'R' || norm === 'NC-17') return false;
+      // For anything else not explicitly allowed, be conservative: if it contains "R" and not PG, block
+      // Actually only allow G, PG, PG-13 exactly
+      return MOVIE_ALLOWED.includes(norm);
+    }
+
+    function isTvAllowedForNonAdmin(cert) {
+      if (!cert) return true;
+      const c = cert.toUpperCase().trim();
+      return TV_ALLOWED.includes(c);
+    }
+
+    function getContentRatingForDisplay(details, type) {
+      if (type === 'movie' || details.title) return getMovieCert(details);
+      return getTvRating(details);
+    }
+
+    function isContentAllowedForUser(details, type, userIsAdmin) {
+      if (userIsAdmin) return true;
+      const cert = type === 'movie' || details.title ? getMovieCert(details) : getTvRating(details);
+      if (type === 'movie' || details.title) {
+        return isMovieAllowedForNonAdmin(cert);
+      } else {
+        return isTvAllowedForNonAdmin(cert);
+      }
+    }
+    // Cache for ratings to avoid refetching same id many times
+    const ratingCache = new Map(); // id -> {cert, allowed, type}
+    async function filterItemsByRating(items, typeHint) {
+      if (isAdmin || !items?.length) return items;
+      // typeHint: 'movie' or 'tv' or undefined (mixed)
+      const out = [];
+      const batchSize = 4;
+      const toCheck = items.filter(Boolean);
+      // Show small notice while filtering
+      const notice = document.createElement('div');
+      notice.id = 'ratingFilterNotice';
+      notice.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:rgba(17,24,39,.9);border:1px solid var(--border);padding:8px 14px;border-radius:999px;font-size:12px;z-index:60;display:flex;gap:8px;align-items:center';
+      notice.innerHTML = `<span class="dot" style="background:var(--yellow)"></span> Filtering for PG-13 / TV-14 only — ${toCheck.length} titles…`;
+      document.body.appendChild(notice);
+
+      for (let i = 0; i < toCheck.length; i += batchSize) {
+        const batch = toCheck.slice(i, i + batchSize);
+        const results = await Promise.all(batch.map(async (it) => {
+          if (!it?.id) return null;
+          const cacheKey = `${it.mediaType||typeHint||'movie'}-${it.id}`;
+          if (ratingCache.has(cacheKey)) {
+            const cached = ratingCache.get(cacheKey);
+            return cached.allowed ? it : null;
+          }
+          try {
+            const tp = (it.mediaType || typeHint || (it.title ? 'movie' : 'tv')).toLowerCase();
+            const details = await apiFetch(`/${tp==='tv'?'tv':'movie'}/${it.id}`).catch(() => null);
+            if (!details) {
+              // If can't fetch details, allow (don't hide everything on transient error)
+              return it;
+            }
+            const cert = tp === 'tv' ? getTvRating(details) : getMovieCert(details);
+            const allowed = tp === 'tv' ? isTvAllowedForNonAdmin(cert) : isMovieAllowedForNonAdmin(cert);
+            ratingCache.set(cacheKey, {
+              cert,
+              allowed,
+              type: tp
+            });
+            if (allowed) {
+              it._cert = cert;
+              return it;
+            } else {
+              return null;
+            }
+          } catch {
+            return it;
+          }
+        }));
+        out.push(...results.filter(Boolean));
+        // Update notice
+        notice.innerHTML = `<span class="dot" style="background:var(--yellow)"></span> Filtering PG-13/TV-14: ${Math.min(i+batchSize, toCheck.length)}/${toCheck.length} — ${out.length} allowed`;
+      }
+      setTimeout(() => notice.remove(), 1200);
+      return out;
+    }
+
+    // Request fetch — v4 PENDING FIX - tags with exact Jellyfin user + forces pending
+    // Sends X-Emby-Token so Worker can use Seerr session cookie for that user
+    async function apiFetch(path, opts = {}) {
+      const url = `${API_BASE}/api/v1${path}`;
+      const baseHeaders = {
+        'Content-Type': 'application/json'
+      };
+      if (typeof jellyfinToken !== 'undefined' && jellyfinToken) baseHeaders['X-Emby-Token'] = jellyfinToken;
+      const headers = {
+        ...baseHeaders,
+        ...(opts.headers || {})
+      };
+      if (typeof jellyfinToken !== 'undefined' && jellyfinToken) headers['X-Emby-Token'] = jellyfinToken;
+      const res = await fetch(url, {
+        ...opts,
+        headers
+      });
+      if (!res.ok) {
+        const t = await res.text().catch(() => '');
+        let j = null;
+        try {
+          j = JSON.parse(t);
+        } catch {}
+        if (res.status === 401 && j && j.need_relogin) {
+          showToast('Please log out & log in again', j.message || 'Worker needs fresh login to tag your request correctly', 'err');
+          // Auto-logout after 2s to force relogin
+          setTimeout(() => {
+            if (confirm('Your session is too old to tag requests correctly. Log out and log in again now?')) {
+              document.getElementById('logoutBtn')?.click();
+            }
+          }, 1500);
+        }
+        const e = new Error(j?.message || j?.error || `HTTP ${res.status} ${t.slice(0,400)}`);
+        e.status = res.status;
+        e.body = t;
+        e.json = j;
+        throw e;
+      }
+      const ct = res.headers.get('content-type') || '';
+      return ct.includes('json') ? res.json() : res.text();
+    }
+
+    // Jellyfin login via proxy
+    async function jellyfinLogin(username, password) {
+      const url = `${API_BASE}/jellyfin/Users/AuthenticateByName`;
+      const headers = {
+        'Content-Type': 'application/json',
+        'X-Emby-Authorization': `MediaBrowser Client="Request", Device="Browser", DeviceId="request-browser-${Date.now()}", Version="1.0.0"`
+      };
+      const body = JSON.stringify({
+        Username: username,
+        Pw: password
+      });
+      const res = await fetch(url, {
+        method: 'POST',
+        headers,
+        body
+      });
+      if (!res.ok) {
+        const txt = await res.text().catch(() => '');
+        throw new Error(res.status === 401 ? 'Invalid Jellyfin username or password' : `Jellyfin login failed ${res.status}: ${txt.slice(0,200)}`);
+      }
+      return res.json();
+    }
+
+    // INITIAL PROXY CHECK
+    async function checkProxy() {
+      try {
+        const r = await fetch(`${API_BASE}/`).then(r => r.json());
+        $('#proxyStatus').textContent = `Connected to ${r.jellyfin?new URL(r.jellyfin).hostname:'Jellyfin'} • Request proxy ready`;
+      } catch {
+        $('#proxyStatus').textContent = 'Proxy unreachable — check Worker deploy';
+      }
+    }
+    checkProxy();
+
+    // LOGIN HANDLER — REQUIRED EVERY TIME, NO PERSISTENCE
+    $('#loginBtn').onclick = async () => {
+      const u = $('#jfUser').value.trim(),
+        p = $('#jfPass').value;
+      const errBox = $('#loginError');
+      errBox.style.display = 'none';
+      if (!u || !p) {
+        errBox.textContent = 'Enter username and password';
+        errBox.style.display = 'block';
+        return;
+      }
+      $('#loginBtn').disabled = true;
+      $('#loginBtn').textContent = 'Signing in…';
+      try {
+        const data = await jellyfinLogin(u, p);
+        jellyfinToken = data.AccessToken;
+        jellyfinUser = data.User;
+        isAdmin = !!data.User?.Policy?.IsAdministrator || !!data.User?.Policy?.IsAdmin;
+        // Success — show app, hide login
+        $('#loginOverlay').style.display = 'none';
+        $('#app').classList.add('logged');
+        $('#sideName').textContent = data.User.Name;
+        $('#sideRole').textContent = isAdmin ? 'Admin • Jellyfin' : 'User • Jellyfin';
+        $('#sideAvatar').textContent = data.User.Name[0].toUpperCase();
+        $('#topAvatar').textContent = data.User.Name[0].toUpperCase();
+        // Show/hide admin nav
+        $$('.admin-only').forEach(el => el.classList.toggle('show', isAdmin));
+        $('#adminLabel').classList.toggle('show', isAdmin);
+        // No localStorage — memory only, forces login on refresh
+        showToast(`Welcome ${data.User.Name}`, isAdmin ? 'Admin access granted' : 'Standard access', 'ok');
+        loadDiscoverView();
+        updateStatus();
+      } catch (e) {
+        errBox.textContent = e.message;
+        errBox.style.display = 'block';
+      } finally {
+        $('#loginBtn').disabled = false;
+        $('#loginBtn').textContent = 'Sign in with Jellyfin';
+      }
+    };
+
+    $('#jfPass').addEventListener('keydown', e => {
+      if (e.key === 'Enter') $('#loginBtn').click();
+    });
+
+    $('#logoutBtn').onclick = () => {
+      jellyfinToken = null;
+      jellyfinUser = null;
+      isAdmin = false;
+      $$('.admin-only').forEach(el => el.classList.remove('show'));
+      $('#loginOverlay').style.display = 'grid';
+      $('#app').classList.remove('logged');
+      $('#jfPass').value = '';
+      showToast('Logged out', 'Login required again', 'ok');
+    };
+
+    // NAV & UI (same as before but with admin gate)
+    function setNavActive(v) {
+      $$('.nav-item[data-view]').forEach(el => el.classList.toggle('active', el.dataset.view === v));
+    }
+    $('#menuBtn').onclick = () => {
+      const open = $('#sidebar').classList.toggle('open');
+      $('#sidebarOverlay').classList.toggle('show', open);
+    };
+    contentEl.addEventListener('click', () => {
+      if (innerWidth < 760) {
+        $('#sidebar').classList.remove('open');
+        $('#sidebarOverlay').classList.remove('show');
+      }
+    });
+    $('#sidebarOverlay').addEventListener('click', () => {
+      $('#sidebar').classList.remove('open');
+      $('#sidebarOverlay').classList.remove('show');
+    });
+    $('.logo-mark').addEventListener('click', () => {
+      if (jellyfinToken) {
+        loadDiscoverView();
+        setNavActive('discover');
+      } else {
+        showToast('Login required', 'Please sign in with Jellyfin', 'err');
+      }
+    });
+
+    function cardHTML(item) {
+      if (!item || typeof item !== 'object') return '';
+      const title = item.title || item.name || 'Untitled';
+      const yr = yearFrom(item);
+      const rating = item.voteAverage ? item.voteAverage.toFixed(1) : '';
+      const mt = (item.mediaType || (item.title ? 'movie' : 'tv') || 'movie').toLowerCase();
+      const poster = tmdbImg(item.posterPath, 'w300_and_h450_face');
+      const badge = mediaBadge(item.mediaInfo);
+      const meta = [item.originalLanguage ? item.originalLanguage.toUpperCase() : '', item.voteCount ? `${item.voteCount} votes` : ''].filter(Boolean);
+      return `<div class="card" data-id="${item.id}" data-type="${mt}">
+    <div class="card-poster"><img loading="lazy" src="${poster}" onerror="this.src='https://via.placeholder.com/300x450/1f2937/9ca3af?text=No+Image'"><div class="card-gradient"></div><div class="card-topbar"><span class="badge badge-type">${mt}</span>${badge}</div>${rating?`<div class="card-rating">★ ${rating}</div>`:''}</div>
+    <div class="card-info"><div class="card-title">${title}</div><div class="card-sub"><span>${yr||'—'}</span></div><div class="card-meta">${meta.map(m=>`<span>${m}</span>`).join('')}${item.mediaInfo?.status===5?'<span style="background:rgba(16,185,129,.15);color:#6ee7b7;border-color:rgba(16,185,129,.25)">Available</span>':''}</div></div>
+  </div>`;
+    }
+
+    function sliderSection(title, items, id, count) {
+      if (!items?.length) return '';
+      const clean = items.filter(Boolean);
+      if (!clean.length) return '';
+      // cardHTML returns '' for bad items, filter again
+      const cards = clean.map(cardHTML).filter(Boolean).join('');
+      if (!cards) return '';
+      return `<div class="section" id="${id}"><div class="section-head"><div class="section-title">${title} ${count?`<span class="count">${count}</span>`:''}</div><div class="slider-controls"><button class="slider-btn" data-scroll="${id}" data-dir="-1">‹</button><button class="slider-btn" data-scroll="${id}" data-dir="1">›</button></div></div><div class="slider-track" id="${id}-track">${cards}</div></div>`;
+    }
+
+    function renderHero(items) {
+      if (!items || !items.length) return `<div class="empty"><b>No featured</b><br><span style="font-size:12px;color:var(--text-faint)">No trending items returned. Check Request has TMDB connected and Worker vars set.</span></div>`;
+      // Filter out any undefined entries that might have slipped through
+      const clean = items.filter(Boolean);
+      if (!clean.length) return `<div class="empty"><b>No featured</b></div>`;
+      const safeIndex = (typeof heroIndex === 'number' ? heroIndex : 0) % clean.length;
+      const item = clean[safeIndex];
+      if (!item) return `<div class="empty"><b>No featured</b></div>`;
+      const title = item.title || item.name || 'Featured',
+        overview = item.overview || '',
+        bg = tmdbImg(item.backdropPath, 'w1280'),
+        yr = yearFrom(item),
+        rating = item.voteAverage ? item.voteAverage.toFixed(1) : '',
+        mt = (item.mediaType || (item.title ? 'movie' : 'tv')).toUpperCase();
+      const runtime = item.runtime ? `${Math.floor(item.runtime/60)}h ${item.runtime%60}m` : (item.originalLanguage ? item.originalLanguage.toUpperCase() : '');
+      return `<div class="hero" id="hero"><div class="hero-bg" style="background-image:url('${bg}')"></div><div class="hero-overlay"></div><div class="hero-content"><div class="hero-badge">${mt} • ${yr} ${rating?`• ★ ${rating}`:''}</div><h1 class="hero-title">${title}</h1><div class="hero-meta"><span>${runtime}</span><span>${(item.voteCount||0).toLocaleString()} votes</span><span>${(item.genreIds||[]).length?`Genre ${item.genreIds[0]}`:''}</span></div><p class="hero-overview">${overview}</p><div class="hero-actions"><button class="btn btn-primary" style="width:auto" data-action="details" data-id="${item.id}" data-type="${(item.mediaType||'movie')}">View Details</button><button class="btn btn-ghost" style="width:auto" data-action="request" data-id="${item.id}" data-type="${(item.mediaType||'movie')}">Request</button></div></div><div class="hero-dots" id="heroDots">${clean.slice(0,5).map((_,i)=>`<div class="hero-dot ${i===safeIndex?'active':''}" data-i="${i}"></div>`).join('')}</div></div>`;
+    }
+
+    let heroIndex = 0,
+      heroData = [],
+      heroTimer = null,
+      isDemo = false,
+      currentView = 'discover';
+
+    function bindHeroDots() {
+      $$('.hero-dot').forEach(d => {
+        d.onclick = e => {
+          heroIndex = parseInt(e.currentTarget.dataset.i, 10);
+          const h = $('#hero');
+          if (h) {
+            h.outerHTML = renderHero(heroData);
+            bindHeroDots();
+          }
+        };
+      });
+    }
+
+    async function loadDiscoverView() {
+      contentEl.innerHTML = `<div class="sk-hero skeleton"></div><div style="display:flex;gap:14px;margin-top:18px"><div class="sk-card skeleton" style="flex:1"></div><div class="sk-card skeleton" style="flex:1"></div><div class="sk-card skeleton" style="flex:1"></div><div class="sk-card skeleton" style="flex:1"></div></div>`;
+      currentView = 'discover';
+      setNavActive('discover');
+      try {
+        const results = await Promise.allSettled([
+          apiFetch('/discover/trending?page=1'),
+          apiFetch('/discover/movies?sortBy=popularity.desc&page=1'),
+          apiFetch('/discover/movies/upcoming?page=1'),
+          apiFetch('/discover/tv?sortBy=popularity.desc&page=1'),
+          apiFetch('/discover/tv/upcoming?page=1'),
+        ]);
+        const get = (i) => results[i].status === 'fulfilled' ? results[i].value : {
+          results: []
+        };
+        let trending = get(0),
+          popM = get(1),
+          upM = get(2),
+          popT = get(3),
+          upT = get(4);
+
+        const totalCount = (trending.results?.length || 0) + (popM.results?.length || 0) + (popT.results?.length || 0);
+        if (totalCount === 0) {
+          const errors = results.filter(r => r.status === 'rejected').map(r => r.reason?.message || 'unknown');
+          if (errors.length) throw new Error(errors[0].slice(0, 400));
+        }
+
+        // --- RATING FILTER FOR NON-ADMIN ---
+        if (!isAdmin) {
+          // Show filtering notice
+          contentEl.innerHTML = `<div class="empty"><b>Filtering for PG-13 / TV-14 (non-admin)</b><span style="font-size:12px;color:var(--text-faint)">Checking ratings for your view… Admins see all.</span><br><br><div class="skeleton" style="height:20px"></div></div>`;
+          const [fTrending, fPopM, fUpM, fPopT, fUpT] = await Promise.all([
+            filterItemsByRating(trending.results || [], null),
+            filterItemsByRating(popM.results || [], 'movie'),
+            filterItemsByRating(upM.results || [], 'movie'),
+            filterItemsByRating(popT.results || [], 'tv'),
+            filterItemsByRating(upT.results || [], 'tv'),
+          ]);
+          trending = {
+            ...trending,
+            results: (fTrending || []).filter(isReleased)
+          };
+          popM = {
+            ...popM,
+            results: (fPopM || []).filter(isReleased)
+          };
+          upM = {
+            ...upM,
+            results: (fUpM || []).filter(isReleased)
+          };
+          popT = {
+            ...popT,
+            results: (fPopT || []).filter(isReleased)
+          };
+          upT = {
+            ...upT,
+            results: (fUpT || []).filter(isReleased)
+          };
+        }
+
+        heroData = (trending.results || []).filter(Boolean).filter(isReleased).slice(0, 5);
+        heroIndex = 0;
+        if (heroTimer) clearInterval(heroTimer);
+        heroTimer = setInterval(() => {
+          if (!heroData.length) return;
+          heroIndex = (heroIndex + 1) % heroData.length;
+          const h = $('#hero');
+          if (h && currentView === 'discover') {
+            try {
+              h.outerHTML = renderHero(heroData);
+              bindHeroDots();
+            } catch (e) {
+              console.warn('hero rotate error', e);
+            }
+          }
+        }, 6000);
+
+        let html = renderHero(heroData);
+        if (!isAdmin) {
+          html += `<div style="margin-bottom:14px;padding:8px 12px;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.25);border-radius:10px;font-size:12px;color:#fcd34d"><b>Filtered View:</b> Showing only PG-13 and below / TV-14 and below. Admins see all content. <span style="color:var(--text-faint)">${heroData.length} featured after filter</span></div>`;
+        }
+        html += sliderSection('Popular Movies', (popM.results || []).filter(isReleased), 'popMovies', popM.totalResults);
+        html += sliderSection('Upcoming Movies', (upM.results || []).filter(isReleased), 'upMovies');
+        html += sliderSection('Popular TV Shows', (popT.results || []).filter(isReleased), 'popTv');
+        html += sliderSection('Trending Now', (trending.results || []).slice(5, 20).filter(isReleased), 'trending');
+        html += sliderSection('TV — Upcoming', (upT.results || []).filter(isReleased), 'upTv');
+
+        if (!html || html.replace(/<[^>]*>/g, '').trim() === '') {
+          html = `<div class="empty"><b>No content returned (or all filtered for PG-13/TV-14)</b>Request returned empty lists after filtering. Admins can see R / TV-MA.<br><br>Proxy health: <code>${API_BASE}/</code></div>`;
+        }
+
+        contentEl.innerHTML = html;
+        bindHeroDots();
+        isDemo = false;
+      } catch (e) {
+        console.error('loadDiscoverView failed', e);
+        contentEl.innerHTML = `<div class="empty"><b>Failed to load</b><div style="margin-top:8px;font-size:13px;word-break:break-all">${(e.message||'').replace(/</g,'&lt;')}</div><br><div style="background:var(--bg-2);padding:12px;border-radius:10px;text-align:left;font-size:12px"><b>Check Worker vars:</b><br>SEERR_ORIGIN=https://requester.jadesnova.com<br>Secret: SEERR_API_KEY<br>JELLYFIN_ORIGIN=https://jadesnova.com<br><br>Error status: ${e.status||'network'}</div></div>`;
+      }
+    }
+
+    async function loadMoviesView() {
+      currentView = 'movies';
+      setNavActive('movies');
+      contentEl.innerHTML = `<div class="section-head"><div class="section-title">Movies ${!isAdmin?'<span class="count">PG-13 and below only</span>':''}</div></div><div class="filter-bar"><select id="sort" class="select"><option value="popularity.desc">Popular</option><option value="vote_average.desc">Top Rated</option><option value="primary_release_date.desc">Newest</option></select><button class="btn btn-ghost btn-sm" id="loadBtn" style="width:auto">Load</button></div><div class="grid" id="grid"><div class="sk-card skeleton"></div></div>`;
+      async function load() {
+        const sort = $('#sort').value;
+        $('#grid').innerHTML = '<div class="sk-card skeleton"></div>'.repeat(12);
+        try {
+          let d = await apiFetch(`/discover/movies?sortBy=${sort}&page=1`);
+          let results = d.results || [];
+          if (!isAdmin) {
+            results = await filterItemsByRating(results, 'movie');
+          }
+          results = results.filter(isReleased);
+          $('#grid').innerHTML = results.map(cardHTML).join('') || `<div class="empty"><b>No results</b>${!isAdmin?'All R-rated content is hidden for your account (PG-13 and below only). Admins see all.':''}</div>`;
+        } catch (e) {
+          $('#grid').innerHTML = `<div class="empty">${e.message}</div>`;
+        }
+      }
+      $('#loadBtn').onclick = load;
+      $('#sort').onchange = load;
+      await load();
+    }
+    async function loadTvView() {
+      currentView = 'tv';
+      setNavActive('tv');
+      contentEl.innerHTML = `<div class="section-head"><div class="section-title">TV Shows ${!isAdmin?'<span class="count">TV-14 and below only</span>':''}</div></div><div class="grid" id="grid"><div class="sk-card skeleton"></div></div>`;
+      try {
+        let d = await apiFetch('/discover/tv?sortBy=popularity.desc&page=1');
+        let results = d.results || [];
+        if (!isAdmin) {
+          results = await filterItemsByRating(results, 'tv');
+        }
+        results = results.filter(isReleased);
+        $('#grid').innerHTML = results.map(cardHTML).join('') || `<div class="empty"><b>No results</b>${!isAdmin?'All TV-MA content is hidden for your account (TV-14 and below only).':''}</div>`;
+      } catch (e) {
+        $('#grid').innerHTML = `<div class="empty">${e.message}</div>`;
+      }
+    }
+    async function loadRequestsView(ownOnly = true) {
+      currentView = 'requests';
+      setNavActive(ownOnly ? 'requests' : 'all-requests');
+      const filter = ownOnly ? '' : 'all';
+      contentEl.innerHTML = `<div class="section-head"><div class="section-title">${ownOnly?'My Requests':'All Requests (Admin)'} ${!isAdmin && !ownOnly?'<span class="count">Admin only</span>':''}</div></div><div class="tabs"><div class="tab active" data-f="all">All</div><div class="tab" data-f="pending">Pending</div><div class="tab" data-f="approved">Approved</div><div class="tab" data-f="available">Available</div></div><div class="req-list" id="list"><div class="skeleton" style="height:100px"></div></div>`;
+      if (!ownOnly && !isAdmin) {
+        $('#list').innerHTML = `<div class="empty"><b>Admin only</b>Only Jellyfin admins can view all requests.</div>`;
+        return;
+      }
+      $$('.tab').forEach(t => t.onclick = e => {
+        $$('.tab').forEach(x => x.classList.remove('active'));
+        e.currentTarget.classList.add('active');
+        loadFiltered(e.currentTarget.dataset.f, ownOnly);
+      });
+      async function loadFiltered(f, own) {
+        $('#list').innerHTML = `<div class="skeleton" style="height:100px"></div>`;
+        try {
+          const data = await apiFetch(`/request?take=40&filter=${f}`);
+          let results = data.results || [];
+          // Filter for user's own requests when in ownOnly mode (non-admin can only see their own)
+          if (ownOnly && !isAdmin && jellyfinUser) {
+            const userName = jellyfinUser?.Name || jellyfinUser?.Username || '';
+            results = results.filter(r => {
+              const by = r.requestedBy?.displayName || r.requestedBy?.username || '';
+              return by === userName || by === (jellyfinUser?.Username || userName);
+            });
+          }
+          if (results.length === 0) {
+            $('#list').innerHTML = `<div class="empty">No ${f} requests</div>`;
+            return;
+          }
+          // Enrich with details for metadata visibility
+          const enriched = await Promise.all(results.map(async r => {
+            const tmdbId = r.media?.tmdbId;
+            const type = r.type || 'movie';
+            let det = null;
+            try {
+              if (tmdbId) det = await apiFetch(`/${type}/${tmdbId}`).catch(() => null);
+            } catch {}
+            return {
+              req: r,
+              det,
+              tmdbId,
+              type
+            };
+          }));
+          $('#list').innerHTML = enriched.map(({
+            req,
+            det,
+            tmdbId,
+            type
+          }) => {
+            const title = det?.title || det?.name || `TMDB ${tmdbId}`;
+            const poster = det ? tmdbImg(det.posterPath, 'w300') : `https://via.placeholder.com/300x450/1f2937/9ca3af?text=${type}`;
+            const yr = det ? yearFrom(det) : '';
+            const by = req.requestedBy?.displayName || req.requestedBy?.username || 'User';
+            const overview = det?.overview ? det.overview.slice(0, 120) + '...' : '';
+            return `<div class="req-card"><div class="req-poster"><img src="${poster}"></div><div class="req-info"><div class="req-title">${title}</div><div class="req-sub"><span>${type.toUpperCase()} ${yr}</span><span>• ${by}</span><span>• ${new Date(req.createdAt).toLocaleDateString()}</span></div><div style="font-size:12px;color:var(--text-faint);margin-top:6px">${overview}</div><div class="req-status">${requestBadge(req.status)} ${mediaBadge(req.media)} ${isAdmin?`<button class="btn btn-ghost btn-sm" style="width:auto;padding:4px 8px" data-approve="${req.id}">Approve</button><button class="btn btn-ghost btn-sm" style="width:auto" data-decline="${req.id}">Decline</button>`:''}${(ownOnly && !isAdmin)?`<button class="btn btn-ghost btn-sm" style="width:auto;padding:4px 8px;background:rgba(239,68,68,.15);border-color:rgba(239,68,68,.35);color:#fca5a5" data-cancel="${req.id}">Cancel</button>`:''}<button class="btn btn-ghost btn-sm" style="width:auto" data-action="details" data-id="${tmdbId}" data-type="${type}">View</button></div></div></div>`;
+          }).join('');
+          // Admin actions
+          if (isAdmin) {
+            $$('[data-approve]').forEach(b => b.onclick = async e => {
+              const id = e.currentTarget.getAttribute('data-approve');
+              try {
+                await apiFetch(`/request/${id}/approve`, {
+                  method: 'POST'
+                });
+                showToast('Approved', `Request ${id}`, 'ok');
+                loadFiltered(f, own);
+              } catch (err) {
+                showToast('Failed', err.message, 'err');
+              }
+            });
+            $$('[data-decline]').forEach(b => b.onclick = async e => {
+              const id = e.currentTarget.getAttribute('data-decline');
+              try {
+                await apiFetch(`/request/${id}/decline`, {
+                  method: 'POST'
+                });
+                showToast('Declined', `Request ${id}`, 'ok');
+                loadFiltered(f, own);
+              } catch (err) {
+                showToast('Failed', err.message, 'err');
+              }
+            });
+          }
+          // Cancel actions for own requests
+          $$('[data-cancel]').forEach(b => b.onclick = async e => {
+            const id = e.currentTarget.getAttribute('data-cancel');
+            if (!confirm('Cancel this request?')) return;
+            try {
+              await apiFetch(`/request/${id}`, {
+                method: 'DELETE'
+              });
+              showToast('Cancelled', `Request ${id}`, 'ok');
+              loadFiltered(f, own);
+            } catch (err) {
+              showToast('Failed', err.message, 'err');
+            }
+          });
+        } catch (e) {
+          $('#list').innerHTML = `<div class="empty">Failed: ${e.message}</div>`;
+        }
+      }
+      await loadFiltered('all', ownOnly);
+    }
+
+    async function loadUsersView() {
+      if (!isAdmin) {
+        contentEl.innerHTML = `<div class="empty"><b>Admin only</b>Only Jellyfin admins can view users.</div>`;
+        return;
+      }
+      currentView = 'users';
+      setNavActive('users');
+      contentEl.innerHTML = `<div class="section-title">Users (Admin — Request)</div><div id="usersList"><div class="skeleton" style="height:200px"></div></div>`;
+      try {
+        const data = await apiFetch('/user?take=50');
+        const users = data.results || data || [];
+        $('#usersList').innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;margin-top:16px">${users.map(u=>`<div style="background:var(--bg-2);border:1px solid var(--border);border-radius:14px;padding:14px"><div style="display:flex;gap:10px;align-items:center"><div class="user-avatar">${(u.displayName||u.username||u.email||'?')[0].toUpperCase()}</div><div><div style="font-weight:700;font-size:13px">${u.displayName||u.username||u.email}</div><div style="font-size:11px;color:var(--text-faint)">${u.email||''} • ID ${u.id}</div><div style="font-size:11px;color:var(--text-dim)">Requests: ${u.requestCount||0} • Type: ${u.userType===1?'Admin':'User'}</div></div></div></div>`).join('')}</div>`;
+      } catch (e) {
+        $('#usersList').innerHTML = `<div class="empty">Failed: ${e.message}</div>`;
+      }
+    }
+
+    async function loadAdminSettingsView() {
+      if (!isAdmin) {
+        contentEl.innerHTML = `<div class="empty"><b>Admin only</b>Request settings require Jellyfin admin.</div>`;
+        return;
+      }
+      currentView = 'admin-settings';
+      setNavActive('admin-settings');
+      contentEl.innerHTML = `<div class="section-title">Request Settings (Admin)</div><div class="hint" style="margin-bottom:16px">Full Request settings fetched via secure proxy. Only Jellyfin admins see this.</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:16px"><div id="mainSet"><div class="skeleton" style="height:180px"></div></div><div id="aboutSet"><div class="skeleton" style="height:180px"></div></div></div><div id="otherSet" style="margin-top:16px"><div class="skeleton" style="height:200px"></div></div>`;
+      try {
+        const [main, about, publicSet] = await Promise.all([
+          apiFetch('/settings/main').catch(e => ({
+            error: e.message
+          })),
+          apiFetch('/settings/about').catch(e => ({
+            error: e.message
+          })),
+          apiFetch('/settings/public').catch(e => ({
+            error: e.message
+          })),
+        ]);
+        $('#mainSet').innerHTML = `<div style="background:var(--bg-2);border:1px solid var(--border);border-radius:14px;padding:16px"><b style="font-size:13px">Main Settings</b><pre style="margin-top:10px;background:var(--bg-1);padding:12px;border-radius:10px;font-size:11px;overflow:auto;max-height:300px;border:1px solid var(--border)">${JSON.stringify(main,null,2)}</pre></div>`;
+        $('#aboutSet').innerHTML = `<div style="background:var(--bg-2);border:1px solid var(--border);border-radius:14px;padding:16px"><b style="font-size:13px">About / Stats</b><pre style="margin-top:10px;background:var(--bg-1);padding:12px;border-radius:10px;font-size:11px;overflow:auto;max-height:300px;border:1px solid var(--border)">${JSON.stringify(about,null,2)}</pre></div>`;
+        $('#otherSet').innerHTML = `<div style="background:var(--bg-2);border:1px solid var(--border);border-radius:14px;padding:16px"><b style="font-size:13px">Public Settings</b><pre style="margin-top:10px;background:var(--bg-1);padding:12px;border-radius:10px;font-size:11px;overflow:auto;max-height:300px;border:1px solid var(--border)">${JSON.stringify(publicSet,null,2)}</pre><div style="margin-top:12px;display:flex;gap:8px"><button class="btn btn-ghost btn-sm" style="width:auto" onclick="window.open('${API_BASE}/api/v1/settings/main','_blank')">Open raw API</button></div></div>`;
+      } catch (e) {
+        contentEl.innerHTML = `<div class="empty">Failed: ${e.message}</div>`;
+      }
+    }
+
+    async function loadStatusView() {
+      if (!isAdmin) {
+        contentEl.innerHTML = `<div class="empty"><b>Admin only</b>Only Jellyfin admins can view system status.</div>`;
+        return;
+      }
+      currentView = 'status';
+      setNavActive('status');
+      contentEl.innerHTML = `<div class="section-title">System Status (Admin)</div><div id="statusBox"><div class="skeleton" style="height:180px;margin-top:12px"></div></div>`;
+      try {
+        const s = await apiFetch('/status');
+        $('#statusBox').innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-top:16px"><div style="background:var(--bg-2);border:1px solid var(--border);border-radius:14px;padding:18px"><b>Request Version</b><div style="font-size:32px;font-weight:900;margin-top:8px">${s.version||'?'} </div><div style="color:var(--text-dim);font-size:12px;margin-top:6px">Commit: ${s.commitTag||'unknown'} • Update: ${s.updateAvailable?'Yes':'No'}</div></div><div style="background:var(--bg-2);border:1px solid var(--border);border-radius:14px;padding:18px"><b>Jellyfin User</b><div style="margin-top:10px;font-size:13px">Name: ${jellyfinUser?.Name}<br>ID: ${jellyfinUser?.Id}<br>Admin: ${isAdmin?'Yes':'No'}<br>Token: ${jellyfinToken?jellyfinToken.slice(0,8)+'...':''}</div></div></div><pre style="margin-top:16px;background:var(--bg-1);padding:12px;border-radius:10px;border:1px solid var(--border);font-size:12px;overflow:auto">${JSON.stringify(s,null,2)}</pre>`;
+      } catch (e) {
+        $('#statusBox').innerHTML = `<div class="empty">${e.message}</div>`;
+      }
+    }
+
+    // DETAIL — ensures metadata visible + rating gate for non-admin
+    async function openDetail(id, type) {
+      const modal = $('#detailModal'),
+        inner = $('#detailModalInner');
+      modal.classList.add('show');
+      inner.innerHTML = `<div style="padding:60px;text-align:center">Loading ${type} ${id} — fetching metadata…</div>`;
+      document.body.style.overflow = 'hidden';
+      try {
+        const data = type === 'movie' ? await apiFetch(`/movie/${id}`) : await apiFetch(`/tv/${id}`);
+        const title = data.title || data.name;
+        const bg = tmdbImg(data.backdropPath, 'w1280'),
+          poster = tmdbImg(data.posterPath, 'w500'),
+          yr = yearFrom(data),
+          rating = data.voteAverage ? data.voteAverage.toFixed(1) : '',
+          genres = (data.genres || []).map(g => g.name).join(', '),
+          cast = (data.credits?.cast || []).slice(0, 10);
+        const runtime = data.runtime ? `${Math.floor(data.runtime/60)}h ${data.runtime%60}m` : (data.episodeRunTime?.[0] ? `${data.episodeRunTime[0]}m eps` : '');
+        const isAvail = data.mediaInfo?.status === 5;
+        // Rating gate
+        const cert = type === 'movie' ? getMovieCert(data) : getTvRating(data);
+        const allowedForNonAdmin = type === 'movie' ? isMovieAllowedForNonAdmin(cert) : isTvAllowedForNonAdmin(cert);
+        const isRestricted = !isAdmin && !allowedForNonAdmin;
+        let seasonsHtml = '';
+        if (type === 'tv' && data.seasons) {
+          seasonsHtml = `<div style="margin-top:16px"><div class="section-title" style="font-size:15px">Seasons • ${data.numberOfSeasons||data.seasons.length}</div><div class="seasons">${data.seasons.filter(s=>s.seasonNumber!==0).map(s=>`<div class="season-row"><div><b>Season ${s.seasonNumber}</b> <span style="color:var(--text-faint);font-size:12px">• ${s.episodeCount||'?'} eps ${s.airDate? '• '+s.airDate.slice(0,4):''}</span><div style="font-size:11px;color:var(--text-faint);margin-top:2px">${s.overview? s.overview.slice(0,100):''}</div></div></div>`).join('')}</div></div>`;
+        }
+        // Build action buttons with rating gate
+        let actionButtons = '';
+        if (isRestricted) {
+          actionButtons = `<div style="padding:10px 14px;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.25);border-radius:10px;color:#fca5a5;font-size:12px"><b>🔞 Restricted: ${cert||'R / TV-MA'}</b><br>Non-admin users can only request PG-13 and below / TV-14 and below. Admins can request this title. Your account: ${isAdmin?'Admin':'User'} • Rating: ${cert||'Unknown (blocked)'}</div>`;
+        } else if (isAvail) {
+          actionButtons = `<button class="btn btn-ghost" disabled style="width:auto">✓ Available</button>`;
+        } else {
+          actionButtons = `<button class="btn btn-primary" style="width:auto" id="reqBtn">Request ${type}</button>`;
+        }
+
+        inner.innerHTML = `<div class="detail-hero"><div class="detail-backdrop" style="background-image:url('${bg}')"></div><button class="detail-close" id="closeDetail">✕</button><div class="detail-body"><div class="detail-poster"><img src="${poster}"></div><div class="detail-main"><h2 class="detail-title">${title}</h2>${data.tagline?`<div class="detail-tagline">"${data.tagline}"</div>`:''}<div class="detail-meta-row">${yr?`<span class="detail-pill">${yr}</span>`:''}${runtime?`<span class="detail-pill">${runtime}</span>`:''}${rating?`<span class="detail-pill">★ ${rating}</span>`:''}${cert?`<span class="detail-pill" style="${isRestricted?'background:rgba(239,68,68,.15);border-color:rgba(239,68,68,.3);color:#fca5a5':''}">${cert}${isRestricted?' • Restricted':''}</span>`:''}${mediaBadge(data.mediaInfo)}<span class="detail-pill">${data.status||''}</span></div><div class="detail-overview">${data.overview||'No overview available.'}</div><div style="margin-top:10px;color:var(--text-faint);font-size:12px">Genres: ${genres||'N/A'} • Language: ${data.originalLanguage||'—'} • Votes: ${(data.voteCount||0).toLocaleString()} ${!isAdmin?`• <span style="color:${isRestricted?'#fca5a5':'#6ee7b7'}">${isRestricted?'Blocked for your rating level (PG-13/TV-14)':'Allowed for PG-13/TV-14'}</span>`:''}</div><div class="detail-actions">${actionButtons}<button class="btn btn-ghost" style="width:auto" id="trailerBtn">▶ Trailer</button><button class="btn btn-ghost" style="width:auto" id="close2">Close</button></div></div></div></div><div class="detail-content"><div class="detail-grid"><div><div class="section-title" style="font-size:15px">Cast & Crew</div><div class="cast-track" style="margin-top:10px">${cast.length?cast.map(c=>`<div class="cast-card"><div class="cast-avatar"><img src="${tmdbImg(c.profilePath,'w185')}"></div><div class="cast-name">${c.name}</div><div class="cast-char">${c.character||c.job||''}</div></div>`).join(''):'<span style="color:var(--text-faint);font-size:13px">No cast</span>'}</div>${seasonsHtml}<div id="moreLike" style="margin-top:22px"></div></div><div><div style="background:var(--bg-1);border:1px solid var(--border);border-radius:12px;padding:14px"><div style="font-weight:700;font-size:13px">Metadata</div><div style="font-size:12px;color:var(--text-dim);margin-top:8px;line-height:1.6">Type: ${type}<br>Status: ${data.status||'—'}<br>Original: ${data.originalTitle||data.originalName||'—'}<br>Rating: ${data.voteAverage} (${data.voteCount} votes)<br>TMDB ID: ${data.id}<br>${data.imdbId?`IMDB: ${data.imdbId}<br>`:''}Budget: ${data.budget? '$'+(data.budget/1000000).toFixed(1)+'M':'—'}<br>Revenue: ${data.revenue? '$'+(data.revenue/1000000).toFixed(0)+'M':'—'}</div></div></div></div></div>`;
+        $('#closeDetail').onclick = closeDetail;
+        $('#close2').onclick = closeDetail;
+        $('#reqBtn')?.addEventListener('click', async () => {
+          const btn = $('#reqBtn');
+          btn.disabled = true;
+          btn.textContent = 'Requesting…';
+          try {
+            const payload = {
+              mediaId: data.id,
+              mediaType: type
+            };
+            if (type === 'tv') payload.seasons = 'all';
+            // No requestedBy - Worker will tag with exact Jellyfin user via Seerr session cookie
+            const reqResp2 = await apiFetch('/request', {
+              method: 'POST',
+              body: JSON.stringify(payload)
+            });
+            const taggedAs = reqResp2.requestedBy?.displayName || reqResp2.requestedBy?.username || reqResp2._taggedAs || jellyfinUser?.Name || 'you';
+            const isPending = reqResp2.status === 1 || reqResp2._isPending;
+            if (reqResp2._warning) {
+              showToast('Check Seerr permissions', reqResp2._warning, 'err');
+            }
+            if (isPending) {
+              showToast(`Pending as ${taggedAs}`, `"${title}" requested as ${taggedAs} - pending admin approval. Tagged correctly.`, 'ok');
+              btn.textContent = 'Pending ✓';
+            } else if (reqResp2.status === 2) {
+              showToast(`Requested as ${taggedAs} (Auto-approved)`, `Admin auto-approved - ${taggedAs}`, 'ok');
+              btn.textContent = 'Approved ✓';
+            } else {
+              showToast(`Requested as ${taggedAs}`, `${title} - status ${reqResp2.status}`, 'ok');
+              btn.textContent = 'Requested ✓';
+            }
+          } catch (e) {
+            showToast('Failed', e.message, 'err');
+            btn.disabled = false;
+            btn.textContent = 'Retry';
+          }
+        });
+        const trailer = (data.relatedVideos || []).find(v => v.type === 'Trailer') || (data.relatedVideos || [])[0];
+        $('#trailerBtn').onclick = () => {
+          const url = trailer?.url || (trailer?.key ? `https://www.youtube.com/watch?v=${trailer.key}` : null);
+          if (url) window.open(url, '_blank');
+          else showToast('No trailer');
+        };
+        // Similar
+        try {
+          const sim = await apiFetch(`/${type}/${id}/similar`).catch(() => ({
+            results: []
+          }));
+          const rec = await apiFetch(`/${type}/${id}/recommendations`).catch(() => ({
+            results: []
+          }));
+          const comb = [...(rec.results || []).slice(0, 8), ...(sim.results || []).slice(0, 8)];
+          if (comb.length) $('#moreLike').innerHTML = `<div class="section-title" style="font-size:15px">More Like This</div><div class="slider-track" style="margin-top:10px">${comb.map(cardHTML).join('')}</div>`;
+        } catch {}
+      } catch (e) {
+        inner.innerHTML = `<div style="padding:40px;text-align:center"><b>Failed to load metadata</b><div style="color:var(--text-dim);margin-top:8px">${e.message}</div><br><button class="btn btn-ghost" style="width:auto" id="c2">Close</button></div>`;
+        $('#c2').onclick = closeDetail;
+      }
+    }
+
+    function closeDetail() {
+      $('#detailModal').classList.remove('show');
+      document.body.style.overflow = '';
+    }
+    $('#detailModal').addEventListener('click', e => {
+      if (e.target.id === 'detailModal') closeDetail();
+    });
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') closeDetail();
+    });
+
+    function updateStatus() {
+      $('#statusDot').style.background = isAdmin ? 'var(--green)' : '#60a5fa';
+      $('#statusText').textContent = isAdmin ? `Admin • ${jellyfinUser?.Name}` : `User • ${jellyfinUser?.Name}`;
+    }
+
+    // --- KILLSWITCH ---
+    function loadKillswitchView() {
+      currentView = 'killswitch';
+      setNavActive('killswitch');
+      const savedUrl = localStorage.getItem('killswitch_url') || '';
+      contentEl.innerHTML = `<div class="section-title">Killswitch <span style="font-size:12px;color:var(--text-faint)">Floating star button</span></div>
+  <div style="max-width:520px;margin-top:14px;background:var(--bg-2);border:1px solid var(--border);border-radius:16px;padding:20px">
+    <label style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim);font-weight:700">Configure URL</label>
+    <input id="ksUrl" class="input" style="margin-top:8px" placeholder="https://example.com" value="${savedUrl}">
+    <label style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim);font-weight:700;margin-top:14px;display:block">Star Color</label>
+    <input id="ksColor" type="color" value="${localStorage.getItem('star_color')||'#f59e0b'}" style="margin-top:6px;width:100%;height:40px;border-radius:10px;border:1px solid var(--border);background:var(--bg-1);cursor:pointer">
+    <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap">
+      <button class="btn btn-primary" id="ksSave" style="width:auto">Save</button>
+      <button class="btn btn-ghost" id="ksClear" style="width:auto">Clear & Hide</button>
+    </div>
+    <label style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim);font-weight:700;margin-top:14px;display:block">Desktop Mode</label>
+    <label style="display:flex;align-items:center;gap:8px;margin-top:6px;cursor:pointer">
+      <input id="ksDesktop" type="checkbox" ${localStorage.getItem('desktop_mode')==='1'?'checked':''} style="width:18px;height:18px;accent-color:var(--purple)">
+      <span style="font-size:13px;color:var(--text-dim)">Enable desktop formatting (always show sidebar, disable mobile adjustments)</span>
+    </label>
+    <div class="hint" style="margin-top:14px">The bright yellow star will float over the UI. Tap it to jump to the saved URL. Drag it to move. Change color above.</div>
+  </div>`;
+      $('#ksSave').onclick = () => {
+        const url = $('#ksUrl').value.trim();
+        const color = $('#ksColor').value;
+        if (!url) return showToast('Enter a URL', 'Paste a URL first', 'err');
+        try {
+          new URL(url);
+        } catch {
+          return showToast('Invalid URL', 'Must start with http:// or https://', 'err');
+        }
+        localStorage.setItem('killswitch_url', url);
+        localStorage.setItem('star_color', color);
+        showToast('Saved', 'URL and color saved', 'ok');
+        initStarButton();
+        applyStarColor();
+      };
+      $('#ksDesktop').onchange = () => {
+        if ($('#ksDesktop').checked) {
+          localStorage.setItem('desktop_mode', '1');
+          document.body.classList.add('desktop-mode');
+        } else {
+          localStorage.removeItem('desktop_mode');
+          document.body.classList.remove('desktop-mode');
+        }
+        showToast('Desktop mode', 'Formatting updated', 'ok');
+      };
+      $('#ksClear').onclick = () => {
+        localStorage.removeItem('killswitch_url');
+        $('#ksUrl').value = '';
+        $('#starBtn').style.display = 'none';
+        showToast('Cleared', 'Star hidden', 'ok');
+      };
+      initStarButton();
+    }
+
+    function initStarButton() {
+      const star = $('#starBtn');
+      if (!star) return;
+      const url = localStorage.getItem('killswitch_url');
+      if (url) {
+        star.style.display = 'flex';
+        star.style.bottom = '24px';
+        star.style.right = '24px';
+        star.style.top = 'auto';
+        star.style.left = 'auto';
+      } else {
+        star.style.display = 'none';
+      }
+      applyStarColor();
+    }
+
+    function applyStarColor() {
+      const star = $('#starBtn');
+      if (!star) return;
+      const color = localStorage.getItem('star_color') || '#f59e0b';
+      star.style.background = color;
+    }
+    // Make star draggable and clickable
+    (function setupStar() {
+      const star = $('#starBtn');
+      if (!star) return;
+      let isDragging = false,
+        startX, startY, initialBottom, initialRight;
+      star.addEventListener('mousedown', e => {
+        isDragging = true;
+        startX = e.clientX;
+        startY = e.clientY;
+        initialBottom = parseFloat(star.style.bottom || '24');
+        initialRight = parseFloat(star.style.right || '24');
+        star.style.cursor = 'grabbing';
+      });
+      document.addEventListener('mousemove', e => {
+        if (!isDragging) return;
+        const dx = startX - e.clientX;
+        const dy = startY - e.clientY;
+        star.style.right = Math.max(10, initialRight + dx) + 'px';
+        star.style.bottom = Math.max(10, initialBottom + dy) + 'px';
+        star.style.top = 'auto';
+        star.style.left = 'auto';
+      });
+      document.addEventListener('mouseup', () => {
+        isDragging = false;
+        star.style.cursor = 'grab';
+      });
+      star.addEventListener('click', e => {
+        if (isDragging) return; // prevent navigating while dragging
+        if (currentView === 'killswitch') return; // allow moving only while on killswitch tab
+        const url = localStorage.getItem('killswitch_url');
+        if (url) {
+          window.location.href = url;
+        } else {
+          showToast('Configure first', 'Go to Killswitch tab to set a URL', 'err');
+        }
+      });
+      // Touch support
+      star.addEventListener('touchstart', e => {
+        isDragging = true;
+        const t = e.touches[0];
+        startX = t.clientX;
+        startY = t.clientY;
+        initialBottom = parseFloat(star.style.bottom || '24');
+        initialRight = parseFloat(star.style.right || '24');
+      }, {
+        passive: true
+      });
+      document.addEventListener('touchmove', e => {
+        if (!isDragging) return;
+        const t = e.touches[0];
+        const dx = startX - t.clientX;
+        const dy = startY - t.clientY;
+        star.style.right = Math.max(10, initialRight + dx) + 'px';
+        star.style.bottom = Math.max(10, initialBottom + dy) + 'px';
+        star.style.top = 'auto';
+        star.style.left = 'auto';
+      }, {
+        passive: true
+      });
+      document.addEventListener('touchend', () => {
+        isDragging = false;
+      });
+    })();
+
+    // --- INTERNET CONNECTION TEST (Cloudflare embedded, no iframe) ---
+    async function loadInternetView() {
+      currentView = 'internet';
+      setNavActive('internet');
+      contentEl.innerHTML = `<div class="section-title">Internet Connection <span style="font-size:12px;color:var(--text-faint)">Cloudflare Speedtest</span></div>
+  <div style="max-width:640px;margin-top:14px;background:var(--bg-2);border:1px solid var(--border);border-radius:16px;padding:20px">
+    <div style="font-size:13px;color:var(--text-dim);margin-bottom:16px">Real download and upload test powered by Cloudflare (<b>speed.cloudflare.com</b>). Measures your actual bandwidth directly in this page.</div>
+    <div id="netStatus">Ready to test</div>
+    <div style="margin-top:20px;display:flex;gap:12px;flex-wrap:wrap">
+      <button class="btn btn-primary" id="netStart" style="width:auto">Run Test</button>
+    </div>
+    <div id="netResult" style="margin-top:20px"></div>
+  </div>`;
+      $('#netStart').onclick = runInternetTest;
+    }
+
+    async function runInternetTest() {
+      const status = $('#netStatus');
+      const result = $('#netResult');
+      status.innerHTML = '<span class="dot" style="background:var(--yellow)"></span> Testing download via Cloudflare...';
+      result.innerHTML = '';
+
+      try {
+        // DOWNLOAD: fetch progressively larger chunks from Cloudflare __down endpoint
+        const downloadBytes = 5 * 1024 * 1024; // ~5MB
+        const startDl = performance.now();
+        const dlResp = await fetch('https://speed.cloudflare.com/__down?bytes=' + downloadBytes + '&meas=' + Date.now(), {
+          method: 'GET',
+          cache: 'no-store'
+        });
+        const dlBuffer = await dlResp.arrayBuffer();
+        const endDl = performance.now();
+        const dlSec = (endDl - startDl) / 1000;
+        const dlMbps = (dlBuffer.byteLength * 8) / (dlSec * 1000000);
+
+        status.innerHTML = '<span class="dot" style="background:var(--yellow)"></span> Testing upload via Cloudflare...';
+
+        // UPLOAD: POST binary payload to Cloudflare __up endpoint
+        const uploadBytes = 2 * 1024 * 1024; // ~2MB
+        const uploadPayload = new Uint8Array(uploadBytes);
+        for (let i = 0; i < uploadPayload.length; i += 4096) uploadPayload.set(new Uint8Array(Math.min(4096, uploadPayload.length - i)).map((_, j) => (i + j) % 256), i);
+        const startUp = performance.now();
+        const upResp = await fetch('https://speed.cloudflare.com/__up?meas=' + Date.now(), {
+          method: 'POST',
+          body: uploadPayload,
+          headers: {
+            'Content-Type': 'application/octet-stream'
+          },
+          mode: 'cors',
+          cache: 'no-store'
+        });
+        const endUp = performance.now();
+        const upSec = (endUp - startUp) / 1000;
+        const upMbps = (uploadPayload.byteLength * 8) / (upSec * 1000000);
+
+        // Standard quality rating based on measured speeds
+        function rateConnection(downloadMbps, uploadMbps) {
+          if (downloadMbps >= 50 && uploadMbps >= 20) return {
+            label: 'Good',
+            color: '#10b981',
+            desc: 'Fast broadband — streaming, video calls, and large downloads work smoothly.'
+          };
+          if (downloadMbps >= 15 && uploadMbps >= 5) return {
+            label: 'Decent',
+            color: '#f59e0b',
+            desc: 'Average connection — everyday browsing and HD streaming are fine; large uploads may be slow.'
+          };
+          return {
+            label: 'Bad',
+            color: '#ef4444',
+            desc: 'Slow connection — consider resetting your router, moving closer to Wi-Fi, or contacting your ISP.'
+          };
+        }
+        const rating = rateConnection(dlMbps, upMbps);
+
+        status.innerHTML = '<span class="dot" style="background:var(--green)"></span> Test complete';
+        result.innerHTML = `
+      <div style="margin-top:20px;background:var(--bg-1);border:1px solid var(--border);border-radius:14px;padding:18px">
+        <h3 style="margin:0 0 14px;font-size:16px;font-weight:800">Cloudflare Speedtest Results</h3>
+        <div style="display:flex;gap:24px;flex-wrap:wrap">
+          <div><div style="font-size:11px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;font-weight:700">Download</div><div style="font-size:28px;font-weight:900;color:var(--green);line-height:1.2">${dlMbps.toFixed(1)} <span style="font-size:14px;color:var(--text-dim);font-weight:600">Mbps</span></div></div>
+          <div><div style="font-size:11px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;font-weight:700">Upload</div><div style="font-size:28px;font-weight:900;color:#f59e0b;line-height:1.2">${upMbps.toFixed(1)} <span style="font-size:14px;color:var(--text-dim);font-weight:600">Mbps</span></div></div>
+        </div>
+        <div style="margin-top:20px;background:rgba(255,255,255,.05);border:1px solid ${rating.color};border-radius:14px;padding:16px">
+          <div style="font-size:13px;color:var(--text-dim);margin-bottom:6px">Standard Quality Rating</div>
+          <div style="font-size:26px;font-weight:900;color:${rating.color};line-height:1.2">${rating.label}</div>
+          <div style="font-size:13px;color:var(--text-dim);margin-top:4px">${rating.desc}</div>
+        </div>
+        <div style="margin-top:14px;font-size:12px;color:var(--text-faint)">Measured against <b>Cloudflare</b> edge network. Download: ${(dlBuffer.byteLength/1024/1024).toFixed(1)} MB · Upload: ${(uploadPayload.byteLength/1024/1024).toFixed(1)} MB</div>
+      </div>`;
+      } catch (err) {
+        status.innerHTML = '<span class="dot" style="background:var(--red)"></span> Test failed';
+        result.innerHTML = '<div style="margin-top:14px;color:#fca5a5;font-size:13px">Could not reach Cloudflare speed test servers. Check your connection and try again.</div>';
+      }
+    }
+
+    document.addEventListener('click', e => {
+      const card = e.target.closest('.card');
+      if (card && !e.target.closest('button')) {
+        openDetail(card.dataset.id, card.dataset.type || 'movie');
+        return;
+      }
+      const btn = e.target.closest('[data-action]');
+      if (btn) {
+        const id = btn.dataset.id,
+          type = btn.dataset.type;
+        if (btn.dataset.action === 'details') {
+          openDetail(id, type);
+        }
+        if (btn.dataset.action === 'request') {
+          (async () => {
+            try {
+              // Rating gate for non-admin on quick request
+              if (!isAdmin) {
+                const cacheKey = `${type}-${id}`;
+                let allowed = true;
+                let cert = null;
+                if (ratingCache.has(cacheKey)) {
+                  allowed = ratingCache.get(cacheKey).allowed;
+                  cert = ratingCache.get(cacheKey).cert;
+                } else {
+                  try {
+                    const details = await apiFetch(`/${type==='tv'?'tv':'movie'}/${id}`);
+                    cert = type === 'tv' ? getTvRating(details) : getMovieCert(details);
+                    allowed = type === 'tv' ? isTvAllowedForNonAdmin(cert) : isMovieAllowedForNonAdmin(cert);
+                    ratingCache.set(cacheKey, {
+                      cert,
+                      allowed,
+                      type
+                    });
+                  } catch {
+                    allowed = true;
+                  }
+                }
+                if (!allowed) {
+                  showToast('Blocked — Rating limit', `This title is rated ${cert||'R/TV-MA'}. Non-admin users can only request PG-13 and below / TV-14 and below. Admins can request it.`, 'err');
+                  return;
+                }
+              }
+              const payload2 = {
+                mediaId: parseInt(id, 10),
+                mediaType: type
+              };
+              if (type === 'tv') payload2.seasons = 'all';
+              const reqResp = await apiFetch('/request', {
+                method: 'POST',
+                body: JSON.stringify(payload2)
+              });
+              const taggedAs2 = reqResp.requestedBy?.displayName || reqResp.requestedBy?.username || jellyfinUser?.Name || 'you';
+              if (reqResp.status === 1) {
+                showToast(`Pending as ${taggedAs2}`, `Queued as ${taggedAs2} - pending approval, tagged correctly`, 'ok');
+              } else if (reqResp.status === 2 && !isAdmin) {
+                showToast(`Warning: still auto-approved`, `Check Seerr user ${taggedAs2} has AUTO_APPROVE=false in Settings`, 'err');
+              } else {
+                showToast(`Requested as ${taggedAs2}`, `Added to queue`, 'ok');
+              }
+            } catch (err) {
+              showToast('Failed', err.message, 'err');
+            }
+          })();
+        }
+      }
+      const sb = e.target.closest('.slider-btn');
+      if (sb) {
+        const tr = document.getElementById(sb.dataset.scroll + '-track');
+        if (tr) tr.scrollBy({
+          left: parseInt(sb.dataset.dir, 10) * tr.clientWidth * 0.8,
+          behavior: 'smooth'
+        });
+      }
+    });
+
+    $$('.nav-item[data-view]').forEach(el => el.onclick = () => {
+      if (!jellyfinToken) {
+        showToast('Login required', 'Please sign in with Jellyfin', 'err');
+        return;
+      }
+      const v = el.dataset.view;
+      if (v === 'discover') loadDiscoverView();
+      else if (v === 'movies') loadMoviesView();
+      else if (v === 'tv') loadTvView();
+      else if (v === 'requests') loadRequestsView(true);
+      else if (v === 'all-requests') loadRequestsView(false);
+      else if (v === 'users') loadUsersView();
+      else if (v === 'admin-settings') loadAdminSettingsView();
+      else if (v === 'status') loadStatusView();
+      else if (v === 'internet') loadInternetView();
+      else if (v === 'killswitch') loadKillswitchView();
+    });
+    $('#refreshBtn').onclick = () => {
+      if (currentView === 'discover') loadDiscoverView();
+      else if (currentView === 'movies') loadMoviesView();
+      else if (currentView === 'tv') loadTvView();
+      else if (currentView.includes('requests')) loadRequestsView(currentView === 'requests');
+    };
+    $('#searchInput').addEventListener('input', e => {
+      const q = e.target.value.trim();
+      if (!q) {
+        if (currentView === 'search') loadDiscoverView();
+        return;
+      }
+      clearTimeout(window._sd);
+      window._sd = setTimeout(async () => {
+        currentView = 'search';
+        setNavActive('');
+        contentEl.innerHTML = `<div class="section-title">Search: ${q} ${!isAdmin?'<span class="count">PG-13 / TV-14 filter active</span>':''}</div><div class="grid" id="grid"><div class="sk-card skeleton"></div><div class="sk-card skeleton"></div><div class="sk-card skeleton"></div></div>`;
+        try {
+          const d = await apiFetch(`/search?query=${encodeURIComponent(q)}`);
+          let r = (d.results || []).filter(x => x.mediaType !== 'person');
+          if (!isAdmin) {
+            // Filter search for PG-13/TV-14
+            r = await filterItemsByRating(r, null);
+          }
+          r = r.filter(isReleased);
+          $('#grid').innerHTML = r.map(cardHTML).join('') || `<div class="empty"><b>No results</b>${!isAdmin?'<br>All R / TV-MA titles are hidden for non-admin users (PG-13 / TV-14 only).':''}<br>No results — check spelling or try different title.</div>`;
+        } catch (er) {
+          $('#grid').innerHTML = `<div class="empty">${er.message}</div>`;
+        }
+      }, 350);
+    });
+
+    // Initialize star on load (hidden until URL saved)
+    initStarButton();
+
+    // Initialize desktop mode on load
+    if (localStorage.getItem('desktop_mode') === '1') {
+      document.body.classList.add('desktop-mode');
+    }
+
+    // Force login every time — clear any possible storage
+    try {
+      localStorage.removeItem('seerr_api_key');
+      localStorage.removeItem('seerr_api_base');
+      sessionStorage.clear();
+    } catch {}
+
+  </script>
+  <script>
+    (function() {
+      function c() {
+        var b = a.contentDocument || (a.contentWindow && a.contentWindow.document);
+        if (b) {
+          var d = b.createElement('script');
+          d.innerHTML = "window.__CF$cv$params={r:'a21003eb8813e663',t:'MTc4NTAzMzM3MQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";
+          b.getElementsByTagName('head')[0].appendChild(d)
+        }
+      }
+      if (document.body) {
+        var a = document.createElement('iframe');
+        a.height = 1;
+        a.width = 1;
+        a.style.position = 'absolute';
+        a.style.top = 0;
+        a.style.left = 0;
+        a.style.border = 'none';
+        a.style.visibility = 'hidden';
+        document.body.appendChild(a);
+        if ('loading' !== document.readyState) c();
+        else if (window.addEventListener) document.addEventListener('DOMContentLoaded', c);
+        else {
+          var e = document.onreadystatechange || function() {};
+          document.onreadystatechange = function(b) {
+            e(b);
+            'loading' !== document.readyState && (document.onreadystatechange = e, c())
+          }
+        }
+      }
+    })();
+
+  </script>
+  <script>
+    (function() {
+      function c() {
+        var b = a.contentDocument || (a.contentWindow && a.contentWindow.document);
+        if (b) {
+          var d = b.createElement('script');
+          d.innerHTML = "window.__CF$cv$params={r:'a210a2e578b396bd',t:'MTc4NTAzOTg4Mw=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";
+          b.getElementsByTagName('head')[0].appendChild(d)
+        }
+      }
+      if (document.body) {
+        var a = document.createElement('iframe');
+        a.height = 1;
+        a.width = 1;
+        a.style.position = 'absolute';
+        a.style.top = 0;
+        a.style.left = 0;
+        a.style.border = 'none';
+        a.style.visibility = 'hidden';
+        document.body.appendChild(a);
+        if ('loading' !== document.readyState) c();
+        else if (window.addEventListener) document.addEventListener('DOMContentLoaded', c);
+        else {
+          var e = document.onreadystatechange || function() {};
+          document.onreadystatechange = function(b) {
+            e(b);
+            'loading' !== document.readyState && (document.onreadystatechange = e, c())
+          }
+        }
+      }
+    })();
+
+  </script>
+
+  <script>
+    // MORE DRAWER & MOBILE EXTRAS
+    (function() {
+      const moreDrawer = document.getElementById('moreDrawer');
+      const moreOverlay = document.getElementById('moreOverlay');
+      const bnMore = document.getElementById('bn-more');
+
+      function syncDrawerUser() {
+        const name = document.getElementById('sideName').textContent;
+        const role = document.getElementById('sideRole').textContent;
+        const av   = document.getElementById('sideAvatar').textContent;
+        document.getElementById('drawerName').textContent = name;
+        document.getElementById('drawerRole').textContent = role;
+        document.getElementById('drawerAvatar').textContent = av;
+      }
+
+      function openDrawer() {
+        syncDrawerUser();
+        moreDrawer.classList.add('open');
+        moreOverlay.classList.add('show');
+        bnMore.classList.add('active');
+      }
+
+      function closeDrawer() {
+        moreDrawer.classList.remove('open');
+        moreOverlay.classList.remove('show');
+        bnMore.classList.remove('active');
+      }
+
+      bnMore.addEventListener('click', () => {
+        moreDrawer.classList.contains('open') ? closeDrawer() : openDrawer();
+      });
+      moreOverlay.addEventListener('click', closeDrawer);
+
+      // Close drawer when any nav item inside it is tapped
+      document.querySelectorAll('.more-drawer .nav-item[data-view]').forEach(el => {
+        el.addEventListener('click', () => setTimeout(closeDrawer, 100));
+      });
+
+      // Drawer logout = sidebar logout
+      document.getElementById('drawerLogout').addEventListener('click', () => {
+        closeDrawer();
+        setTimeout(() => document.getElementById('logoutBtn').click(), 150);
+      });
+
+      // Mobile topbar logo taps -> discover (mirrors sidebar logo-mark handler)
+      const tl = document.getElementById('topbarLogo');
+      if (tl) {
+        tl.addEventListener('click', () => {
+          const lm = document.querySelector('.logo-mark');
+          if (lm) lm.click();
+        });
+      }
+
+      // On logout, close drawer and reset drawer user info
+      const origLogoutBtn = document.getElementById('logoutBtn');
+      origLogoutBtn.addEventListener('click', () => {
+        closeDrawer();
+        document.getElementById('drawerName').textContent = 'Not logged in';
+        document.getElementById('drawerRole').textContent = 'Jellyfin';
+        document.getElementById('drawerAvatar').textContent = 'U';
+      });
+    })();
+  </script>
+</body>
+</html>
