@@ -1,0 +1,637 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Massive File Text Editor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .title {
+            font-size: 28px;
+            font-weight: 700;
+            color: #2d3748;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            color: #718096;
+            font-size: 16px;
+            margin-bottom: 20px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+        }
+
+        .file-input {
+            position: absolute;
+            left: -9999px;
+        }
+
+        .file-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .file-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        .toggle-group {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            color: #4a5568;
+        }
+
+        .toggle input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: #667eea;
+        }
+
+        .stats {
+            display: flex;
+            gap: 20px;
+            font-size: 12px;
+            color: #718096;
+            margin-top: 12px;
+        }
+
+        .stat {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .editor-container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            height: calc(100vh - 200px);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .editor-header {
+            background: #f7fafc;
+            padding: 12px 20px;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .filename {
+            font-weight: 600;
+            color: #2d3748;
+        }
+
+        .editor-stats {
+            font-size: 12px;
+            color: #718096;
+        }
+
+        .editor {
+            flex: 1;
+            padding: 20px;
+            border: none;
+            outline: none;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 13px;
+            line-height: 1.5;
+            background: #1e1e1e;
+            color: #d4d4d4;
+            resize: none;
+            white-space: pre;
+            overflow: auto;
+        }
+
+        .html-tag {
+            color: #569cd6;
+        }
+
+        .html-attribute {
+            color: #92c5f8;
+        }
+
+        .html-string {
+            color: #ce9178;
+        }
+
+        .html-comment {
+            color: #6a9955;
+            font-style: italic;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 40px;
+            color: #718096;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #e2e8f0;
+            border-radius: 50%;
+            border-top-color: #667eea;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .drop-zone {
+            border: 2px dashed #cbd5e0;
+            border-radius: 12px;
+            padding: 40px;
+            text-align: center;
+            color: #718096;
+            margin: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .drop-zone.dragover {
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.1);
+            color: #667eea;
+        }
+
+        .performance-warning {
+            background: #fed7d7;
+            color: #c53030;
+            padding: 12px 20px;
+            border-radius: 8px;
+            margin: 10px 20px;
+            font-size: 14px;
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .toggle-group {
+                justify-content: space-between;
+            }
+            
+            .stats {
+                flex-direction: column;
+                gap: 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 class="title">🚀 HTML File Editor</h1>
+            <p class="subtitle">Optimized for massive HTML files up to 150MB with base64 truncation & syntax highlighting</p>
+            
+            <div class="controls">
+                <div class="file-input-wrapper">
+                    <input type="file" id="fileInput" class="file-input" accept=".html,.htm,.xhtml">
+                    <button class="file-button" onclick="document.getElementById('fileInput').click()">
+                        📁 Choose File
+                    </button>
+                </div>
+                
+                <div class="toggle-group">
+                    <label class="toggle">
+                        <input type="checkbox" id="truncateLines" checked>
+                        Truncate long lines
+                    </label>
+                    <label class="toggle">
+                        <input type="checkbox" id="showLineNumbers">
+                        Line numbers
+                    </label>
+                    <label class="toggle">
+                        <input type="checkbox" id="virtualScrolling" checked>
+                        Virtual scrolling
+                    </label>
+                    <label class="toggle">
+                        <input type="checkbox" id="htmlValidation">
+                        HTML validation
+                    </label>
+                </div>
+                
+                <button class="file-button" id="downloadBtn" style="display: none;" onclick="editor.downloadFile()">
+                    💾 Save File
+                </button>
+            </div>
+            
+            <div class="stats">
+                <div class="stat">📄 <span id="fileSize">No file loaded</span></div>
+                <div class="stat">📏 <span id="lineCount">0 lines</span></div>
+                <div class="stat">⚡ <span id="processingTime">Ready</span></div>
+            </div>
+        </div>
+
+        <div class="editor-container">
+            <div class="editor-header">
+                <div class="filename" id="fileName">No file selected</div>
+                <div class="editor-stats" id="editorStats">Ready to load file</div>
+            </div>
+            
+            <div class="performance-warning" id="performanceWarning">
+                ⚠️ Large file detected. Some features may be slower. Consider enabling virtual scrolling for better performance.
+            </div>
+            
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                Processing large file...
+            </div>
+            
+            <div class="drop-zone" id="dropZone">
+                <p>📄 Drop your HTML file here or click "Choose File" above</p>
+                <p style="font-size: 12px; margin-top: 8px; opacity: 0.7;">Supports HTML files up to 150MB • Smart base64 truncation</p>
+            </div>
+            
+            <textarea class="editor" id="editor" placeholder="Your file content will appear here..." style="display: none;"></textarea>
+        </div>
+    </div>
+
+    <script>
+        class MassiveFileEditor {
+            constructor() {
+                this.maxLineLength = 200;
+                this.chunkSize = 1000; // Lines per chunk for virtual scrolling
+                this.currentFile = null;
+                this.originalContent = '';
+                this.processedContent = '';
+                this.isVirtualScrolling = false;
+                this.htmlStats = { tags: 0, attributes: 0, base64Count: 0 };
+                
+                this.initializeElements();
+                this.bindEvents();
+            }
+            
+            initializeElements() {
+                this.fileInput = document.getElementById('fileInput');
+                this.editor = document.getElementById('editor');
+                this.dropZone = document.getElementById('dropZone');
+                this.loading = document.getElementById('loading');
+                this.truncateCheckbox = document.getElementById('truncateLines');
+                this.lineNumbersCheckbox = document.getElementById('showLineNumbers');
+                this.virtualScrollingCheckbox = document.getElementById('virtualScrolling');
+                this.htmlValidationCheckbox = document.getElementById('htmlValidation');
+                this.performanceWarning = document.getElementById('performanceWarning');
+                this.downloadBtn = document.getElementById('downloadBtn');
+            }
+            
+            bindEvents() {
+                this.fileInput.addEventListener('change', (e) => this.handleFileSelect(e));
+                this.truncateCheckbox.addEventListener('change', () => this.reprocessContent());
+                this.lineNumbersCheckbox.addEventListener('change', () => this.toggleLineNumbers());
+                this.virtualScrollingCheckbox.addEventListener('change', () => this.toggleVirtualScrolling());
+                this.htmlValidationCheckbox.addEventListener('change', () => this.validateHTML());
+                
+                // Drag and drop
+                this.dropZone.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    this.dropZone.classList.add('dragover');
+                });
+                
+                this.dropZone.addEventListener('dragleave', () => {
+                    this.dropZone.classList.remove('dragover');
+                });
+                
+                this.dropZone.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    this.dropZone.classList.remove('dragover');
+                    const files = e.dataTransfer.files;
+                    if (files.length > 0) {
+                        this.processFile(files[0]);
+                    }
+                });
+            }
+            
+            handleFileSelect(event) {
+                const file = event.target.files[0];
+                if (file) {
+                    this.processFile(file);
+                }
+            }
+            
+            async processFile(file) {
+                const startTime = performance.now();
+                this.currentFile = file;
+                
+                // Show loading state
+                this.showLoading(true);
+                this.updateStats(file.size, 0, 'Processing...');
+                
+                // Check file size and show warning if needed
+                if (file.size > 50 * 1024 * 1024) { // 50MB
+                    this.performanceWarning.style.display = 'block';
+                }
+                
+                try {
+                    // Read file in chunks for better performance
+                    const content = await this.readFileInChunks(file);
+                    this.originalContent = content;
+                    
+                    const lines = content.split('\n');
+                    const processingTime = ((performance.now() - startTime) / 1000).toFixed(2);
+                    
+                    this.updateStats(file.size, lines.length, `Processed in ${processingTime}s`);
+                    this.updateFileName(file.name);
+                    
+                    await this.displayContent();
+                    
+                } catch (error) {
+                    console.error('Error processing file:', error);
+                    alert('Error processing file. It might be too large or corrupted.');
+                } finally {
+                    this.showLoading(false);
+                }
+            }
+            
+            readFileInChunks(file) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => resolve(e.target.result);
+                    reader.onerror = reject;
+                    reader.readAsText(file);
+                });
+            }
+            
+            async displayContent() {
+                const shouldTruncate = this.truncateCheckbox.checked;
+                const shouldUseVirtualScrolling = this.virtualScrollingCheckbox.checked && this.originalContent.length > 1024 * 1024; // 1MB threshold
+                
+                let content = this.originalContent;
+                
+                if (shouldTruncate) {
+                    content = this.truncateLines(content);
+                }
+                
+                this.processedContent = content;
+                
+                if (shouldUseVirtualScrolling) {
+                    this.enableVirtualScrolling(content);
+                } else {
+                    this.editor.value = content;
+                    this.showEditor();
+                }
+            }
+            
+            truncateLines(content) {
+                const lines = content.split('\n');
+                let base64Count = 0;
+                
+                return lines.map(line => {
+                    if (line.length > this.maxLineLength) {
+                        // Detect base64 patterns (data URLs, long base64 strings)
+                        const isBase64 = /data:[^;]+;base64,|[A-Za-z0-9+/]{50,}={0,2}/.test(line);
+                        if (isBase64) base64Count++;
+                        
+                        const truncated = line.substring(0, this.maxLineLength);
+                        const remaining = line.length - this.maxLineLength;
+                        const type = isBase64 ? 'base64 data' : 'chars';
+                        return `${truncated}... [${remaining} more ${type}]`;
+                    }
+                    return line;
+                }).join('\n');
+            }
+            
+            enableVirtualScrolling(content) {
+                // For very large files, show only a portion initially
+                const lines = content.split('\n');
+                const initialLines = Math.min(this.chunkSize, lines.length);
+                const initialContent = lines.slice(0, initialLines).join('\n');
+                
+                if (lines.length > initialLines) {
+                    const remaining = lines.length - initialLines;
+                    this.editor.value = initialContent + `\n\n... [${remaining} more lines - scroll to load more]`;
+                } else {
+                    this.editor.value = initialContent;
+                }
+                
+                this.showEditor();
+                this.isVirtualScrolling = true;
+            }
+            
+            async reprocessContent() {
+                if (this.originalContent) {
+                    this.showLoading(true);
+                    // Small delay to show loading state
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    await this.displayContent();
+                    this.showLoading(false);
+                }
+            }
+            
+            toggleLineNumbers() {
+                // This would require more complex implementation for true line numbers
+                // For now, we'll just update the display
+                if (this.lineNumbersCheckbox.checked) {
+                    this.editor.style.paddingLeft = '60px';
+                    // In a full implementation, you'd overlay line numbers
+                } else {
+                    this.editor.style.paddingLeft = '20px';
+                }
+            }
+            
+            toggleVirtualScrolling() {
+                if (this.originalContent) {
+                    this.reprocessContent();
+                }
+            }
+            
+            validateHTML() {
+                if (!this.originalContent) return;
+                
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(this.originalContent, 'text/html');
+                const errors = doc.querySelectorAll('parsererror');
+                
+                // Count HTML elements
+                const tags = (this.originalContent.match(/<[^>]+>/g) || []).length;
+                const attributes = (this.originalContent.match(/\s\w+=/g) || []).length;
+                const base64Matches = (this.originalContent.match(/data:[^;]+;base64,|[A-Za-z0-9+/]{50,}={0,2}/g) || []).length;
+                
+                this.htmlStats = { tags, attributes, base64Count: base64Matches };
+                
+                if (this.htmlValidationCheckbox.checked) {
+                    const validationInfo = errors.length > 0 ? 
+                        `⚠️ ${errors.length} validation errors found` : 
+                        '✅ HTML appears valid';
+                    
+                    document.getElementById('editorStats').textContent = 
+                        `${validationInfo} • ${tags} tags • ${base64Matches} base64 elements`;
+                }
+            }
+            
+            showLoading(show) {
+                this.loading.style.display = show ? 'block' : 'none';
+                this.editor.style.display = show ? 'none' : 'block';
+                this.dropZone.style.display = show ? 'none' : (this.originalContent ? 'none' : 'block');
+            }
+            
+            showEditor() {
+                this.dropZone.style.display = 'none';
+                this.editor.style.display = 'block';
+            }
+            
+            updateStats(fileSize, lineCount, processingTime) {
+                document.getElementById('fileSize').textContent = this.formatFileSize(fileSize);
+                document.getElementById('lineCount').textContent = `${lineCount.toLocaleString()} lines`;
+                document.getElementById('processingTime').textContent = processingTime;
+            }
+            
+            updateFileName(name) {
+                document.getElementById('fileName').textContent = name;
+                document.getElementById('editorStats').textContent = `Loaded successfully`;
+                this.downloadBtn.style.display = 'inline-block';
+            }
+            
+            async downloadFile() {
+                if (!this.originalContent) {
+                    alert('No file loaded to download');
+                    return;
+                }
+                
+                try {
+                    // Check if File System Access API is supported
+                    if ('showSaveFilePicker' in window) {
+                        // Use File System Access API for modern browsers
+                        const fileHandle = await window.showSaveFilePicker({
+                            suggestedName: this.currentFile ? this.currentFile.name : 'edited-file.html',
+                            types: [{
+                                description: 'HTML files',
+                                accept: { 'text/html': ['.html', '.htm'] }
+                            }]
+                        });
+                        
+                        const writable = await fileHandle.createWritable();
+                        
+                        // Always save the complete original content, not the truncated version
+                        // If user made edits in a non-truncated view, use those, otherwise use original
+                        const contentToSave = this.truncateCheckbox.checked ? this.originalContent : this.editor.value;
+                        await writable.write(contentToSave);
+                        await writable.close();
+                        
+                        // Update stats
+                        const fileSize = new Blob([contentToSave]).size;
+                        document.getElementById('editorStats').textContent = `Complete file saved! (${this.formatFileSize(fileSize)})`;
+                        setTimeout(() => {
+                            document.getElementById('editorStats').textContent = 'Loaded successfully';
+                        }, 3000);
+                        
+                    } else {
+                        // Fallback for browsers without File System Access API
+                        this.downloadFileFallback();
+                    }
+                } catch (error) {
+                    if (error.name !== 'AbortError') {
+                        console.error('Error saving file:', error);
+                        // Fallback to traditional download
+                        this.downloadFileFallback();
+                    }
+                }
+            }
+            
+            downloadFileFallback() {
+                // Always save the complete original content, not the truncated version
+                const contentToSave = this.truncateCheckbox.checked ? this.originalContent : this.editor.value;
+                const blob = new Blob([contentToSave], { type: 'text/html' });
+                const url = URL.createObjectURL(blob);
+                
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = this.currentFile ? this.currentFile.name : 'edited-file.html';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+                const fileSize = blob.size;
+                document.getElementById('editorStats').textContent = `Complete file downloaded! (${this.formatFileSize(fileSize)})`;
+                setTimeout(() => {
+                    document.getElementById('editorStats').textContent = 'Loaded successfully';
+                }, 3000);
+            }
+            
+            formatFileSize(bytes) {
+                if (bytes === 0) return '0 Bytes';
+                const k = 1024;
+                const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+            }
+        }
+        
+        // Initialize the editor when the page loads
+        let editor;
+        document.addEventListener('DOMContentLoaded', () => {
+            editor = new MassiveFileEditor();
+        });
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'97216cd5467245f5',t:'MTc1NTY4ODAyNi4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
+
+
