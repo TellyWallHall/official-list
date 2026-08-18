@@ -1,0 +1,1284 @@
+<!doctype html>
+<!-- by ImPot8o https://github.com/ImPot8o pot8o.dev -->
+<html lang="en" class="h-full">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Library of Babel</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      box-sizing: border-box;
+      overscroll-behavior: contain;
+    }
+    
+    * {
+      -webkit-tap-highlight-color: transparent;
+    }
+    
+    .hexagon-card {
+      aspect-ratio: 1;
+      border-radius: 16px;
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.2s ease;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    }
+    
+    .hexagon-card:active {
+      transform: scale(0.95);
+    }
+    
+    .book-card {
+      height: 180px;
+      border-radius: 12px;
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.2s ease;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+      flex-shrink: 0;
+    }
+    
+    .book-card:active {
+      transform: scale(0.95);
+    }
+    
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.9);
+      z-index: 50;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .modal-content {
+      flex: 1;
+      overflow: hidden;
+      position: relative;
+    }
+    
+    .swipe-indicator {
+      position: absolute;
+      top: 8px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 40px;
+      height: 4px;
+      border-radius: 2px;
+      background: rgba(255, 255, 255, 0.3);
+      z-index: 10;
+    }
+    
+    @keyframes slideUp {
+      from {
+        transform: translateY(100%);
+        opacity: 0;
+      }
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+    
+    @keyframes slideDown {
+      from {
+        transform: translateY(0);
+        opacity: 1;
+      }
+      to {
+        transform: translateY(100%);
+        opacity: 0;
+      }
+    }
+    
+    .slide-up {
+      animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .slide-down {
+      animation: slideDown 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    
+    .fade-in {
+      animation: fadeIn 0.3s ease-out;
+    }
+    
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: rgba(26, 15, 10, 0.95);
+      backdrop-filter: blur(20px);
+      border-top: 1px solid rgba(245, 230, 211, 0.1);
+      padding: 12px 20px calc(12px + env(safe-area-inset-bottom));
+      z-index: 40;
+    }
+    
+    .fab-button {
+      position: fixed;
+      bottom: calc(80px + env(safe-area-inset-bottom));
+      right: 20px;
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+      z-index: 39;
+      transition: transform 0.2s ease;
+    }
+    
+    .fab-button:active {
+      transform: scale(0.9);
+    }
+    
+    .page-container {
+      position: relative;
+      touch-action: pan-y;
+      user-select: none;
+    }
+    
+    .page-turn-left {
+      animation: pageTurnLeft 0.3s ease-out;
+    }
+    
+    .page-turn-right {
+      animation: pageTurnRight 0.3s ease-out;
+    }
+    
+    @keyframes pageTurnLeft {
+      0% { transform: translateX(0) rotateY(0); }
+      50% { transform: translateX(-50px) rotateY(-15deg); opacity: 0.5; }
+      100% { transform: translateX(0) rotateY(0); }
+    }
+    
+    @keyframes pageTurnRight {
+      0% { transform: translateX(0) rotateY(0); }
+      50% { transform: translateX(50px) rotateY(15deg); opacity: 0.5; }
+      100% { transform: translateX(0) rotateY(0); }
+    }
+    
+    .search-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.95);
+      backdrop-filter: blur(10px);
+      z-index: 60;
+      display: flex;
+      flex-direction: column;
+      padding: 20px;
+      padding-top: max(20px, env(safe-area-inset-top));
+    }
+    
+    .hexagon-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+      padding-bottom: 100px;
+    }
+    
+    .book-shelf {
+      display: flex;
+      gap: 12px;
+      overflow-x: auto;
+      padding: 16px 0;
+      scroll-snap-type: x mandatory;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+    
+    .book-shelf::-webkit-scrollbar {
+      display: none;
+    }
+    
+    .book-shelf > * {
+      scroll-snap-align: start;
+    }
+    
+    .gradient-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(135deg, rgba(0, 0, 0, 0.3), transparent);
+    }
+    
+    .page-number {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      background: rgba(0, 0, 0, 0.5);
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 12px;
+      backdrop-filter: blur(10px);
+    }
+
+    .search-highlight {
+      padding: 2px 4px;
+      border-radius: 3px;
+      font-weight: bold;
+    }
+  </style>
+  <style>@view-transition { navigation: auto; }</style>
+ </head>
+ <body class="h-full">
+  <div id="app" class="w-full h-full overflow-auto"></div>
+  <script>
+localStorage.setItem('pot8o watermark', `${localStorage.getItem('pot8o watermark') || ''} library-of-babel`);
+    const defaultConfig = {
+      background_color: "#0a0604",
+      surface_color: "#f5e6d3",
+      text_color: "#2c1810",
+      primary_action_color: "#8b5c2e",
+      secondary_action_color: "#c4965f",
+      font_family: "Georgia",
+      font_size: 16,
+      library_title: "Library of Babel",
+      subtitle: "Infinite hexagons, infinite books",
+      generate_button: "Random",
+      book_label: "Reading"
+    };
+
+    let currentView = 'hexagons';
+    let selectedHexagon = null;
+    let selectedBook = null;
+    let currentPage = 1;
+    let bookPages = [];
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let touchEndX = 0;
+    let touchEndY = 0;
+    
+    const characters = 'abcdefghijklmnopqrstuvwxyz .,;:!?-';
+    
+    function generateHexagons(count = 20) {
+      const hexagons = [];
+      for (let i = 0; i < count; i++) {
+        hexagons.push({
+          id: Math.floor(Math.random() * 1000000).toString(16).padStart(6, '0').toUpperCase(),
+          color: `hsl(${30 + Math.random() * 40}, ${50 + Math.random() * 30}%, ${35 + Math.random() * 20}%)`
+        });
+      }
+      return hexagons;
+    }
+    
+    function generateShelf(hexagonId) {
+      const books = [];
+      for (let i = 0; i < 32; i++) {
+        const hue = 20 + Math.random() * 40;
+        const sat = 45 + Math.random() * 35;
+        const light = 30 + Math.random() * 25;
+        books.push({
+          volume: i + 1,
+          wall: Math.floor(i / 8) + 1,
+          shelf: (i % 5) + 1,
+          color: `hsl(${hue}, ${sat}%, ${light}%)`,
+          hexagon: hexagonId,
+          title: `Vol. ${i + 1}`
+        });
+      }
+      return books;
+    }
+    
+    function generateBookPages(totalPages = 410) {
+      const pages = [];
+      const linesPerPage = 35;
+      const charsPerLine = 60;
+      
+      for (let p = 0; p < totalPages; p++) {
+        let content = '';
+        for (let i = 0; i < linesPerPage; i++) {
+          for (let j = 0; j < charsPerLine; j++) {
+            content += characters[Math.floor(Math.random() * characters.length)];
+          }
+          if (i < linesPerPage - 1) content += '\n';
+        }
+        pages.push(content);
+      }
+      return pages;
+    }
+    
+    function showHexagonView() {
+      currentView = 'hexagons';
+      render();
+    }
+    
+    function showShelfView(hexagon) {
+      selectedHexagon = hexagon;
+      currentView = 'shelf';
+      render();
+    }
+    
+    function showBookView(book) {
+      selectedBook = book;
+      currentPage = Math.floor(Math.random() * 410) + 1;
+      bookPages = generateBookPages(410);
+      currentView = 'book';
+      render();
+    }
+    
+    function showSearchModal() {
+      const config = window.elementSdk?.config || defaultConfig;
+      const baseSize = config.font_size || defaultConfig.font_size;
+      
+      const modal = document.createElement('div');
+      modal.className = 'search-modal fade-in';
+      modal.innerHTML = `
+        <div class="flex items-center gap-4 mb-6">
+          <button id="closeSearchBtn" style="font-size: ${baseSize * 1.5}px; color: ${config.surface_color};">✕</button>
+          <h2 style="font-size: ${baseSize * 1.3}px; color: ${config.surface_color}; flex: 1;">Search Library</h2>
+        </div>
+        
+        <div class="flex gap-2 mb-6 p-1 rounded-full" style="background-color: rgba(245, 230, 211, 0.1);">
+          <button id="hexTabBtn" class="flex-1 py-2 rounded-full transition-all" style="font-size: ${baseSize * 0.8}px; background-color: ${config.primary_action_color}; color: ${config.surface_color};">
+            Hexagon
+          </button>
+          <button id="textTabBtn" class="flex-1 py-2 rounded-full transition-all" style="font-size: ${baseSize * 0.8}px; color: ${config.surface_color};">
+            Text
+          </button>
+          <button id="filterTabBtn" class="flex-1 py-2 rounded-full transition-all" style="font-size: ${baseSize * 0.8}px; color: ${config.surface_color};">
+            Filter
+          </button>
+        </div>
+
+        <div id="hexSearchView" class="flex-1 flex flex-col" style="min-height: 0;">
+          <input type="text" id="searchInput" placeholder="Enter 6-character hexagon ID..." 
+            class="w-full px-6 py-4 rounded-full mb-4 outline-none flex-shrink-0"
+            style="font-size: ${baseSize * 1.1}px; background-color: ${config.surface_color}; color: ${config.text_color};"
+            maxlength="6">
+          
+          <div class="mb-4 flex-shrink-0">
+            <label style="font-size: ${baseSize * 0.85}px; color: ${config.surface_color}; display: block; margin-bottom: 8px; opacity: 0.8;">
+              Content Filter
+            </label>
+            <select id="hexContentFilter" class="w-full px-6 py-4 rounded-full outline-none"
+              style="font-size: ${baseSize * 1.1}px; background-color: ${config.surface_color}; color: ${config.text_color};">
+              <option value="all">All Content (Random Characters)</option>
+              <option value="readable">Readable Words Only</option>
+              <option value="sentences">Complete Sentences</option>
+              <option value="poetry">Poetry & Verses</option>
+              <option value="numeric">Pages with Numbers</option>
+            </select>
+          </div>
+          
+          <div class="mb-4 flex-shrink-0">
+            <label style="font-size: ${baseSize * 0.85}px; color: ${config.surface_color}; display: block; margin-bottom: 8px; opacity: 0.8;">
+              Language
+            </label>
+            <select id="hexLanguageFilter" class="w-full px-6 py-4 rounded-full outline-none"
+              style="font-size: ${baseSize * 1.1}px; background-color: ${config.surface_color}; color: ${config.text_color};">
+              <option value="any">Any Language</option>
+              <option value="english">English</option>
+              <option value="spanish">Spanish</option>
+              <option value="french">French</option>
+              <option value="latin">Latin</option>
+            </select>
+          </div>
+          
+          <button id="searchGoBtn" class="w-full py-4 rounded-full font-semibold flex-shrink-0"
+            style="font-size: ${baseSize * 1.1}px; background-color: ${config.primary_action_color}; color: ${config.surface_color};">
+            Go to Hexagon
+          </button>
+          
+          <div id="hexPreview" class="flex-1 overflow-y-auto mt-4" style="min-height: 0; -webkit-overflow-scrolling: touch;"></div>
+        </div>
+
+        <div id="textSearchView" class="hidden flex-1 flex flex-col" style="min-height: 0;">
+          <input type="text" id="textSearchInput" placeholder="Search for any text..." 
+            class="w-full px-6 py-4 rounded-full mb-4 outline-none flex-shrink-0"
+            style="font-size: ${baseSize * 1.1}px; background-color: ${config.surface_color}; color: ${config.text_color};"
+            maxlength="50">
+          
+          <div class="mb-4 flex-shrink-0">
+            <label style="font-size: ${baseSize * 0.85}px; color: ${config.surface_color}; display: block; margin-bottom: 8px; opacity: 0.8;">
+              Content Filter
+            </label>
+            <select id="textContentFilter" class="w-full px-6 py-4 rounded-full outline-none"
+              style="font-size: ${baseSize * 1.1}px; background-color: ${config.surface_color}; color: ${config.text_color};">
+              <option value="all">All Content (Random Characters)</option>
+              <option value="readable">Readable Words Only</option>
+              <option value="sentences">Complete Sentences</option>
+              <option value="poetry">Poetry & Verses</option>
+              <option value="numeric">Pages with Numbers</option>
+            </select>
+          </div>
+          
+          <div class="mb-4 flex-shrink-0">
+            <label style="font-size: ${baseSize * 0.85}px; color: ${config.surface_color}; display: block; margin-bottom: 8px; opacity: 0.8;">
+              Language
+            </label>
+            <select id="textLanguageFilter" class="w-full px-6 py-4 rounded-full outline-none"
+              style="font-size: ${baseSize * 1.1}px; background-color: ${config.surface_color}; color: ${config.text_color};">
+              <option value="any">Any Language</option>
+              <option value="english">English</option>
+              <option value="spanish">Spanish</option>
+              <option value="french">French</option>
+              <option value="latin">Latin</option>
+            </select>
+          </div>
+          
+          <button id="textSearchBtn" class="w-full py-4 rounded-full font-semibold mb-4 flex-shrink-0"
+            style="font-size: ${baseSize * 1.1}px; background-color: ${config.primary_action_color}; color: ${config.surface_color};">
+            Find Text in Books
+          </button>
+          <div id="searchResults" class="flex-1 overflow-y-auto" style="min-height: 0; -webkit-overflow-scrolling: touch;"></div>
+        </div>
+        
+        <div id="filterView" class="hidden flex-1 flex flex-col" style="min-height: 0;">
+          <div class="mb-4 flex-shrink-0">
+            <label style="font-size: ${baseSize * 0.85}px; color: ${config.surface_color}; display: block; margin-bottom: 8px; opacity: 0.8;">
+              Content Filter
+            </label>
+            <select id="contentFilter" class="w-full px-6 py-4 rounded-full outline-none"
+              style="font-size: ${baseSize * 1.1}px; background-color: ${config.surface_color}; color: ${config.text_color};">
+              <option value="all">All Content (Random Characters)</option>
+              <option value="readable">Readable Words Only</option>
+              <option value="sentences">Complete Sentences</option>
+              <option value="poetry">Poetry & Verses</option>
+              <option value="numeric">Pages with Numbers</option>
+            </select>
+          </div>
+          
+          <div class="mb-4 flex-shrink-0">
+            <label style="font-size: ${baseSize * 0.85}px; color: ${config.surface_color}; display: block; margin-bottom: 8px; opacity: 0.8;">
+              Language
+            </label>
+            <select id="languageFilter" class="w-full px-6 py-4 rounded-full outline-none"
+              style="font-size: ${baseSize * 1.1}px; background-color: ${config.surface_color}; color: ${config.text_color};">
+              <option value="any">Any Language</option>
+              <option value="english">English</option>
+              <option value="spanish">Spanish</option>
+              <option value="french">French</option>
+              <option value="latin">Latin</option>
+            </select>
+          </div>
+          
+          <button id="applyFilterBtn" class="w-full py-4 rounded-full font-semibold mb-4 flex-shrink-0"
+            style="font-size: ${baseSize * 1.1}px; background-color: ${config.primary_action_color}; color: ${config.surface_color};">
+            Find Filtered Pages
+          </button>
+          
+          <div id="filterResults" class="flex-1 overflow-y-auto" style="min-height: 0; -webkit-overflow-scrolling: touch;"></div>
+        </div>
+      `;
+      
+      document.body.appendChild(modal);
+      
+      const hexSearchView = document.getElementById('hexSearchView');
+      const textSearchView = document.getElementById('textSearchView');
+      const filterView = document.getElementById('filterView');
+      const hexTabBtn = document.getElementById('hexTabBtn');
+      const textTabBtn = document.getElementById('textTabBtn');
+      const filterTabBtn = document.getElementById('filterTabBtn');
+      const input = document.getElementById('searchInput');
+      const textInput = document.getElementById('textSearchInput');
+      const closeBtn = document.getElementById('closeSearchBtn');
+      const goBtn = document.getElementById('searchGoBtn');
+      const textSearchBtn = document.getElementById('textSearchBtn');
+      const searchResults = document.getElementById('searchResults');
+      const applyFilterBtn = document.getElementById('applyFilterBtn');
+      const filterResults = document.getElementById('filterResults');
+      const contentFilter = document.getElementById('contentFilter');
+      const languageFilter = document.getElementById('languageFilter');
+      
+      input.focus();
+      
+      hexTabBtn.addEventListener('click', () => {
+        hexSearchView.classList.remove('hidden');
+        textSearchView.classList.add('hidden');
+        filterView.classList.add('hidden');
+        hexTabBtn.style.backgroundColor = config.primary_action_color;
+        textTabBtn.style.backgroundColor = 'transparent';
+        filterTabBtn.style.backgroundColor = 'transparent';
+        input.focus();
+      });
+      
+      textTabBtn.addEventListener('click', () => {
+        hexSearchView.classList.add('hidden');
+        textSearchView.classList.remove('hidden');
+        filterView.classList.add('hidden');
+        textTabBtn.style.backgroundColor = config.primary_action_color;
+        hexTabBtn.style.backgroundColor = 'transparent';
+        filterTabBtn.style.backgroundColor = 'transparent';
+        textInput.focus();
+      });
+      
+      filterTabBtn.addEventListener('click', () => {
+        hexSearchView.classList.add('hidden');
+        textSearchView.classList.add('hidden');
+        filterView.classList.remove('hidden');
+        filterTabBtn.style.backgroundColor = config.primary_action_color;
+        hexTabBtn.style.backgroundColor = 'transparent';
+        textTabBtn.style.backgroundColor = 'transparent';
+      });
+      
+      const handleHexSearch = () => {
+        const value = input.value.trim().toUpperCase();
+        const hexContentFilter = document.getElementById('hexContentFilter');
+        const hexLanguageFilter = document.getElementById('hexLanguageFilter');
+        const hexPreview = document.getElementById('hexPreview');
+        const contentType = hexContentFilter?.value || 'all';
+        const language = hexLanguageFilter?.value || 'any';
+        
+        if (value.length === 6) {
+          modal.remove();
+          showShelfView({ 
+            id: value, 
+            color: `hsl(${30 + Math.random() * 40}, ${50 + Math.random() * 30}%, ${35 + Math.random() * 20}%)`
+          });
+        } else if (value.length > 0 && hexPreview) {
+          // Show preview as user types
+          hexPreview.innerHTML = `
+            <div class="text-center py-4" style="color: ${config.surface_color}; opacity: 0.6;">
+              <div style="font-size: ${baseSize * 0.85}px;">Type 6 characters to navigate</div>
+            </div>
+          `;
+        } else if (hexPreview && contentType !== 'all') {
+          // Show sample when filters are applied
+          const preview = generateFilteredPreview(contentType, language);
+          hexPreview.innerHTML = `
+            <div class="p-4 rounded-lg" style="background-color: rgba(245, 230, 211, 0.1); border: 1px solid rgba(245, 230, 211, 0.2);">
+              <div style="font-size: ${baseSize * 0.85}px; color: ${config.surface_color}; font-weight: 600; margin-bottom: 8px;">
+                Preview: ${contentType === 'readable' ? 'Readable Words' : contentType === 'sentences' ? 'Sentences' : contentType === 'poetry' ? 'Poetry' : 'Numbers'}
+              </div>
+              <div class="font-mono" style="font-size: ${baseSize * 0.7}px; color: ${config.surface_color}; opacity: 0.9; line-height: 1.5; white-space: pre-wrap;">
+                ${preview}
+              </div>
+            </div>
+          `;
+        }
+      };
+      
+      const generateFilteredPreview = (contentType, language) => {
+        const wordLists = {
+          english: ['the', 'be', 'to', 'of', 'and', 'a', 'in', 'that', 'have', 'it', 'for', 'not', 'on', 'with', 'as'],
+          spanish: ['el', 'la', 'de', 'que', 'y', 'a', 'en', 'un', 'ser', 'se', 'no', 'haber', 'por', 'con', 'su'],
+          french: ['le', 'de', 'un', 'être', 'et', 'à', 'il', 'avoir', 'ne', 'je', 'son', 'que', 'se', 'qui', 'ce'],
+          latin: ['et', 'in', 'est', 'non', 'ut', 'ad', 'cum', 'qui', 'de', 'ex', 'quod', 'sed', 'si', 'per', 'ab']
+        };
+        
+        let preview = '';
+        
+        if (contentType === 'readable') {
+          const words = language !== 'any' ? wordLists[language] : wordLists.english;
+          for (let j = 0; j < 20; j++) {
+            preview += words[Math.floor(Math.random() * words.length)] + ' ';
+          }
+        } else if (contentType === 'sentences') {
+          const words = language !== 'any' ? wordLists[language] : wordLists.english;
+          for (let s = 0; s < 2; s++) {
+            const wordCount = 5 + Math.floor(Math.random() * 5);
+            let sentence = words[Math.floor(Math.random() * words.length)];
+            sentence = sentence.charAt(0).toUpperCase() + sentence.slice(1);
+            for (let j = 1; j < wordCount; j++) {
+              sentence += ' ' + words[Math.floor(Math.random() * words.length)];
+            }
+            preview += sentence + '. ';
+          }
+        } else if (contentType === 'poetry') {
+          const words = language !== 'any' ? wordLists[language] : wordLists.english;
+          for (let l = 0; l < 3; l++) {
+            const wordCount = 3 + Math.floor(Math.random() * 4);
+            let line = '';
+            for (let j = 0; j < wordCount; j++) {
+              line += words[Math.floor(Math.random() * words.length)] + ' ';
+            }
+            preview += line.trim() + '\n';
+          }
+        } else if (contentType === 'numeric') {
+          const numbers = [];
+          for (let n = 0; n < 15; n++) {
+            numbers.push(Math.floor(Math.random() * 1000));
+          }
+          preview = numbers.join(', ');
+        }
+        
+        return preview;
+      };
+      
+      const handleTextSearch = () => {
+        const query = textInput.value.trim().toLowerCase();
+        if (query.length === 0) return;
+        
+        const textContentFilter = document.getElementById('textContentFilter');
+        const textLanguageFilter = document.getElementById('textLanguageFilter');
+        const contentType = textContentFilter?.value || 'all';
+        const language = textLanguageFilter?.value || 'any';
+        
+        searchResults.innerHTML = `
+          <div class="text-center py-8" style="color: ${config.surface_color};">
+            <div style="font-size: ${baseSize * 2.5}px; margin-bottom: 12px;">🔍</div>
+            <div style="font-size: ${baseSize * 0.9}px; opacity: 0.8;">Searching infinite library...</div>
+            <div style="font-size: ${baseSize * 0.75}px; opacity: 0.5; margin-top: 8px;">Finding books containing "${query}"</div>
+          </div>
+        `;
+        
+        setTimeout(() => {
+          const wordLists = {
+            english: ['the', 'be', 'to', 'of', 'and', 'a', 'in', 'that', 'have', 'it', 'for', 'not', 'on', 'with', 'as', 'you', 'do', 'at', 'this', 'but', 'his', 'by', 'from', 'they', 'we', 'say', 'her', 'she', 'or', 'an', 'will', 'my', 'one', 'all', 'would', 'there', 'their', 'what', 'so', 'up', 'out', 'if', 'about', 'who', 'get', 'which', 'go', 'me'],
+            spanish: ['el', 'la', 'de', 'que', 'y', 'a', 'en', 'un', 'ser', 'se', 'no', 'haber', 'por', 'con', 'su', 'para', 'como', 'estar', 'tener', 'le', 'lo', 'todo', 'pero', 'más', 'hacer', 'o', 'poder', 'decir', 'este', 'ir', 'otro', 'ese', 'la', 'si', 'me', 'ya', 'ver', 'porque', 'dar', 'cuando'],
+            french: ['le', 'de', 'un', 'être', 'et', 'à', 'il', 'avoir', 'ne', 'je', 'son', 'que', 'se', 'qui', 'ce', 'dans', 'en', 'du', 'elle', 'au', 'pour', 'pas', 'que', 'vous', 'par', 'sur', 'faire', 'plus', 'dire', 'me', 'on', 'mon', 'lui', 'nous', 'comme', 'mais', 'pouvoir', 'avec', 'tout', 'y'],
+            latin: ['et', 'in', 'est', 'non', 'ut', 'ad', 'cum', 'qui', 'de', 'ex', 'quod', 'sed', 'si', 'per', 'ab', 'esse', 'atque', 'ne', 'aut', 'ego', 'tu', 'sum', 'quo', 'quia', 'id', 'hic', 'ille', 'nec', 'nam', 'enim']
+          };
+          
+          const results = [];
+          for (let i = 0; i < 5; i++) {
+            const hexId = Math.floor(Math.random() * 1000000).toString(16).padStart(6, '0').toUpperCase();
+            const volume = Math.floor(Math.random() * 32) + 1;
+            const page = Math.floor(Math.random() * 410) + 1;
+            const wall = Math.floor(Math.random() * 4) + 1;
+            const shelf = Math.floor(Math.random() * 5) + 1;
+            
+            let context = '';
+            const contextLength = 80;
+            
+            if (contentType === 'readable') {
+              const words = language !== 'any' ? wordLists[language] : wordLists.english;
+              const wordCount = 10 + Math.floor(Math.random() * 5);
+              const queryPos = Math.floor(Math.random() * (wordCount - 2)) + 1;
+              for (let j = 0; j < wordCount; j++) {
+                if (j === queryPos) {
+                  context += query + ' ';
+                } else {
+                  context += words[Math.floor(Math.random() * words.length)] + ' ';
+                }
+              }
+            } else if (contentType === 'sentences') {
+              const words = language !== 'any' ? wordLists[language] : wordLists.english;
+              const wordCount = 8 + Math.floor(Math.random() * 5);
+              const queryPos = Math.floor(Math.random() * (wordCount - 2)) + 1;
+              let sentence = '';
+              for (let j = 0; j < wordCount; j++) {
+                if (j === 0) {
+                  const word = j === queryPos ? query : words[Math.floor(Math.random() * words.length)];
+                  sentence += word.charAt(0).toUpperCase() + word.slice(1) + ' ';
+                } else if (j === queryPos) {
+                  sentence += query + ' ';
+                } else {
+                  sentence += words[Math.floor(Math.random() * words.length)] + ' ';
+                }
+              }
+              context = sentence.trim() + '.';
+            } else if (contentType === 'poetry') {
+              const words = language !== 'any' ? wordLists[language] : wordLists.english;
+              const lines = 2;
+              const queryLine = Math.floor(Math.random() * lines);
+              for (let l = 0; l < lines; l++) {
+                const wordCount = 3 + Math.floor(Math.random() * 3);
+                const queryPos = l === queryLine ? Math.floor(Math.random() * wordCount) : -1;
+                for (let j = 0; j < wordCount; j++) {
+                  if (j === queryPos) {
+                    context += query + ' ';
+                  } else {
+                    context += words[Math.floor(Math.random() * words.length)] + ' ';
+                  }
+                }
+                if (l < lines - 1) context += '\n';
+              }
+            } else if (contentType === 'numeric') {
+              const numbers = [];
+              for (let n = 0; n < 8; n++) {
+                numbers.push(Math.floor(Math.random() * 1000));
+              }
+              const queryPos = Math.floor(Math.random() * numbers.length);
+              numbers[queryPos] = query;
+              context = numbers.join(', ');
+            } else {
+              const startPos = Math.floor(Math.random() * (contextLength - query.length));
+              for (let j = 0; j < contextLength; j++) {
+                if (j === startPos) {
+                  context += query;
+                  j += query.length - 1;
+                } else {
+                  context += characters[Math.floor(Math.random() * characters.length)];
+                }
+              }
+            }
+            
+            results.push({
+              hexId, volume, page, wall, shelf, context, query
+            });
+          }
+          
+          searchResults.innerHTML = `
+            <div style="font-size: ${baseSize * 0.9}px; color: ${config.surface_color}; margin-bottom: 16px; opacity: 0.7;">
+              Found ${results.length} books containing "${query}"
+            </div>
+          ` + results.map(r => {
+            const highlightStart = r.context.toLowerCase().indexOf(r.query.toLowerCase());
+            const beforeText = r.context.substring(0, highlightStart);
+            const matchText = r.context.substring(highlightStart, highlightStart + r.query.length);
+            const afterText = r.context.substring(highlightStart + r.query.length);
+            
+            return `
+            <div class="mb-3 p-4 rounded-lg" style="background-color: rgba(245, 230, 211, 0.1); border: 1px solid rgba(245, 230, 211, 0.2);">
+              <div class="flex items-start justify-between mb-2">
+                <div style="font-size: ${baseSize * 0.85}px; color: ${config.surface_color}; font-weight: 600;">
+                  ��� ${r.hexId} • Vol. ${r.volume}
+                </div>
+                <button class="view-result px-3 py-1 rounded-full" 
+                  data-result='${JSON.stringify(r)}'
+                  style="font-size: ${baseSize * 0.7}px; background-color: ${config.secondary_action_color}; color: ${config.surface_color};">
+                  View Book
+                </button>
+              </div>
+              <div style="font-size: ${baseSize * 0.75}px; color: ${config.surface_color}; opacity: 0.6; margin-bottom: 8px;">
+                Page ${r.page} • Wall ${r.wall} • Shelf ${r.shelf}
+              </div>
+              <div class="font-mono" style="font-size: ${baseSize * 0.7}px; color: ${config.surface_color}; opacity: 0.9; line-height: 1.5; word-break: break-all;">
+                "...${beforeText}<span class="search-highlight" style="background-color: ${config.primary_action_color}; color: ${config.surface_color};">${matchText}</span>${afterText}..."
+              </div>
+            </div>
+          `;}).join('');
+          
+          document.querySelectorAll('.view-result').forEach(btn => {
+            btn.addEventListener('click', () => {
+              const result = JSON.parse(btn.dataset.result);
+              modal.remove();
+              const hexagon = {
+                id: result.hexId,
+                color: `hsl(${30 + Math.random() * 40}, ${50 + Math.random() * 30}%, ${35 + Math.random() * 20}%)`
+              };
+              const book = {
+                volume: result.volume,
+                wall: result.wall,
+                shelf: result.shelf,
+                hexagon: result.hexId,
+                title: `Vol. ${result.volume}`,
+                color: `hsl(${20 + Math.random() * 40}, ${45 + Math.random() * 35}%, ${30 + Math.random() * 25}%)`
+              };
+              selectedHexagon = hexagon;
+              showBookView(book);
+            });
+          });
+        }, 1500);
+      };
+      
+      const handleFilterSearch = () => {
+        const contentType = contentFilter.value;
+        const language = languageFilter.value;
+        
+        filterResults.innerHTML = `
+          <div class="text-center py-8" style="color: ${config.surface_color};">
+            <div style="font-size: ${baseSize * 2.5}px; margin-bottom: 12px;">🔍</div>
+            <div style="font-size: ${baseSize * 0.9}px; opacity: 0.8;">Filtering infinite library...</div>
+            <div style="font-size: ${baseSize * 0.75}px; opacity: 0.5; margin-top: 8px;">Finding ${contentType} pages in ${language}</div>
+          </div>
+        `;
+        
+        setTimeout(() => {
+          const results = [];
+          const wordLists = {
+            english: ['the', 'be', 'to', 'of', 'and', 'a', 'in', 'that', 'have', 'it', 'for', 'not', 'on', 'with', 'as', 'you', 'do', 'at', 'this', 'but', 'his', 'by', 'from', 'they', 'we', 'say', 'her', 'she', 'or', 'an', 'will', 'my', 'one', 'all', 'would', 'there', 'their', 'what', 'so', 'up', 'out', 'if', 'about', 'who', 'get', 'which', 'go', 'me'],
+            spanish: ['el', 'la', 'de', 'que', 'y', 'a', 'en', 'un', 'ser', 'se', 'no', 'haber', 'por', 'con', 'su', 'para', 'como', 'estar', 'tener', 'le', 'lo', 'todo', 'pero', 'más', 'hacer', 'o', 'poder', 'decir', 'este', 'ir', 'otro', 'ese', 'la', 'si', 'me', 'ya', 'ver', 'porque', 'dar', 'cuando'],
+            french: ['le', 'de', 'un', 'être', 'et', 'à', 'il', 'avoir', 'ne', 'je', 'son', 'que', 'se', 'qui', 'ce', 'dans', 'en', 'du', 'elle', 'au', 'pour', 'pas', 'que', 'vous', 'par', 'sur', 'faire', 'plus', 'dire', 'me', 'on', 'mon', 'lui', 'nous', 'comme', 'mais', 'pouvoir', 'avec', 'tout', 'y'],
+            latin: ['et', 'in', 'est', 'non', 'ut', 'ad', 'cum', 'qui', 'de', 'ex', 'quod', 'sed', 'si', 'per', 'ab', 'esse', 'atque', 'ne', 'aut', 'ego', 'tu', 'sum', 'quo', 'quia', 'id', 'hic', 'ille', 'nec', 'nam', 'enim']
+          };
+          
+          for (let i = 0; i < 5; i++) {
+            const hexId = Math.floor(Math.random() * 1000000).toString(16).padStart(6, '0').toUpperCase();
+            const volume = Math.floor(Math.random() * 32) + 1;
+            const page = Math.floor(Math.random() * 410) + 1;
+            const wall = Math.floor(Math.random() * 4) + 1;
+            const shelf = Math.floor(Math.random() * 5) + 1;
+            
+            let preview = '';
+            
+            if (contentType === 'readable') {
+              const words = language !== 'any' ? wordLists[language] : wordLists.english;
+              const wordCount = 15 + Math.floor(Math.random() * 10);
+              for (let j = 0; j < wordCount; j++) {
+                preview += words[Math.floor(Math.random() * words.length)] + ' ';
+              }
+            } else if (contentType === 'sentences') {
+              const words = language !== 'any' ? wordLists[language] : wordLists.english;
+              const sentenceCount = 2 + Math.floor(Math.random() * 2);
+              for (let s = 0; s < sentenceCount; s++) {
+                const wordCount = 5 + Math.floor(Math.random() * 8);
+                let sentence = words[Math.floor(Math.random() * words.length)];
+                sentence = sentence.charAt(0).toUpperCase() + sentence.slice(1);
+                for (let j = 1; j < wordCount; j++) {
+                  sentence += ' ' + words[Math.floor(Math.random() * words.length)];
+                }
+                preview += sentence + '. ';
+              }
+            } else if (contentType === 'poetry') {
+              const words = language !== 'any' ? wordLists[language] : wordLists.english;
+              const lines = 3 + Math.floor(Math.random() * 2);
+              for (let l = 0; l < lines; l++) {
+                const wordCount = 3 + Math.floor(Math.random() * 5);
+                let line = '';
+                for (let j = 0; j < wordCount; j++) {
+                  line += words[Math.floor(Math.random() * words.length)] + ' ';
+                }
+                preview += line.trim() + '\n';
+              }
+            } else if (contentType === 'numeric') {
+              const numbers = [];
+              for (let n = 0; n < 10; n++) {
+                numbers.push(Math.floor(Math.random() * 1000));
+              }
+              preview = numbers.join(', ') + '...';
+            } else {
+              for (let j = 0; j < 80; j++) {
+                preview += characters[Math.floor(Math.random() * characters.length)];
+              }
+            }
+            
+            results.push({
+              hexId, volume, page, wall, shelf, preview, contentType, language
+            });
+          }
+          
+          const filterDesc = contentType === 'all' ? 'random pages' : 
+                           contentType === 'readable' ? 'readable word pages' :
+                           contentType === 'sentences' ? 'pages with sentences' :
+                           contentType === 'poetry' ? 'poetry pages' : 'pages with numbers';
+          
+          filterResults.innerHTML = `
+            <div style="font-size: ${baseSize * 0.9}px; color: ${config.surface_color}; margin-bottom: 16px; opacity: 0.7;">
+              Found ${results.length} ${filterDesc}
+            </div>
+          ` + results.map(r => `
+            <div class="mb-3 p-4 rounded-lg" style="background-color: rgba(245, 230, 211, 0.1); border: 1px solid rgba(245, 230, 211, 0.2);">
+              <div class="flex items-start justify-between mb-2">
+                <div style="font-size: ${baseSize * 0.85}px; color: ${config.surface_color}; font-weight: 600;">
+                  📖 ${r.hexId} • Vol. ${r.volume}
+                </div>
+                <button class="view-filtered-result px-3 py-1 rounded-full" 
+                  data-result='${JSON.stringify(r)}'
+                  style="font-size: ${baseSize * 0.7}px; background-color: ${config.secondary_action_color}; color: ${config.surface_color};">
+                  View Book
+                </button>
+              </div>
+              <div style="font-size: ${baseSize * 0.75}px; color: ${config.surface_color}; opacity: 0.6; margin-bottom: 8px;">
+                Page ${r.page} • Wall ${r.wall} • Shelf ${r.shelf}
+              </div>
+              <div class="font-mono" style="font-size: ${baseSize * 0.7}px; color: ${config.surface_color}; opacity: 0.9; line-height: 1.5; white-space: pre-wrap; word-break: break-word;">
+                "${r.preview.substring(0, 120)}${r.preview.length > 120 ? '...' : ''}"
+              </div>
+            </div>
+          `).join('');
+          
+          document.querySelectorAll('.view-filtered-result').forEach(btn => {
+            btn.addEventListener('click', () => {
+              const result = JSON.parse(btn.dataset.result);
+              modal.remove();
+              const hexagon = {
+                id: result.hexId,
+                color: `hsl(${30 + Math.random() * 40}, ${50 + Math.random() * 30}%, ${35 + Math.random() * 20}%)`
+              };
+              const book = {
+                volume: result.volume,
+                wall: result.wall,
+                shelf: result.shelf,
+                hexagon: result.hexId,
+                title: `Vol. ${result.volume}`,
+                color: `hsl(${20 + Math.random() * 40}, ${45 + Math.random() * 35}%, ${30 + Math.random() * 25}%)`
+              };
+              selectedHexagon = hexagon;
+              showBookView(book);
+            });
+          });
+        }, 1500);
+      };
+      
+      closeBtn.addEventListener('click', () => modal.remove());
+      goBtn.addEventListener('click', handleHexSearch);
+      textSearchBtn.addEventListener('click', handleTextSearch);
+      applyFilterBtn.addEventListener('click', handleFilterSearch);
+      input.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') handleHexSearch();
+      });
+      input.addEventListener('input', handleHexSearch);
+      textInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') handleTextSearch();
+      });
+      
+      const hexContentFilter = document.getElementById('hexContentFilter');
+      const hexLanguageFilter = document.getElementById('hexLanguageFilter');
+      if (hexContentFilter) {
+        hexContentFilter.addEventListener('change', handleHexSearch);
+      }
+      if (hexLanguageFilter) {
+        hexLanguageFilter.addEventListener('change', handleHexSearch);
+      }
+    }
+    
+    function nextPage() {
+      if (currentPage < bookPages.length) {
+        currentPage++;
+        updateBookContent('page-turn-left');
+      }
+    }
+    
+    function prevPage() {
+      if (currentPage > 1) {
+        currentPage--;
+        updateBookContent('page-turn-right');
+      }
+    }
+    
+    function updateBookContent(animationClass) {
+      const contentEl = document.getElementById('bookContent');
+      const pageNumEl = document.getElementById('pageNum');
+      
+      if (contentEl && pageNumEl) {
+        contentEl.className = `page-container ${animationClass}`;
+        contentEl.textContent = bookPages[currentPage - 1];
+        pageNumEl.textContent = `${currentPage} / ${bookPages.length}`;
+      }
+    }
+    
+    function handleTouchStart(e) {
+      touchStartX = e.touches[0].clientX;
+      touchStartY = e.touches[0].clientY;
+    }
+    
+    function handleTouchEnd(e) {
+      touchEndX = e.changedTouches[0].clientX;
+      touchEndY = e.changedTouches[0].clientY;
+      handleSwipe();
+    }
+    
+    function handleSwipe() {
+      const diffX = touchStartX - touchEndX;
+      const diffY = touchStartY - touchEndY;
+      
+      if (Math.abs(diffX) > Math.abs(diffY)) {
+        if (Math.abs(diffX) > 50) {
+          if (diffX > 0) {
+            nextPage();
+          } else {
+            prevPage();
+          }
+        }
+      } else {
+        if (diffY < -100 && currentView === 'book') {
+          showShelfView(selectedHexagon);
+        }
+      }
+    }
+    
+    function render() {
+      const config = window.elementSdk?.config || defaultConfig;
+      const customFont = config.font_family || defaultConfig.font_family;
+      const baseSize = config.font_size || defaultConfig.font_size;
+      const baseFontStack = 'Georgia, serif';
+      
+      const app = document.getElementById('app');
+      app.style.backgroundColor = config.background_color || defaultConfig.background_color;
+      app.style.fontFamily = `${customFont}, ${baseFontStack}`;
+      
+      let content = '';
+      
+      if (currentView === 'hexagons') {
+        const hexagons = generateHexagons(20);
+        content = `
+          <div class="px-4 pt-8 pb-4" style="padding-top: max(32px, env(safe-area-inset-top));">
+            <header class="text-center mb-6">
+              <div style="font-size: ${baseSize * 3}px; margin-bottom: 12px;">📚</div>
+              <h1 class="font-bold mb-2" style="font-size: ${baseSize * 2}px; color: ${config.surface_color};">
+                ${config.library_title}
+              </h1>
+              <p style="font-size: ${baseSize * 0.95}px; color: ${config.surface_color}; opacity: 0.7;">
+                ${config.subtitle}
+              </p>
+            </header>
+
+            <div class="hexagon-grid fade-in">
+              ${hexagons.map(hex => `
+                <div class="hexagon-card" data-hexagon='${JSON.stringify(hex)}' 
+                  style="background: linear-gradient(135deg, ${hex.color}, rgba(0,0,0,0.4));">
+                  <div class="gradient-overlay"></div>
+                  <div class="absolute inset-0 flex flex-col items-center justify-center p-4">
+                    <div style="font-size: ${baseSize * 2.5}px; margin-bottom: 8px;">📐</div>
+                    <div style="font-size: ${baseSize * 0.8}px; color: ${config.surface_color}; font-weight: 600; text-align: center; word-break: break-all;">
+                      ${hex.id}
+                    </div>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+
+          <div class="bottom-nav">
+            <div class="flex items-center justify-around">
+              <button id="homeBtn" class="flex flex-col items-center gap-1" style="color: ${config.surface_color};">
+                <span style="font-size: ${baseSize * 1.5}px;">🏠</span>
+                <span style="font-size: ${baseSize * 0.7}px;">Home</span>
+              </button>
+              <button id="randomBtn" class="flex flex-col items-center gap-1" style="color: ${config.surface_color};">
+                <span style="font-size: ${baseSize * 1.5}px;">🎲</span>
+                <span style="font-size: ${baseSize * 0.7}px;">${config.generate_button}</span>
+              </button>
+            </div>
+          </div>
+
+          <button class="fab-button" id="searchFab" style="background-color: ${config.primary_action_color};">
+            <span style="font-size: ${baseSize * 1.5}px; color: ${config.surface_color};">🔍</span>
+          </button>
+        `;
+      } else if (currentView === 'shelf') {
+        const books = generateShelf(selectedHexagon.id);
+        content = `
+          <div class="h-full flex flex-col" style="padding-top: env(safe-area-inset-top);">
+            <div class="px-4 pt-4 pb-2">
+              <button id="backBtn" class="mb-4 flex items-center gap-2" style="color: ${config.surface_color}; font-size: ${baseSize}px;">
+                <span style="font-size: ${baseSize * 1.3}px;">←</span>
+                Back
+              </button>
+              
+              <div class="text-center mb-2">
+                <div style="font-size: ${baseSize * 2.5}px; margin-bottom: 8px;">📐</div>
+                <h2 class="font-bold" style="font-size: ${baseSize * 1.6}px; color: ${config.surface_color};">
+                  Hexagon ${selectedHexagon.id}
+                </h2>
+                <p style="font-size: ${baseSize * 0.85}px; color: ${config.surface_color}; opacity: 0.7; margin-top: 4px;">
+                  Swipe to browse 32 volumes
+                </p>
+              </div>
+            </div>
+
+            <div class="flex-1 overflow-hidden">
+              <div class="book-shelf px-4">
+                ${books.map(book => `
+                  <div class="book-card" data-book='${JSON.stringify(book)}' style="width: 140px; background: linear-gradient(135deg, ${book.color}, rgba(0,0,0,0.3));">
+                    <div class="gradient-overlay"></div>
+                    <div class="absolute inset-0 flex flex-col items-center justify-center p-3">
+                      <div style="font-size: ${baseSize * 2}px; margin-bottom: 8px;">📖</div>
+                      <div style="font-size: ${baseSize * 0.9}px; color: ${config.surface_color}; font-weight: 600; text-align: center;">
+                        ${book.title}
+                      </div>
+                      <div style="font-size: ${baseSize * 0.7}px; color: ${config.surface_color}; opacity: 0.7; margin-top: 4px;">
+                        Wall ${book.wall} • Shelf ${book.shelf}
+                      </div>
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+
+            <div class="px-4 py-4 text-center" style="background: rgba(0,0,0,0.3); backdrop-filter: blur(10px);">
+              <p style="font-size: ${baseSize * 0.8}px; color: ${config.surface_color}; opacity: 0.6;">
+                Tap any book to read
+              </p>
+            </div>
+          </div>
+
+          <div class="bottom-nav">
+            <div class="flex items-center justify-around">
+              <button id="backNavBtn" class="flex flex-col items-center gap-1" style="color: ${config.surface_color};">
+                <span style="font-size: ${baseSize * 1.5}px;">←</span>
+                <span style="font-size: ${baseSize * 0.7}px;">Back</span>
+              </button>
+              <button id="randomShelfBtn" class="flex flex-col items-center gap-1" style="color: ${config.surface_color};">
+                <span style="font-size: ${baseSize * 1.5}px;">🎲</span>
+                <span style="font-size: ${baseSize * 0.7}px;">${config.generate_button}</span>
+              </button>
+            </div>
+          </div>
+        `;
+      } else if (currentView === 'book') {
+        content = `
+          <div class="modal-overlay">
+            <div class="swipe-indicator"></div>
+            
+            <div class="px-4 py-4 flex items-center justify-between" style="background: rgba(0,0,0,0.5); backdrop-filter: blur(10px);">
+              <button id="closeBookBtn" style="font-size: ${baseSize * 1.8}px; color: ${config.surface_color};">↓</button>
+              <div class="text-center flex-1">
+                <div style="font-size: ${baseSize * 0.9}px; color: ${config.surface_color}; font-weight: 600;">
+                  ${config.book_label}
+                </div>
+                <div style="font-size: ${baseSize * 0.7}px; color: ${config.surface_color}; opacity: 0.6;">
+                  Vol. ${selectedBook.volume} • ${selectedBook.hexagon}
+                </div>
+              </div>
+              <div style="width: ${baseSize * 1.8}px;"></div>
+            </div>
+
+            <div class="modal-content flex items-center justify-center px-4 py-6" 
+              id="touchArea"
+              style="background-color: ${config.surface_color};">
+              <div class="w-full max-w-2xl h-full relative">
+                <pre id="bookContent" class="page-container whitespace-pre-wrap break-words font-mono leading-relaxed h-full overflow-auto p-4" 
+                  style="font-size: ${baseSize * 0.75}px; color: ${config.text_color};">${bookPages[currentPage - 1]}</pre>
+                <div class="page-number" id="pageNum" style="color: ${config.surface_color};">
+                  ${currentPage} / ${bookPages.length}
+                </div>
+              </div>
+            </div>
+
+            <div class="px-4 py-4 flex gap-3" style="background: rgba(0,0,0,0.5); backdrop-filter: blur(10px); padding-bottom: calc(16px + env(safe-area-inset-bottom));">
+              <button id="prevBtn" class="flex-1 py-4 rounded-full font-semibold transition-all" 
+                style="font-size: ${baseSize}px; background-color: ${config.secondary_action_color}; color: ${config.surface_color};">
+                ← Previous
+              </button>
+              <button id="nextBtn" class="flex-1 py-4 rounded-full font-semibold transition-all"
+                style="font-size: ${baseSize}px; background-color: ${config.secondary_action_color}; color: ${config.surface_color};">
+                Next →
+              </button>
+            </div>
+          </div>
+        `;
+      }
+      
+      app.innerHTML = content;
+      attachEventListeners();
+    }
+    
+    function attachEventListeners() {
+      document.querySelectorAll('.hexagon-card').forEach(el => {
+        el.addEventListener('click', () => {
+          const hexData = JSON.parse(el.dataset.hexagon);
+          showShelfView(hexData);
+        });
+      });
+      
+      document.querySelectorAll('.book-card').forEach(el => {
+        el.addEventListener('click', () => {
+          const bookData = JSON.parse(el.dataset.book);
+          showBookView(bookData);
+        });
+      });
+      
+      const backBtn = document.getElementById('backBtn');
+      const backNavBtn = document.getElementById('backNavBtn');
+      if (backBtn) backBtn.addEventListener('click', showHexagonView);
+      if (backNavBtn) backNavBtn.addEventListener('click', showHexagonView);
+      
+      const closeBookBtn = document.getElementById('closeBookBtn');
+      if (closeBookBtn) {
+        closeBookBtn.addEventListener('click', () => showShelfView(selectedHexagon));
+      }
+      
+      const randomBtn = document.getElementById('randomBtn');
+      const randomShelfBtn = document.getElementById('randomShelfBtn');
+      if (randomBtn) {
+        randomBtn.addEventListener('click', () => {
+          const hexagons = generateHexagons(1);
+          showShelfView(hexagons[0]);
+        });
+      }
+      if (randomShelfBtn) {
+        randomShelfBtn.addEventListener('click', () => {
+          const hexagons = generateHexagons(1);
+          showShelfView(hexagons[0]);
+        });
+      }
+
+      const searchFab = document.getElementById('searchFab');
+      if (searchFab) {
+        searchFab.addEventListener('click', showSearchModal);
+      }
+
+      const touchArea = document.getElementById('touchArea');
+      if (touchArea) {
+        touchArea.addEventListener('touchstart', handleTouchStart, { passive: true });
+        touchArea.addEventListener('touchend', handleTouchEnd, { passive: true });
+      }
+
+      const prevBtn = document.getElementById('prevBtn');
+      const nextBtn = document.getElementById('nextBtn');
+      if (prevBtn) prevBtn.addEventListener('click', prevPage);
+      if (nextBtn) nextBtn.addEventListener('click', nextPage);
+    }
+    
+    async function onConfigChange(config) {
+      const customFont = config.font_family || defaultConfig.font_family;
+      const baseFontStack = 'Georgia, serif';
+      
+      const app = document.getElementById('app');
+      if (app) {
+        app.style.backgroundColor = config.background_color || defaultConfig.background_color;
+        app.style.fontFamily = `${customFont}, ${baseFontStack}`;
+      }
+    }
+    
+    if (window.elementSdk) {
+      window.elementSdk.init({
+        defaultConfig,
+        onConfigChange,
+        mapToCapabilities: (config) => ({
+          recolorables: [
+            {
+              get: () => config.background_color || defaultConfig.background_color,
+              set: (value) => {
+                config.background_color = value;
+                window.elementSdk.setConfig({ background_color: value });
+              }
+            },
+            {
+              get: () => config.surface_color || defaultConfig.surface_color,
+              set: (value) => {
+                config.surface_color = value;
+                window.elementSdk.setConfig({ surface_color: value });
+              }
+            },
+            {
+              get: () => config.text_color || defaultConfig.text_color,
+              set: (value) => {
+                config.text_color = value;
+                window.elementSdk.setConfig({ text_color: value });
+              }
+            },
+            {
+              get: () => config.primary_action_color || defaultConfig.primary_action_color,
+              set: (value) => {
+                config.primary_action_color = value;
+                window.elementSdk.setConfig({ primary_action_color: value });
+              }
+            },
+            {
+              get: () => config.secondary_action_color || defaultConfig.secondary_action_color,
+              set: (value) => {
+                config.secondary_action_color = value;
+                window.elementSdk.setConfig({ secondary_action_color: value });
+              }
+            }
+          ],
+          borderables: [],
+          fontEditable: {
+            get: () => config.font_family || defaultConfig.font_family,
+            set: (value) => {
+              config.font_family = value;
+              window.elementSdk.setConfig({ font_family: value });
+            }
+          },
+          fontSizeable: {
+            get: () => config.font_size || defaultConfig.font_size,
+            set: (value) => {
+              config.font_size = value;
+              window.elementSdk.setConfig({ font_size: value });
+            }
+          }
+        }),
+        mapToEditPanelValues: (config) => new Map([
+          ["library_title", config.library_title || defaultConfig.library_title],
+          ["subtitle", config.subtitle || defaultConfig.subtitle],
+          ["generate_button", config.generate_button || defaultConfig.generate_button],
+          ["book_label", config.book_label || defaultConfig.book_label]
+        ])
+      });
+    }
+    
+    document.addEventListener('DOMContentLoaded', render);
+  </script>
+</body>
+</html>
