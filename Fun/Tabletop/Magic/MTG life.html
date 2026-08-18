@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>MTG Commander Counter</title>
+    <style>
+        /* CSS for mobile-first design and layout */
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #121212; /* Dark background */
+            color: #f0f0f0;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        /* Player Grid - Main Layout */
+        #player-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-auto-rows: 1fr; /* Equal height rows */
+            flex-grow: 1;
+            gap: 1vmin;
+            padding: 1vmin;
+        }
+
+        /* Full-screen mode for 2-player game */
+        .players-2 #player-grid {
+            grid-template-columns: 1fr;
+            grid-auto-rows: 1fr;
+            height: 100vh;
+        }
+
+        .player-card {
+            background-color: #1e1e1e;
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            touch-action: manipulation;
+            user-select: none;
+            position: relative;
+            transition: transform 0.3s ease;
+        }
+        
+        /* Rotation for Top Players */
+        .player-card.rotated {
+            transform: rotate(180deg);
+        }
+
+        .player-card.eliminated {
+            opacity: 0.5;
+            filter: grayscale(100%);
+        }
+
+        /* Life Counter Area - Now a container for the halves */
+        .life-main-area {
+            position: relative;
+            flex-grow: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100px;
+        }
+
+        /* Left/Right Halves for Click Zones */
+        .life-half {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 50%;
+            z-index: 5;
+            transition: background-color 0.1s;
+        }
+        .life-half:active {
+            background-color: rgba(255, 255, 255, 0.15); /* Visual feedback on tap */
+        }
+
+        .life-subtract {
+            left: 0;
+        }
+        .life-add {
+            right: 0;
+        }
+
+        /* Life Total Display */
+        .life-total {
+            font-size: 18vmin; /* Huge text for easy reading */
+            font-weight: bold;
+            line-height: 1;
+            margin: 0;
+            transition: color 0.3s;
+            position: absolute;
+            z-index: 10;
+            pointer-events: none; /* Crucial: allows clicks to pass through to the halves */
+        }
+        
+        /* Commander Damage Area */
+        .damage-section {
+            background-color: rgba(0, 0, 0, 0.2);
+            padding: 5px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .damage-header {
+            font-size: 3vmin;
+            margin-bottom: 3px;
+            text-align: center;
+            font-weight: 300;
+        }
+
+        .damage-counters {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr); /* Up to 3 opponents */
+            gap: 1vmin;
+            padding-bottom: 5px;
+        }
+
+        .damage-counter {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 5px;
+            text-align: center;
+            font-size: 3.5vmin;
+            cursor: pointer;
+            padding: 3px 0;
+            transition: background 0.1s;
+        }
+
+        .damage-counter:active {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        .damage-counter span {
+            font-weight: bold;
+            display: block;
+        }
+        
+        .damage-counter .label {
+            font-size: 2.5vmin;
+            opacity: 0.7;
+            display: block;
+            margin-top: -3px;
+            line-height: 1.2;
+        }
+
+        /* Settings Bar */
+        #settings-bar {
+            padding: 10px;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            background-color: #1e1e1e;
+            border-top: 1px solid #333;
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.5);
+            flex-shrink: 0;
+        }
+
+        #player-count-select {
+            padding: 8px;
+            border-radius: 5px;
+            border: 1px solid #555;
+            background-color: #333;
+            color: white;
+            font-size: 4vmin;
+        }
+        
+        .action-btn {
+            background-color: #555555;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 8px;
+            font-size: 4vmin;
+            cursor: pointer;
+            transition: background 0.1s, transform 0.1s;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+        }
+        
+        .action-btn:active {
+            background-color: #777777;
+            transform: scale(0.98);
+        }
+
+        /* Player Color Themes */
+        .player-0 { background-color: #0d284a; } /* Blue */
+        .player-1 { background-color: #3b0d0d; } /* Red */
+        .player-2 { background-color: #0a3313; } /* Green */
+        .player-3 { background-color: #453c0e; } /* Gold/Yellow */
+        
+        .player-0 .life-total { color: #87CEEB; }
+        .player-1 .life-total { color: #FF6347; }
+        .player-2 .life-total { color: #90EE90; }
+        .player-3 .life-total { color: #FFD700; }
+
+        /* Commander Damage Color Highlights */
+        .dmg-high { background: rgba(255, 140, 0, 0.4); } /* Orange */
+        .dmg-lethal { background: rgba(255, 0, 0, 0.6); } /* Red */
+
+    </style>
+</head>
+<body class="players-4">
+    
+    <div id="player-grid">
+        <!-- Player Cards will be dynamically inserted here -->
+    </div>
+
+    <div id="settings-bar">
+        <label for="player-count-select" style="font-size: 4vmin;">Players:</label>
+        <select id="player-count-select" onchange="setupGame(parseInt(this.value))">
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4" selected>4</option>
+        </select>
+        <button class="action-btn" onclick="resetGame()">Reset (40 Life)</button>
+    </div>
+
+    <script>
+        const STARTING_LIFE = 40;
+        let playerCount = 4;
+        let playerStates = [];
+        let longPressTimer;
+
+        // Function to create the HTML for a single player card
+        function createPlayerCard(playerId) {
+            const opponents = Array.from({ length: playerCount }, (_, i) => i)
+                                    .filter(i => i !== playerId);
+
+            // Commander Damage Counter elements
+            const damageCounters = opponents.map(opponentId => `
+                <div class="damage-counter" 
+                     data-player-id="${playerId}" 
+                     data-opponent-id="${opponentId}"
+                     onclick="adjustCommanderDamage(${playerId}, ${opponentId}, 1)">
+                    <span id="dmg-${playerId}-from-${opponentId}">0</span>
+                    <span class="label">vs P${opponentId + 1}</span>
+                </div>
+            `).join('');
+
+            return `
+                <div class="player-card player-${playerId}" data-player-id="${playerId}">
+                    <div class="life-main-area">
+                        <!-- Left Half (Subtract - Click/Tap) -->
+                        <div class="life-half life-subtract" 
+                             data-player-id="${playerId}" 
+                             data-amount="-1"
+                             ontouchstart="handleTouchStart(event)"
+                             ontouchend="handleTouchEnd(event)">
+                        </div>
+                        
+                        <!-- Right Half (Add - Click/Tap) -->
+                        <div class="life-half life-add" 
+                             data-player-id="${playerId}" 
+                             data-amount="1"
+                             ontouchstart="handleTouchStart(event)"
+                             ontouchend="handleTouchEnd(event)">
+                        </div>
+
+                        <!-- Life Total Display (Unclickable) -->
+                        <p class="life-total" id="life-${playerId}">${STARTING_LIFE}</p>
+                    </div>
+                    
+                    <div class="damage-section">
+                        <div class="damage-header">Commander Damage Taken</div>
+                        <div class="damage-counters">
+                            ${damageCounters}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Sets up the game state and UI for a given number of players
+        function setupGame(count) {
+            playerCount = count;
+            const grid = document.getElementById('player-grid');
+            grid.innerHTML = '';
+            playerStates = [];
+            
+            // Set body class for 2-player layout
+            document.body.className = `players-${count}`;
+
+            for (let i = 0; i < playerCount; i++) {
+                grid.innerHTML += createPlayerCard(i);
+                playerStates.push({
+                    life: STARTING_LIFE,
+                    damage: new Array(playerCount).fill(0), // Damage from each opponent
+                    eliminated: false
+                });
+            }
+
+            // Apply Rotation for Top Players
+            for (let i = 0; i < Math.ceil(playerCount / 2); i++) {
+                const cardEl = document.querySelector(`.player-card[data-player-id="${i}"]`);
+                if (cardEl) {
+                    cardEl.classList.add('rotated');
+                }
+            }
+            
+            // Ensure bottom players (if any) are not rotated
+            for (let i = Math.ceil(playerCount / 2); i < playerCount; i++) {
+                const cardEl = document.querySelector(`.player-card[data-player-id="${i}"]`);
+                if (cardEl) {
+                    cardEl.classList.remove('rotated');
+                }
+            }
+
+            // Update Commander Damage grid columns based on playerCount
+            document.querySelectorAll('.damage-counters').forEach(dc => {
+                dc.style.gridTemplateColumns = `repeat(${playerCount - 1}, 1fr)`;
+            });
+
+            // Add click listener for commander damage reset
+            document.getElementById('player-grid').querySelectorAll('.damage-counter').forEach(el => {
+                el.addEventListener('contextmenu', (e) => {
+                    e.preventDefault(); // Prevent context menu on long press
+                    const playerId = parseInt(e.currentTarget.dataset.playerId);
+                    const opponentId = parseInt(e.currentTarget.dataset.opponentId);
+                    // Subtract 1 damage (which will add 1 life due to the new logic)
+                    adjustCommanderDamage(playerId, opponentId, -1); 
+                });
+            });
+
+            updateDisplay();
+        }
+        
+        // --- Touch Event Handlers for Life Adjustment (+/- 1 and Long Press +/- 10) ---
+
+        function handleTouchStart(e) {
+            e.preventDefault(); // Stop default browser behavior (like zooming/scrolling)
+            const half = e.currentTarget;
+            const playerId = parseInt(half.dataset.playerId);
+            const amount = parseInt(half.dataset.amount);
+
+            // Immediately apply the first point of damage
+            adjustLife(playerId, amount);
+
+            // Set up long press timer for the remaining 9 points (total +/- 10)
+            longPressTimer = setTimeout(() => {
+                // Apply 9 more points if the touch is held
+                for(let i = 0; i < 9; i++) {
+                    adjustLife(playerId, amount);
+                }
+            }, 500); // 500ms delay for long press
+        }
+
+        function handleTouchEnd(e) {
+            clearTimeout(longPressTimer);
+        }
+
+        // --- Core Game Logic Functions ---
+
+        // Updates the HTML display from the playerStates array
+        function updateDisplay() {
+            playerStates.forEach((player, i) => {
+                const lifeEl = document.getElementById(`life-${i}`);
+                if (lifeEl) {
+                    lifeEl.textContent = player.life;
+                    const cardEl = lifeEl.closest('.player-card');
+
+                    // Check for elimination (0 life or 21+ commander damage)
+                    const commanderDamageLethal = player.damage.some(dmg => dmg >= 21);
+                    const isEliminated = player.life <= 0 || commanderDamageLethal;
+                    cardEl.classList.toggle('eliminated', isEliminated);
+
+                    // Update commander damage counters
+                    player.damage.forEach((dmg, opponentId) => {
+                        if (i !== opponentId) {
+                            const dmgEl = document.getElementById(`dmg-${i}-from-${opponentId}`);
+                            if (dmgEl) {
+                                dmgEl.textContent = dmg;
+                                
+                                // Color highlight for near/lethal damage
+                                const parent = dmgEl.parentElement;
+                                parent.classList.remove('dmg-high', 'dmg-lethal');
+
+                                if (dmg >= 21) {
+                                    parent.classList.add('dmg-lethal');
+                                } else if (dmg >= 15) {
+                                    parent.classList.add('dmg-high');
+                                }
+                            }
+                        }
+                    });
+                }
+            });
+        }
+
+        // Adjusts life total for a player
+        function adjustLife(playerId, amount) {
+            if (playerStates[playerId].eliminated) return;
+            playerStates[playerId].life += amount;
+            playerStates[playerId].life = Math.max(-99, playerStates[playerId].life); // Prevent absurd negative numbers
+            updateDisplay();
+        }
+
+        // Adjusts commander damage taken from a specific opponent
+        // Single tap adds 1. Context menu/Right click/Long-press on desktop subtracts 1.
+        // NOTE: Per user request, life is also adjusted with commander damage.
+        function adjustCommanderDamage(playerId, opponentId, amount) {
+            if (playerStates[playerId].eliminated) return;
+            
+            const oldDmg = playerStates[playerId].damage[opponentId];
+            let newDmg = oldDmg + amount;
+            
+            // Ensure commander damage doesn't go below zero
+            newDmg = Math.max(0, newDmg);
+            
+            // Calculate the actual change that occurred (e.g., if damage was 0 and we tried to subtract 1, change is 0)
+            const actualDamageChange = newDmg - oldDmg;
+
+            // Update the commander damage counter state
+            playerStates[playerId].damage[opponentId] = newDmg;
+
+            // Apply the corresponding life change (Life change is the negative of the damage change).
+            // This implements the requested feature: +1 damage means -1 life, -1 damage means +1 life.
+            if (actualDamageChange !== 0) {
+                const lifeAdjustment = -actualDamageChange; 
+                
+                // Directly adjust life state
+                playerStates[playerId].life += lifeAdjustment;
+                playerStates[playerId].life = Math.max(-99, playerStates[playerId].life);
+            }
+            
+            // Update the UI once after both stats are changed
+            updateDisplay();
+        }
+
+        // Resets the entire game
+        function resetGame() {
+            // Using a simple window.confirm as a temporary measure for quick action
+            if (window.confirm(`Start a new ${playerCount}-player Commander game (40 Life)?`)) {
+                setupGame(playerCount);
+            }
+        }
+        
+        // Initial setup on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            const selectEl = document.getElementById('player-count-select');
+            playerCount = parseInt(selectEl.value);
+            setupGame(playerCount);
+        });
+
+    </script>
+</body>
+</html>
