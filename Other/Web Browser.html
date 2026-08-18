@@ -1,0 +1,4280 @@
+<!doctype html>
+<html lang="en">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mobile Web Browser</title>
+  <script src="/_sdk/element_sdk.js"></script>
+  <style>
+        body {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100%;
+            overflow: hidden;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            scroll-behavior: smooth;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        .browser-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            max-height: 100vh;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 16px;
+            margin: 8px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(255, 255, 255, 0.2);
+            overflow: hidden;
+        }
+
+        /* Header */
+        .browser-header {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(226, 232, 240, 0.3);
+            padding: 12px 16px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            z-index: 1000000;
+            position: relative;
+        }
+
+        .browser-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.8), transparent);
+        }
+
+        /* Tab Bar */
+        .tab-bar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+            overflow-x: auto;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+
+        .tab-bar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .tab {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(241, 245, 249, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(226, 232, 240, 0.5);
+            border-radius: 12px;
+            padding: 8px 12px;
+            min-width: 130px;
+            max-width: 200px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-size: 13px;
+            font-weight: 500;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .tab::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+            transition: left 0.5s;
+        }
+
+        .tab:hover::before {
+            left: 100%;
+        }
+
+        .tab:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+            background: rgba(255, 255, 255, 0.9);
+        }
+
+        .tab.active {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            color: white;
+            border-color: #3b82f6;
+            box-shadow: 0 4px 16px rgba(59, 130, 246, 0.3);
+            transform: translateY(-1px);
+        }
+
+        .tab.active::before {
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+        }
+
+        .tab-title {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .tab-close {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            opacity: 0.7;
+            flex-shrink: 0;
+        }
+
+        .tab-close:hover {
+            background: rgba(239, 68, 68, 0.8);
+            color: white;
+            opacity: 1;
+            transform: scale(1.1);
+        }
+
+        .tab.active .tab-close {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .tab.active .tab-close:hover {
+            background: rgba(239, 68, 68, 0.9);
+        }
+
+        .new-tab-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 18px;
+            flex-shrink: 0;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .new-tab-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            transition: left 0.5s;
+        }
+
+        .new-tab-btn:hover {
+            transform: translateY(-2px) scale(1.05);
+            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+        }
+
+        .new-tab-btn:hover::before {
+            left: 100%;
+        }
+
+        .new-tab-btn:active {
+            transform: translateY(-1px) scale(1.02);
+        }
+
+        /* Navigation Bar */
+        .nav-bar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .nav-btn {
+            width: 40px;
+            height: 40px;
+            min-width: 10px !important;
+            border-radius: 12px;
+            background: rgba(248, 250, 252, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(226, 232, 240, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .nav-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6), transparent);
+            transition: left 0.5s;
+        }
+
+        .nav-btn:hover {
+            background: rgba(255, 255, 255, 0.9);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .nav-btn:hover::before {
+            left: 100%;
+        }
+
+        .nav-btn:active {
+            transform: translateY(0);
+        }
+
+        .nav-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .nav-btn:disabled:hover {
+            background: rgba(248, 250, 252, 0.8);
+            transform: none;
+        }
+
+        .url-bar {
+            flex: 1;
+            height: 40px;
+            border: 1px solid rgba(226, 232, 240, 0.5);
+            border-radius: 20px;
+            transform: scaleX(1);
+            padding: 0 20px;
+            font-size: 14px;
+            background: rgba(248, 250, 252, 0.8);
+            backdrop-filter: blur(10px);
+            margin: 0 12px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-weight: 500;
+            max-width: 100px;
+        }
+
+        .url-bar:focus {
+            transform-origin: right center;
+            transform: scaleX(2.5) translateY(-1px);
+            outline: none;
+            border-color: #3b82f6;
+            background: rgba(255, 255, 255, 0.95);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1), 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .url-bar::placeholder {
+            color: #94a3b8;
+            font-weight: 400;
+        }
+
+        .menu-btn {
+            width: 40px;
+            min-width: 40px !important;
+            height: 40px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #6366f1, #4f46e5);
+            color: white;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .menu-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            transition: left 0.5s;
+        }
+
+        .menu-btn:hover {
+            transform: translateY(-2px) scale(1.05);
+            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+        }
+
+        .menu-btn:hover::before {
+            left: 100%;
+        }
+
+        .menu-btn:active {
+            transform: translateY(-1px) scale(1.02);
+        }
+
+        /* Content Area */
+        .content-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .browser-content {
+            flex: 1;
+            background: white;
+            overflow-y: auto;
+            padding: 20px;
+            display: none;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+        }
+
+        .browser-content.active {
+            display: block;
+        }
+
+        .browser-content h1, .browser-content h2, .browser-content h3 {
+            color: #1f2937;
+            margin-top: 0;
+        }
+
+        .browser-content a {
+            color: #3b82f6;
+            text-decoration: none;
+        }
+
+        .browser-content a:hover {
+            text-decoration: underline;
+        }
+
+        .browser-content img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+        }
+
+        .browser-content pre {
+            background: #f3f4f6;
+            padding: 16px;
+            border-radius: 8px;
+            overflow-x: auto;
+        }
+
+        .loading-indicator {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #3b82f6, #8b5cf6, #ec4899);
+            background-size: 200% 100%;
+            transform: scaleX(0);
+            transform-origin: left;
+            transition: transform 0.3s;
+            z-index: 1010000;
+            border-radius: 0 0 2px 2px;
+            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+        }
+
+        .loading-indicator.active {
+            animation: loading 2s ease-in-out infinite, shimmer 1.5s ease-in-out infinite;
+        }
+
+        @keyframes loading {
+            0% { transform: scaleX(0); }
+            50% { transform: scaleX(0.8); }
+            100% { transform: scaleX(1); }
+        }
+
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+
+        .error-message {
+            text-align: center;
+            padding: 40px 20px;
+            color: #ef4444;
+        }
+
+        .error-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        /* Menu Panel */
+        .menu-panel {
+            position: fixed;
+            top: 0;
+            right: -100%;
+            width: 280px;
+            height: 100%;
+            background: white;
+            box-shadow: -2px 0 10px rgba(0,0,0,0.1);
+            transition: right 0.3s;
+            z-index: 2000000;
+            overflow-y: auto;
+        }
+
+        .menu-panel.open {
+            right: 0;
+        }
+
+        .menu-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1990000;
+            display: none;
+        }
+
+        .menu-overlay.open {
+            display: block;
+        }
+
+        .menu-header {
+            padding: 16px;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .menu-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1f2937;
+        }
+
+        .close-menu {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: #f3f4f6;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+
+        .menu-section {
+            padding: 16px;
+            border-bottom: 1px solid #f3f4f6;
+        }
+
+        .menu-section h3 {
+            margin: 0 0 12px 0;
+            font-size: 14px;
+            font-weight: 600;
+            color: #374151;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .menu-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 0;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: background 0.2s;
+        }
+
+        .menu-item:hover {
+            background: #f9fafb;
+        }
+
+        .menu-item-icon {
+            width: 20px;
+            text-align: center;
+        }
+
+        .bookmark-item, .history-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 0;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+
+        .bookmark-item:hover, .history-item:hover {
+            background: #f9fafb;
+        }
+
+        .bookmark-title, .history-title {
+            flex: 1;
+            font-size: 14px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .bookmark-url, .history-url {
+            font-size: 12px;
+            color: #6b7280;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .delete-btn {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #ef4444;
+            color: white;
+            border: none;
+            font-size: 12px;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .bookmark-item:hover .delete-btn,
+        .history-item:hover .delete-btn {
+            opacity: 1;
+        }
+
+        /* Settings */
+        .setting-item {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            margin-bottom: 16px;
+        }
+
+        .setting-label {
+            font-size: 14px;
+            font-weight: 500;
+            color: #374151;
+        }
+
+        .setting-input {
+            padding: 8px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .setting-input:focus {
+            outline: none;
+            border-color: #3b82f6;
+        }
+
+        .theme-toggle {
+            display: flex;
+            gap: 8px;
+        }
+
+        .theme-btn {
+            flex: 1;
+            padding: 8px 16px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            background: white;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .theme-btn.active {
+            background: #3b82f6;
+            color: white;
+            border-color: #3b82f6;
+        }
+
+        /* Dark Theme */
+        .dark {
+            background: #111827;
+            color: #f9fafb;
+        }
+
+        .dark .browser-header {
+            background: #1f2937;
+            border-color: #374151;
+        }
+
+        .dark .tab {
+            background: #374151;
+            border-color: #4b5563;
+            color: #f9fafb;
+        }
+
+        .dark .nav-btn {
+            background: #374151;
+            border-color: #4b5563;
+            color: #f9fafb;
+        }
+
+        .dark .url-bar {
+            background: #374151;
+            border-color: #4b5563;
+            color: #f9fafb;
+        }
+
+        .dark .browser-content {
+            background: #1f2937;
+            color: #f9fafb;
+        }
+
+        .dark .menu-panel {
+            background: #1f2937;
+        }
+
+        .dark .menu-item:hover {
+            background: #374151;
+        }
+
+        /* Empty State */
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            text-align: center;
+            padding: 60px 20px;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+            position: relative;
+        }
+
+        .empty-state::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M 10 0 L 0 0 0 10" fill="none" stroke="%23e2e8f0" stroke-width="0.5" opacity="0.3"/></pattern></defs><rect width="100" height="100" fill="url(%23grid)"/></svg>');
+            opacity: 0.3;
+            pointer-events: none;
+        }
+
+        .empty-state-icon {
+            font-size: 64px;
+            margin-bottom: 24px;
+            opacity: 0.8;
+            animation: float 3s ease-in-out infinite;
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .empty-state-title {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            color: #1f2937;
+            background: linear-gradient(135deg, #1f2937, #4b5563);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .empty-state-text {
+            color: #6b7280;
+            margin-bottom: 32px;
+            font-size: 16px;
+            font-weight: 500;
+            max-width: 400px;
+            line-height: 1.6;
+        }
+
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 16px;
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .quick-action {
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(229, 231, 235, 0.5);
+            border-radius: 16px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .quick-action::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+            transition: left 0.6s;
+        }
+
+        .quick-action:hover {
+            transform: translateY(-4px) scale(1.02);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+            background: rgba(255, 255, 255, 0.95);
+        }
+
+        .quick-action:hover::before {
+            left: 100%;
+        }
+
+        .quick-action:active {
+            transform: translateY(-2px) scale(1.01);
+        }
+
+        .quick-action-icon {
+            font-size: 32px;
+            margin-bottom: 12px;
+            transition: transform 0.3s ease;
+        }
+
+        .quick-action:hover .quick-action-icon {
+            transform: scale(1.1);
+        }
+
+        .quick-action-text {
+            font-size: 15px;
+            font-weight: 600;
+            color: #374151;
+        }
+
+        @media (max-width: 480px) {
+            .tab {
+                min-width: 100px;
+                max-width: 140px;
+            }
+            
+            .menu-panel {
+                width: 100%;
+                right: -100%;
+            }
+            
+            .url-bar {
+                margin: 0 4px;
+            }
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(31, 41, 55, 0.95);
+            backdrop-filter: blur(20px);
+            color: white;
+            padding: 16px 28px;
+            border-radius: 16px;
+            font-size: 14px;
+            font-weight: 500;
+            z-index: 10000000;
+            animation: slideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            max-width: 400px;
+            text-align: center;
+        }
+
+        /* Smart Suggestions */
+        .suggestions-container {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(226, 232, 240, 0.5);
+            border-radius: 12px;
+            margin-top: 4px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+            z-index: 2000000;
+            max-height: 300px;
+            min-width: 250px;
+            overflow-y: auto;
+            display: none;
+        }
+
+        .suggestions-container.show {
+            display: block;
+            animation: slideDown 0.2s ease-out;
+        }
+
+        .suggestion-section {
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(226, 232, 240, 0.3);
+        }
+
+        .suggestion-section:last-child {
+            border-bottom: none;
+        }
+
+        .suggestion-header {
+            padding: 4px 16px;
+            font-size: 11px;
+            font-weight: 600;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .suggestion-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 16px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border-radius: 8px;
+            margin: 0 8px;
+        }
+
+        .suggestion-item:hover,
+        .suggestion-item.selected {
+            background: rgba(59, 130, 246, 0.1);
+            transform: translateX(2px);
+        }
+
+        .suggestion-icon {
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            opacity: 0.7;
+        }
+
+        .suggestion-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .suggestion-title {
+            font-size: 14px;
+            font-weight: 500;
+            color: #1f2937;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .suggestion-url {
+            font-size: 12px;
+            color: #6b7280;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .suggestion-type {
+            font-size: 10px;
+            padding: 2px 6px;
+            background: rgba(59, 130, 246, 0.1);
+            color: #3b82f6;
+            border-radius: 4px;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+
+        .url-bar-container {
+            position: relative;
+            flex: 1;
+            margin: 0 12px;
+        }
+
+        /* Developer Tools */
+        .dev-tools {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 300px;
+            background: #1f2937;
+            color: #f9fafb;
+            border-top: 2px solid #374151;
+            transform: translateY(100%);
+            transition: transform 0.3s ease;
+            z-index: 1500000;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .dev-tools.open {
+            transform: translateY(0);
+        }
+
+        .dev-tools-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 16px;
+            background: #111827;
+            border-bottom: 1px solid #374151;
+        }
+
+        .dev-tools-tabs {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+
+        .dev-tools-tabs::-webkit-scrollbar {
+            display: none;
+        }
+
+        .dev-tab {
+            padding: 6px 12px;
+            background: transparent;
+            border: 1px solid #374151;
+            border-radius: 4px;
+            color: #9ca3af;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .dev-tab.active {
+            background: #3b82f6;
+            color: white;
+            border-color: #3b82f6;
+        }
+
+        .dev-tools-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px;
+        }
+
+        .console-output {
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            line-height: 1.4;
+            white-space: pre-wrap;
+            background: #111827;
+            padding: 8px;
+            border-radius: 4px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .console-input {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .console-input input {
+            flex: 1;
+            background: #374151;
+            border: 1px solid #4b5563;
+            color: #f9fafb;
+            padding: 6px 8px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+
+        .console-input button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .element-inspector {
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+
+        .element-tree {
+            background: #111827;
+            padding: 8px;
+            border-radius: 4px;
+            max-height: 180px;
+            overflow-y: auto;
+        }
+
+        .element-item {
+            padding: 2px 0;
+            cursor: pointer;
+            border-radius: 2px;
+        }
+
+        .element-item:hover {
+            background: #374151;
+        }
+
+        .element-item.selected {
+            background: #3b82f6;
+        }
+
+        .element-controls {
+            margin-top: 8px;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .element-controls input {
+            background: #374151;
+            border: 1px solid #4b5563;
+            color: #f9fafb;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            width: 200px;
+        }
+
+        .element-controls button {
+            background: #ef4444;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .network-log {
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            background: #111827;
+            padding: 8px;
+            border-radius: 4px;
+            max-height: 220px;
+            overflow-y: auto;
+        }
+
+        .network-item {
+            padding: 4px 0;
+            border-bottom: 1px solid #374151;
+        }
+
+        .network-method {
+            color: #10b981;
+            font-weight: bold;
+        }
+
+        .network-status-200 { color: #10b981; }
+        .network-status-404 { color: #ef4444; }
+        .network-status-error { color: #f59e0b; }
+        .network-status-cached { color: #8b5cf6; }
+        .network-status-preloaded { color: #06b6d4; }
+
+        .performance-metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .metric-card {
+            background: #374151;
+            padding: 8px;
+            border-radius: 4px;
+            text-align: center;
+        }
+
+        .metric-value {
+            font-size: 16px;
+            font-weight: bold;
+            color: #3b82f6;
+        }
+
+        .metric-label {
+            font-size: 10px;
+            color: #9ca3af;
+            text-transform: uppercase;
+        }
+
+        .storage-info {
+            background: #374151;
+            padding: 8px;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            font-size: 12px;
+        }
+
+        .storage-bar {
+            width: 100%;
+            height: 4px;
+            background: #4b5563;
+            border-radius: 2px;
+            overflow: hidden;
+            margin-top: 4px;
+        }
+
+        .storage-fill {
+            height: 100%;
+            background: #3b82f6;
+            transition: width 0.3s ease;
+        }
+
+        .download-controls {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+
+        .download-btn {
+            background: #10b981;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background 0.2s;
+        }
+
+        .download-btn:hover {
+            background: #059669;
+        }
+
+        .download-btn:disabled {
+            background: #6b7280;
+            cursor: not-allowed;
+        }
+
+        .security-info {
+            background: #374151;
+            padding: 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            margin-bottom: 8px;
+        }
+
+        .security-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 6px;
+        }
+
+        .security-secure { background: #10b981; }
+        .security-insecure { background: #ef4444; }
+        .security-mixed { background: #f59e0b; }
+
+        @keyframes slideUp {
+            from { transform: translateX(-50%) translateY(100%); opacity: 0; }
+            to { transform: translateX(-50%) translateY(0); opacity: 1; }
+        }
+
+        @keyframes slideDown {
+            from { transform: translateX(-50%) translateY(0); opacity: 1; }
+            to { transform: translateX(-50%) translateY(100%); opacity: 0; }
+        }
+
+        @keyframes slideDownSuggestions {
+            from { 
+                opacity: 0; 
+                transform: translateY(-10px) scale(0.95); 
+            }
+            to { 
+                opacity: 1; 
+                transform: translateY(0) scale(1); 
+            }
+        }
+
+        .suggestions-container.show {
+            animation: slideDownSuggestions 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Enhanced focus states */
+        .url-bar:focus + .suggestions-container {
+            border-color: #3b82f6;
+        }
+
+        /* Improved mobile responsiveness */
+        @media (max-width: 640px) {
+            .suggestions-container {
+                left: -150px;
+                right: -8px;
+                margin-top: 8px;
+            }
+            
+            .suggestion-item {
+                padding: 12px 16px;
+            }
+            
+            .suggestion-title {
+                font-size: 15px;
+            }
+            
+            .suggestion-url {
+                font-size: 13px;
+            }
+        }
+
+        /* Performance optimizations */
+        .suggestion-item {
+            will-change: transform, background-color;
+        }
+
+        .loading-indicator.active {
+            will-change: transform, background-position;
+        }
+
+        /* Accessibility improvements */
+        .suggestion-item:focus {
+            outline: 2px solid #3b82f6;
+            outline-offset: 2px;
+        }
+
+        .nav-btn:focus,
+        .menu-btn:focus,
+        .new-tab-btn:focus {
+            outline: 2px solid #3b82f6;
+            outline-offset: 2px;
+        }
+
+        .url-bar:focus {
+            outline: none; /* Custom focus styling already applied */
+        }
+
+        /* Dark theme enhancements */
+        .dark .suggestions-container {
+            background: rgba(31, 41, 55, 0.98);
+            border-color: rgba(75, 85, 99, 0.5);
+        }
+
+        .dark .suggestion-item:hover,
+        .dark .suggestion-item.selected {
+            background: rgba(59, 130, 246, 0.2);
+        }
+
+        .dark .suggestion-title {
+            color: #f9fafb;
+        }
+
+        .dark .suggestion-url {
+            color: #9ca3af;
+        }
+
+        .dark .suggestion-header {
+            color: #9ca3af;
+        }
+    </style>
+  <style>@view-transition { navigation: auto; }</style>
+  <script src="/_sdk/data_sdk.js" type="text/javascript"></script>
+  <script src="https://cdn.tailwindcss.com" type="text/javascript"></script>
+ </head>
+ <body>
+  <div class="browser-container">
+   <div class="loading-indicator" id="loadingIndicator"></div>
+   <header class="browser-header">
+    <div class="tab-bar" id="tabBar"><button class="new-tab-btn" id="newTabBtn" title="New Tab">+</button>
+    </div>
+    <nav class="nav-bar"><button class="nav-btn" id="backBtn" title="Back">←</button> <button class="nav-btn" id="forwardBtn" title="Forward">→</button> <button class="nav-btn" id="refreshBtn" title="Refresh">↻</button> <button class="nav-btn" id="homeBtn" title="Home">🏠</button>
+     <div class="url-bar-container"><input type="text" class="url-bar" id="urlBar" placeholder="Search or enter URL">
+      <div class="suggestions-container" id="suggestionsContainer"></div>
+     </div><button class="nav-btn" id="devToolsBtn" title="Developer Tools">🔧</button> <button class="menu-btn" id="menuBtn" title="Menu">☰</button>
+    </nav>
+   </header>
+   <main class="content-area" id="contentArea">
+    <div class="empty-state" id="emptyState">
+     <div class="empty-state-icon">
+      🌐
+     </div>
+     <h2 class="empty-state-title" id="browserTitle">Mobile Browser</h2>
+     <p class="empty-state-text">Start browsing by entering a URL or search term above</p>
+     <div class="quick-actions">
+      <div class="quick-action" onclick="navigateToUrl('https://www.reddit.com')">
+       <div class="quick-action-icon">
+        🔍
+       </div>
+       <div class="quick-action-text">
+        Reddit
+       </div>
+      </div>
+      <div class="quick-action" onclick="navigateToUrl('https://spike.news')">
+       <div class="quick-action-icon">
+        📚
+       </div>
+       <div class="quick-action-text">
+        News
+       </div>
+      </div>
+      <div class="quick-action" onclick="navigateToUrl('https://news.ycombinator.com')">
+       <div class="quick-action-icon">
+        📰
+       </div>
+       <div class="quick-action-text">
+        Hacker News
+       </div>
+      </div>
+      <div class="quick-action" onclick="navigateToUrl('https://github.com')">
+       <div class="quick-action-icon">
+        💻
+       </div>
+       <div class="quick-action-text">
+        GitHub
+       </div>
+      </div>
+     </div>
+    </div>
+   </main>
+  </div><!-- Menu Panel -->
+  <div class="menu-overlay" id="menuOverlay"></div>
+  <div class="menu-panel" id="menuPanel">
+   <div class="menu-header">
+    <h2 class="menu-title">Browser Menu</h2><button class="close-menu" id="closeMenu">×</button>
+   </div>
+   <div class="menu-section">
+    <h3>Actions</h3>
+    <div class="menu-item" id="bookmarkCurrentPage"><span class="menu-item-icon">⭐</span> <span>Bookmark This Page</span>
+    </div>
+    <div class="menu-item" id="clearHistory"><span class="menu-item-icon">🗑️</span> <span>Clear History</span>
+    </div>
+    <div class="menu-item" id="clearCache"><span class="menu-item-icon">💾</span> <span>Clear Cache</span>
+    </div>
+   </div>
+   <div class="menu-section">
+    <h3>Bookmarks</h3>
+    <div id="bookmarksList"></div>
+   </div>
+   <div class="menu-section">
+    <h3>History</h3>
+    <div id="historyList"></div>
+   </div>
+   <div class="menu-section">
+    <h3>Settings</h3>
+    <div class="setting-item"><label class="setting-label">Homepage</label> <input type="text" class="setting-input" id="homepageInput" placeholder="https://www.bing.com">
+    </div>
+    <div class="setting-item"><label class="setting-label">Search Engine</label> <input type="text" class="setting-input" id="searchEngineInput" placeholder="https://www.bing.com/search?q=">
+    </div>
+    <div class="setting-item"><label class="setting-label">User Agent</label> <input type="text" class="setting-input" id="userAgentInput" placeholder="Browser user agent string">
+    </div>
+    <div class="setting-item"><label class="setting-label">Zoom Level (%)</label> <input type="range" class="setting-input" id="zoomSlider" min="50" max="200" value="100" style="width: 100%;"> <span id="zoomValue">100%</span>
+    </div>
+    <div class="setting-item"><label class="setting-label">Theme</label>
+     <div class="theme-toggle"><button class="theme-btn active" id="lightTheme">Light</button> <button class="theme-btn" id="darkTheme">Dark</button>
+     </div>
+    </div>
+    <div class="setting-item"><label class="setting-label"> <input type="checkbox" id="blockAdsToggle" style="margin-right: 8px;"> Block Advertisements </label>
+    </div>
+    <div class="setting-item"><label class="setting-label"> <input type="checkbox" id="enableJsToggle" style="margin-right: 8px;"> Enable JavaScript </label>
+    </div>
+    <div class="setting-item"><label class="setting-label"> <input type="checkbox" id="enableImagesToggle" style="margin-right: 8px;"> Load Images </label>
+    </div>
+    <div class="setting-item"><label class="setting-label"> <input type="checkbox" id="devToolsToggle" style="margin-right: 8px;"> Enable Developer Tools </label>
+    </div>
+   </div>
+  </div><!-- Developer Tools -->
+  <div class="dev-tools" id="devTools">
+   <div class="dev-tools-header">
+    <div class="dev-tools-tabs"><button class="dev-tab active" data-tab="console">Console</button> <button class="dev-tab" data-tab="elements">Elements</button> <button class="dev-tab" data-tab="network">Network</button> <button class="dev-tab" data-tab="performance">Performance</button> <button class="dev-tab" data-tab="security">Security</button> <button class="dev-tab" data-tab="storage">Storage</button> <button class="dev-tab" data-tab="sources">Sources</button>
+    </div><button class="close-menu" onclick="toggleDevTools()">×</button>
+   </div>
+   <div class="dev-tools-content">
+    <div id="console-tab" class="dev-tab-content">
+     <div class="console-output" id="consoleOutput">
+      Developer Console Ready &gt; Use console commands to inspect and modify the current page &gt; Type 'help' for available commands
+     </div>
+     <div class="console-input"><input type="text" id="consoleInput" placeholder="Enter JavaScript command..."> <button onclick="executeConsoleCommand()">Run</button>
+     </div>
+    </div>
+    <div id="elements-tab" class="dev-tab-content" style="display: none;">
+     <div class="element-inspector">
+      <div class="element-tree" id="elementTree"></div>
+      <div class="element-controls"><input type="text" id="elementSelector" placeholder="CSS selector (e.g., .class, #id, div)"> <button onclick="removeElements()">Remove Elements</button> <button onclick="highlightElements()">Highlight</button> <button onclick="refreshElementTree()">Refresh Tree</button>
+      </div>
+     </div>
+    </div>
+    <div id="network-tab" class="dev-tab-content" style="display: none;">
+     <div class="network-log" id="networkLog">
+      Network requests will appear here...
+     </div>
+    </div>
+    <div id="performance-tab" class="dev-tab-content" style="display: none;">
+     <div class="performance-metrics" id="performanceMetrics"></div>
+     <div class="console-output" id="performanceLog">
+      Performance monitoring active...
+     </div>
+    </div>
+    <div id="security-tab" class="dev-tab-content" style="display: none;">
+     <div class="security-info" id="securityInfo"></div>
+     <div class="console-output" id="securityLog">
+      Security analysis will appear here...
+     </div>
+    </div>
+    <div id="storage-tab" class="dev-tab-content" style="display: none;">
+     <div class="storage-info" id="storageInfo"></div>
+     <div class="console-output" id="storageLog">
+      Storage information...
+     </div>
+    </div>
+    <div id="sources-tab" class="dev-tab-content" style="display: none;">
+     <div class="download-controls"><button class="download-btn" onclick="downloadCurrentPage()">Download Page</button> <button class="download-btn" onclick="downloadPageHTML()">Download HTML</button> <button class="download-btn" onclick="downloadPageResources()">Download Resources</button> <button class="download-btn" onclick="exportBookmarks()">Export Bookmarks</button>
+     </div>
+     <div class="console-output" id="sourcesLog">
+      Page source and download tools...
+     </div>
+    </div>
+   </div>
+  </div>
+  <script>
+        // Configuration
+        const defaultConfig = {
+            browser_name: 'Mobile Browser',
+            homepage_url: 'https://www.bing.com',
+            search_engine: 'https://www.bing.com/search?q=',
+            theme: 'light',
+            block_ads: true,
+            enable_javascript: true,
+            enable_images: true,
+            user_agent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15',
+            zoom_level: 100,
+            developer_tools: false
+        };
+
+        let config = { ...defaultConfig };
+        let tabs = [];
+        let activeTabId = null;
+        let tabCounter = 0;
+        let isLoading = false;
+
+        const PROXY_URL = 'https://api.allorigins.win/get?url=';
+        if (PROXY_URL.trim() === "") { const userInput = prompt("A CORS Anywhere URL is required for full functionality. Please enter one:"); if (userInput && userInput.trim() !== "") { PROXY_URL = userInput.trim(); console.log("CORS_URL set to:", PROXY_URL); } else { alert("CORS Anywhere URL is required for full functionality."); } }
+ 
+        // Advanced caching and performance systems
+        const pageCache = new Map();
+        const resourceCache = new Map();
+        const preloadQueue = new Set();
+        const dnsCache = new Map();
+        const performanceMetrics = {
+            pageLoads: 0,
+            cacheHits: 0,
+            totalLoadTime: 0,
+            networkRequests: 0,
+            failedRequests: 0,
+            startTime: Date.now(),
+            bytesTransferred: 0,
+            compressionSavings: 0
+        };
+
+        // Smart preloading and optimization system
+        let preloadTimeout = null;
+        let connectionPool = new Map();
+        let requestQueue = [];
+        let isProcessingQueue = false;
+        const PRELOAD_DELAY = 300; // ms - reduced for faster preloading
+        const CACHE_DURATION = 10 * 60 * 1000; // 10 minutes - increased
+        const MAX_CACHE_SIZE = 100; // Increased cache size
+        const MAX_CONCURRENT_REQUESTS = 6;
+        const REQUEST_TIMEOUT = 15000; // 15 seconds
+
+        // URL processing improvements
+        const commonTLDs = ['.com', '.org', '.net', '.edu', '.gov', '.mil', '.int', '.co', '.io', '.ai', '.ly', '.me', '.tv', '.dev', '.xyz'];
+        
+        // File System Access API support detection
+        let fileSystemSupported = false;
+        if ('showSaveFilePicker' in window) {
+            fileSystemSupported = true;
+        }
+
+        // Element SDK implementation
+        const element = {
+            defaultConfig,
+            onConfigChange: async (newConfig) => {
+                config = { ...config, ...newConfig };
+                
+                // Update browser name
+                const browserTitle = document.getElementById('browserTitle');
+                if (browserTitle) {
+                    browserTitle.textContent = config.browser_name || defaultConfig.browser_name;
+                }
+                
+                // Update all settings inputs
+                const homepageInput = document.getElementById('homepageInput');
+                if (homepageInput) {
+                    homepageInput.value = config.homepage_url || defaultConfig.homepage_url;
+                }
+                
+                const searchEngineInput = document.getElementById('searchEngineInput');
+                if (searchEngineInput) {
+                    searchEngineInput.value = config.search_engine || defaultConfig.search_engine;
+                }
+                
+                const userAgentInput = document.getElementById('userAgentInput');
+                if (userAgentInput) {
+                    userAgentInput.value = config.user_agent || defaultConfig.user_agent;
+                }
+                
+                const zoomSlider = document.getElementById('zoomSlider');
+                const zoomValue = document.getElementById('zoomValue');
+                if (zoomSlider && zoomValue) {
+                    zoomSlider.value = config.zoom_level || defaultConfig.zoom_level;
+                    zoomValue.textContent = `${config.zoom_level || defaultConfig.zoom_level}%`;
+                    applyZoom(config.zoom_level || defaultConfig.zoom_level);
+                }
+                
+                const blockAdsToggle = document.getElementById('blockAdsToggle');
+                if (blockAdsToggle) {
+                    blockAdsToggle.checked = config.block_ads !== undefined ? config.block_ads : defaultConfig.block_ads;
+                }
+                
+                const enableJsToggle = document.getElementById('enableJsToggle');
+                if (enableJsToggle) {
+                    enableJsToggle.checked = config.enable_javascript !== undefined ? config.enable_javascript : defaultConfig.enable_javascript;
+                }
+                
+                const enableImagesToggle = document.getElementById('enableImagesToggle');
+                if (enableImagesToggle) {
+                    enableImagesToggle.checked = config.enable_images !== undefined ? config.enable_images : defaultConfig.enable_images;
+                }
+                
+                const devToolsToggle = document.getElementById('devToolsToggle');
+                if (devToolsToggle) {
+                    devToolsToggle.checked = config.developer_tools !== undefined ? config.developer_tools : defaultConfig.developer_tools;
+                }
+                
+                // Apply theme and update dev tools
+                applyTheme(config.theme || defaultConfig.theme);
+                updateDevToolsButton();
+            },
+            mapToCapabilities: (config) => ({
+                recolorables: [],
+                borderables: [],
+                fontEditable: undefined,
+                fontSizeable: undefined
+            }),
+            mapToEditPanelValues: (config) => new Map([
+                ['browser_name', config.browser_name || defaultConfig.browser_name],
+                ['homepage_url', config.homepage_url || defaultConfig.homepage_url],
+                ['search_engine', config.search_engine || defaultConfig.search_engine]
+            ])
+        };
+
+        // Initialize app
+        async function initializeApp() {
+            try {
+                if (window.elementSdk) {
+                    await window.elementSdk.init(element);
+                    config = window.elementSdk.config;
+                }
+                initializeBrowser();
+            } catch (error) {
+                console.error('Failed to initialize app:', error);
+                initializeBrowser();
+            }
+        }
+
+        function initializeBrowser() {
+            setupEventListeners();
+            loadFromLocalStorage();
+            // createNewTab();
+            loadSettings();
+        }
+
+        function setupEventListeners() {
+            // Add haptic feedback to all buttons
+            function addButtonFeedback(element) {
+                element.addEventListener('click', () => {
+                    if (navigator.vibrate) {
+                        navigator.vibrate(30);
+                    }
+                    // Visual feedback
+                    element.style.transform = 'scale(0.95)';
+                    setTimeout(() => {
+                        element.style.transform = '';
+                    }, 100);
+                });
+            }
+
+            // Tab management
+            const newTabBtn = document.getElementById('newTabBtn');
+            newTabBtn.addEventListener('click', createNewTab);
+            addButtonFeedback(newTabBtn);
+            
+            // Navigation
+            const backBtn = document.getElementById('backBtn');
+            const forwardBtn = document.getElementById('forwardBtn');
+            const refreshBtn = document.getElementById('refreshBtn');
+            const homeBtn = document.getElementById('homeBtn');
+            const devToolsBtn = document.getElementById('devToolsBtn');
+            
+            backBtn.addEventListener('click', goBack);
+            forwardBtn.addEventListener('click', goForward);
+            refreshBtn.addEventListener('click', refresh);
+            homeBtn.addEventListener('click', goHome);
+            devToolsBtn.addEventListener('click', toggleDevTools);
+            
+            [backBtn, forwardBtn, refreshBtn, homeBtn, devToolsBtn].forEach(addButtonFeedback);
+            
+            // Setup URL bar with smart suggestions
+            setupUrlBarListeners();
+            
+            // Menu
+            document.getElementById('menuBtn').addEventListener('click', toggleMenu);
+            document.getElementById('closeMenu').addEventListener('click', closeMenu);
+            document.getElementById('menuOverlay').addEventListener('click', closeMenu);
+            
+            // Menu actions
+            document.getElementById('bookmarkCurrentPage').addEventListener('click', bookmarkCurrentPage);
+            document.getElementById('clearHistory').addEventListener('click', clearHistory);
+            document.getElementById('clearCache').addEventListener('click', () => {
+                clearCache();
+                closeMenu();
+            });
+            
+            // Settings
+            document.getElementById('homepageInput').addEventListener('change', updateHomepage);
+            document.getElementById('searchEngineInput').addEventListener('change', updateSearchEngine);
+            document.getElementById('userAgentInput').addEventListener('change', updateUserAgent);
+            document.getElementById('zoomSlider').addEventListener('input', updateZoom);
+            document.getElementById('blockAdsToggle').addEventListener('change', updateBlockAds);
+            document.getElementById('enableJsToggle').addEventListener('change', updateEnableJs);
+            document.getElementById('enableImagesToggle').addEventListener('change', updateEnableImages);
+            document.getElementById('devToolsToggle').addEventListener('change', updateDevToolsEnabled);
+            document.getElementById('lightTheme').addEventListener('click', () => setTheme('light'));
+            document.getElementById('darkTheme').addEventListener('click', () => setTheme('dark'));
+            
+            // Developer tools
+            document.getElementById('consoleInput').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') executeConsoleCommand();
+            });
+            
+            // Dev tools tabs
+            document.querySelectorAll('.dev-tab').forEach(tab => {
+                tab.addEventListener('click', () => switchDevTab(tab.dataset.tab));
+            });
+            
+            // Global keyboard shortcuts
+            document.addEventListener('keydown', handleKeyboardShortcuts);
+            
+            // Prevent context menu on long press (mobile)
+            /* document.addEventListener('contextmenu', (e) => {
+                if (e.target.tagName === 'A' || e.target.closest('a')) {
+                    e.preventDefault();
+                }
+            }); */
+            
+            // Handle page visibility changes for performance
+            document.addEventListener('visibilitychange', () => {
+                if (document.hidden) {
+                    // Pause any animations or heavy operations
+                    document.querySelectorAll('video, audio').forEach(media => {
+                        if (!media.paused) {
+                            media.pause();
+                        }
+                    });
+                }
+            });
+        }
+
+        function handleKeyboardShortcuts(e) {
+            // Ctrl/Cmd + T: New tab
+            if ((e.ctrlKey || e.metaKey) && e.key === 't') {
+                e.preventDefault();
+                createNewTab();
+                return;
+            }
+            
+            // Ctrl/Cmd + W: Close tab
+            if ((e.ctrlKey || e.metaKey) && e.key === 'w') {
+                e.preventDefault();
+                if (activeTabId && tabs.length > 1) {
+                    closeTab(activeTabId);
+                }
+                return;
+            }
+            
+            // Ctrl/Cmd + R: Refresh
+            if ((e.ctrlKey || e.metaKey) && e.key === 'r') {
+                e.preventDefault();
+                refresh();
+                return;
+            }
+            
+            // Ctrl/Cmd + L: Focus URL bar
+            if ((e.ctrlKey || e.metaKey) && e.key === 'l') {
+                e.preventDefault();
+                document.getElementById('urlBar').focus();
+                return;
+            }
+            
+            // Ctrl/Cmd + D: Bookmark page
+            if ((e.ctrlKey || e.metaKey) && e.key === 'd') {
+                e.preventDefault();
+                bookmarkCurrentPage();
+                return;
+            }
+            
+            // Alt + Left: Back
+            if (e.altKey && e.key === 'ArrowLeft') {
+                e.preventDefault();
+                goBack();
+                return;
+            }
+            
+            // Alt + Right: Forward
+            if (e.altKey && e.key === 'ArrowRight') {
+                e.preventDefault();
+                goForward();
+                return;
+            }
+            
+            // F12: Toggle developer tools
+            if (e.key === 'F12') {
+                e.preventDefault();
+                if (config.developer_tools) {
+                    toggleDevTools();
+                }
+                return;
+            }
+            
+            // Ctrl/Cmd + Shift + I: Toggle developer tools
+            if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'I') {
+                e.preventDefault();
+                if (config.developer_tools) {
+                    toggleDevTools();
+                }
+                return;
+            }
+            
+            // Ctrl/Cmd + 1-9: Switch to tab
+            if ((e.ctrlKey || e.metaKey) && e.key >= '1' && e.key <= '9') {
+                e.preventDefault();
+                const tabIndex = parseInt(e.key) - 1;
+                if (tabs[tabIndex]) {
+                    switchToTab(tabs[tabIndex].id);
+                }
+                return;
+            }
+            
+            // Escape: Close menu or dev tools
+            if (e.key === 'Escape') {
+                const menuPanel = document.getElementById('menuPanel');
+                const devTools = document.getElementById('devTools');
+                
+                if (menuPanel.classList.contains('open')) {
+                    closeMenu();
+                } else if (devTools.classList.contains('open')) {
+                    toggleDevTools();
+                }
+                return;
+            }
+        }
+
+        // Local Storage functions
+        function saveToLocalStorage() {
+            const data = {
+                bookmarks: getBookmarks(),
+                history: getHistory(),
+                settings: {
+                    homepage: config.homepage_url,
+                    searchEngine: config.search_engine,
+                    theme: config.theme
+                }
+            };
+            localStorage.setItem('browserData', JSON.stringify(data));
+        }
+
+        function loadFromLocalStorage() {
+            try {
+                const data = JSON.parse(localStorage.getItem('browserData') || '{}');
+                
+                if (data.bookmarks) {
+                    localStorage.setItem('bookmarks', JSON.stringify(data.bookmarks));
+                }
+                if (data.history) {
+                    localStorage.setItem('history', JSON.stringify(data.history));
+                }
+                if (data.settings) {
+                    config = { ...config, ...data.settings };
+                }
+                
+                updateBookmarksList();
+                updateHistoryList();
+            } catch (error) {
+                console.error('Failed to load from localStorage:', error);
+            }
+        }
+
+        function getBookmarks() {
+            try {
+                return JSON.parse(localStorage.getItem('bookmarks') || '[]');
+            } catch {
+                return [];
+            }
+        }
+
+        function getHistory() {
+            try {
+                return JSON.parse(localStorage.getItem('history') || '[]');
+            } catch {
+                return [];
+            }
+        }
+
+        function addBookmark(url, title) {
+            const bookmarks = getBookmarks();
+            const bookmark = {
+                id: Date.now().toString(),
+                url: url,
+                title: title,
+                timestamp: new Date().toISOString()
+            };
+            
+            // Check if already bookmarked
+            if (!bookmarks.some(b => b.url === url)) {
+                bookmarks.unshift(bookmark);
+                localStorage.setItem('bookmarks', JSON.stringify(bookmarks));
+                updateBookmarksList();
+                saveToLocalStorage();
+                return true;
+            }
+            return false;
+        }
+
+        function removeBookmark(id) {
+            const bookmarks = getBookmarks().filter(b => b.id !== id);
+            localStorage.setItem('bookmarks', JSON.stringify(bookmarks));
+            updateBookmarksList();
+            saveToLocalStorage();
+        }
+
+        function addToHistory(url, title) {
+            const history = getHistory();
+            const historyItem = {
+                id: Date.now().toString(),
+                url: url,
+                title: title,
+                timestamp: new Date().toISOString()
+            };
+            
+            // Remove duplicate if exists
+            const filtered = history.filter(h => h.url !== url);
+            filtered.unshift(historyItem);
+            
+            // Keep only last 100 items
+            const trimmed = filtered.slice(0, 100);
+            
+            localStorage.setItem('history', JSON.stringify(trimmed));
+            updateHistoryList();
+            saveToLocalStorage();
+        }
+
+        function removeHistoryItem(id) {
+            const history = getHistory().filter(h => h.id !== id);
+            localStorage.setItem('history', JSON.stringify(history));
+            updateHistoryList();
+            saveToLocalStorage();
+        }
+
+        function clearAllHistory() {
+            localStorage.setItem('history', JSON.stringify([]));
+            updateHistoryList();
+            saveToLocalStorage();
+        }
+
+        // Tab management
+        function createNewTab() {
+            const tabId = `tab-${++tabCounter}`;
+            const tab = {
+                id: tabId,
+                title: 'New Tab',
+                url: '',
+                content: '',
+                history: [],
+                historyIndex: -1,
+                canGoBack: false,
+                canGoForward: false
+            };
+            
+            tabs.push(tab);
+            activeTabId = tabId;
+            
+            createTabElement(tab);
+            createContentElement(tab);
+            switchToTab(tabId);
+            updateNavigationButtons();
+            
+            // Hide empty state when first tab is created
+            if (tabs.length === 1) {
+                document.getElementById('emptyState').style.display = 'none';
+            }
+        }
+
+        function createNewTabWithUrl(url) {
+            const tabId = `tab-${++tabCounter}`;
+            const tab = {
+                id: tabId,
+                title: 'Loading...',
+                url: url,
+                content: '',
+                history: [url],
+                historyIndex: 0,
+                canGoBack: false,
+                canGoForward: false
+            };
+            
+            tabs.push(tab);
+            
+            createTabElement(tab);
+            createContentElement(tab);
+            
+            // Don't switch to the new tab automatically (background tab)
+            updateNavigationButtons();
+            
+            // Hide empty state when first tab is created
+            if (tabs.length === 1) {
+                document.getElementById('emptyState').style.display = 'none';
+            }
+            
+            // Load content in background
+            fetchAndDisplayContent(tabId, url);
+            
+            return tabId;
+        }
+
+        function createTabElement(tab) {
+            const tabElement = document.createElement('div');
+            tabElement.className = 'tab';
+            tabElement.dataset.tabId = tab.id;
+            tabElement.innerHTML = `
+                <span class="tab-title">${tab.title}</span>
+                <button class="tab-close" onclick="closeTab('${tab.id}')">×</button>
+            `;
+            tabElement.addEventListener('click', (e) => {
+                if (!e.target.classList.contains('tab-close')) {
+                    switchToTab(tab.id);
+                }
+            });
+            
+            const tabBar = document.getElementById('tabBar');
+            tabBar.appendChild(tabElement);
+        }
+
+        function createContentElement(tab) {
+            const content = document.createElement('div');
+            content.className = 'browser-content';
+            content.id = `content-${tab.id}`;
+            
+            document.getElementById('contentArea').appendChild(content);
+        }
+
+        function switchToTab(tabId) {
+            // Update active tab
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.toggle('active', tab.dataset.tabId === tabId);
+            });
+            
+            // Update active content
+            document.querySelectorAll('.browser-content').forEach(content => {
+                content.classList.toggle('active', content.id === `content-${tabId}`);
+            });
+            
+            activeTabId = tabId;
+            const activeTab = tabs.find(tab => tab.id === tabId);
+            if (activeTab) {
+                document.getElementById('urlBar').value = activeTab.url;
+                updateNavigationButtons();
+            }
+        }
+
+        function closeTab(tabId) {
+            const tabIndex = tabs.findIndex(tab => tab.id === tabId);
+            if (tabIndex === -1) return;
+            
+            // Clean up scripts associated with this tab
+            const tabScripts = document.querySelectorAll(`script[data-tab-id="${tabId}"]`);
+            tabScripts.forEach(script => {
+                if (script.parentNode) {
+                    script.parentNode.removeChild(script);
+                }
+            });
+            
+            // Clean up styles associated with this tab
+            const tabStyles = document.querySelectorAll(`style[data-tab-id="${tabId}"]`);
+            tabStyles.forEach(style => {
+                if (style.parentNode) {
+                    style.parentNode.removeChild(style);
+                }
+            });
+            
+            // Remove tab and content elements
+            document.querySelector(`[data-tab-id="${tabId}"]`).remove();
+            document.getElementById(`content-${tabId}`).remove();
+            
+            // Remove from tabs array
+            tabs.splice(tabIndex, 1);
+            
+            // Handle active tab change
+            if (activeTabId === tabId) {
+                if (tabs.length > 0) {
+                    const newActiveIndex = Math.min(tabIndex, tabs.length - 1);
+                    switchToTab(tabs[newActiveIndex].id);
+                } else {
+                    activeTabId = null;
+                    document.getElementById('urlBar').value = '';
+                    document.getElementById('emptyState').style.display = 'flex';
+                }
+            }
+            
+            updateNavigationButtons();
+        }
+
+        // Enhanced URL processing
+        function processUrl(url) {
+            let processedUrl = url.trim();
+            if (!processedUrl) return '';
+            
+            // Handle special protocols
+            if (processedUrl.startsWith('http://') || processedUrl.startsWith('https://') || 
+                processedUrl.startsWith('ftp://') || processedUrl.startsWith('file://')) {
+                return processedUrl;
+            }
+            
+            // Check if it looks like a domain
+            const hasValidTLD = commonTLDs.some(tld => processedUrl.includes(tld));
+            const hasDots = processedUrl.includes('.');
+            const hasSpaces = processedUrl.includes(' ');
+            const isIPAddress = /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}(:\d+)?$/.test(processedUrl);
+            const isLocalhost = processedUrl.startsWith('localhost') || processedUrl.startsWith('127.0.0.1');
+            
+            // If it looks like a URL, try both HTTP and HTTPS
+            if ((hasValidTLD || hasDots || isIPAddress || isLocalhost) && !hasSpaces) {
+                // For localhost and IP addresses, default to HTTP
+                if (isLocalhost || isIPAddress) {
+                    return processedUrl.startsWith('localhost') || processedUrl.startsWith('127.0.0.1') ? 
+                           'http://' + processedUrl : processedUrl;
+                }
+                // For regular domains, try HTTPS first, fallback to HTTP
+                return 'https://' + processedUrl;
+            }
+            
+            // Otherwise, treat as search query
+            const searchEngine = config.search_engine || defaultConfig.search_engine;
+            return searchEngine + encodeURIComponent(processedUrl);
+        }
+
+        // Navigation functions
+        async function navigateToUrl(url) {
+            if (!activeTabId) {
+                createNewTab();
+            }
+            
+            const activeTab = tabs.find(tab => tab.id === activeTabId);
+            if (!activeTab) return;
+            
+            // Process URL with enhanced logic
+            const processedUrl = processUrl(url);
+            if (!processedUrl) return;
+            
+            // Add to tab history
+            if (activeTab.historyIndex < activeTab.history.length - 1) {
+                activeTab.history = activeTab.history.slice(0, activeTab.historyIndex + 1);
+            }
+            activeTab.history.push(processedUrl);
+            activeTab.historyIndex = activeTab.history.length - 1;
+            
+            // Update tab
+            activeTab.url = processedUrl;
+            
+            // Update UI
+            document.getElementById('urlBar').value = processedUrl;
+            updateNavigationButtons();
+            
+            // Fetch and display content
+            await fetchAndDisplayContent(activeTabId, processedUrl);
+            
+            // Add to browsing history
+            addToHistory(processedUrl, activeTab.title);
+        }
+
+        // Smart caching functions
+        function getCachedPage(url) {
+            const cached = pageCache.get(url);
+            if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+                performanceMetrics.cacheHits++;
+                return cached;
+            }
+            if (cached) {
+                pageCache.delete(url); // Remove expired cache
+            }
+            return null;
+        }
+
+        function setCachedPage(url, data) {
+            // Implement LRU cache
+            if (pageCache.size >= MAX_CACHE_SIZE) {
+                const firstKey = pageCache.keys().next().value;
+                pageCache.delete(firstKey);
+            }
+            
+            pageCache.set(url, {
+                ...data,
+                timestamp: Date.now()
+            });
+        }
+
+        function clearCache() {
+            pageCache.clear();
+            resourceCache.clear();
+            showToast('Cache cleared successfully');
+            updateStorageInfo();
+        }
+
+        // Intelligent request queue management
+        async function processRequestQueue() {
+            if (isProcessingQueue || requestQueue.length === 0) return;
+            
+            isProcessingQueue = true;
+            const activeRequests = [];
+            
+            while (requestQueue.length > 0 && activeRequests.length < MAX_CONCURRENT_REQUESTS) {
+                const request = requestQueue.shift();
+                activeRequests.push(request.execute());
+            }
+            
+            if (activeRequests.length > 0) {
+                await Promise.allSettled(activeRequests);
+            }
+            
+            isProcessingQueue = false;
+            
+            // Continue processing if more requests are queued
+            if (requestQueue.length > 0) {
+                setTimeout(processRequestQueue, 50);
+            }
+        }
+
+        // Smart preloading system with priority queue
+        function preloadUrl(url, priority = 'low') {
+            if (preloadQueue.has(url) || getCachedPage(url)) return;
+            
+            preloadQueue.add(url);
+            
+            const request = {
+                url,
+                priority,
+                execute: async () => {
+                    try {
+                        const data = await fetchPageContent(url, true);
+                        if (data) {
+                            setCachedPage(url, data);
+                            logToNetwork('GET', 'PRELOAD', url, 'preloaded');
+                        }
+                    } catch (error) {
+                        logToNetwork('GET', 'PRELOAD', url, 'error');
+                    } finally {
+                        preloadQueue.delete(url);
+                    }
+                }
+            };
+            
+            // Insert based on priority
+            if (priority === 'high') {
+                requestQueue.unshift(request);
+            } else {
+                requestQueue.push(request);
+            }
+            
+            processRequestQueue();
+        }
+
+        // DNS prefetching simulation
+        function prefetchDNS(hostname) {
+            if (dnsCache.has(hostname)) return;
+            
+            dnsCache.set(hostname, {
+                resolved: true,
+                timestamp: Date.now()
+            });
+            
+            // Simulate DNS resolution time savings
+            performanceMetrics.compressionSavings += 50; // ms saved
+        }
+
+        async function fetchPageContent(url, isPreload = false) {
+            const startTime = Date.now();
+            
+            try {
+                // DNS prefetching
+                const hostname = new URL(url).hostname;
+                prefetchDNS(hostname);
+
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
+
+                const proxiedUrl = PROXY_URL + encodeURIComponent(url);
+                if (!isPreload) {
+                    logToNetwork('GET', 'PAGE', url, 'pending');
+                }
+
+                performanceMetrics.networkRequests++;
+                
+                // Enhanced headers for better performance
+                const headers = {
+                    'User-Agent': config.user_agent || defaultConfig.user_agent,
+                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                    'Accept-Language': 'en-US,en;q=0.5',
+                    'Accept-Encoding': 'gzip, deflate, br',
+                    'Cache-Control': isPreload ? 'max-age=3600' : 'no-cache',
+                    'Connection': 'keep-alive'
+                };
+
+                const response = await fetch(proxiedUrl, {
+                    signal: controller.signal,
+                    //headers,
+                    mode: 'cors',
+                    credentials: 'omit'
+                }); console.log(response);
+
+                clearTimeout(timeoutId);
+                
+                if (!response.ok) {
+                    // Intelligent fallback strategy
+                    if (url.startsWith('https://') && response.status >= 400) {
+                        const httpUrl = url.replace('https://', 'http://');
+                        return await fetchPageContent(httpUrl, isPreload);
+                    }
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                let html;
+const contentType = response.headers.get('content-type');
+if (contentType && contentType.includes('application/json')) {
+// This cors proxy returns JSON (like AllOrigins)
+const predata = await response.json();
+html = predata.contents;
+// Check if the proxied request was successful
+if (predata.status && predata.status.http_code >=400) {
+throw new Error(`HTTP ${predata.status.http_code}: Target URL returned an error`);
+} 
+} else {
+//This proxy returns raw text/html
+html = await response.text();
+} 
+ 
+                const loadTime = Date.now() - startTime;
+
+                // Track data transfer
+                const contentLength = response.headers.get('content-length');
+                if (contentLength) {
+                    performanceMetrics.bytesTransferred += parseInt(contentLength);
+                }
+
+                // Estimate compression savings
+                const encoding = response.headers.get('content-encoding');
+                if (encoding && (encoding.includes('gzip') || encoding.includes('deflate'))) {
+                    performanceMetrics.compressionSavings += Math.floor(html.length * 0.3);
+                }
+
+                if (!isPreload) {
+                    logToNetwork('GET', 'PAGE', url, response.status.toString());
+                    performanceMetrics.totalLoadTime += loadTime;
+                    performanceMetrics.pageLoads++;
+                }
+
+                return { 
+                    html, 
+                    loadTime, 
+                    status: response.status,
+                    size: html.length,
+                    compressed: !!encoding
+                };
+                
+            } catch (error) {
+console.log(`error: ${error}`);
+                if (!isPreload) {
+                    performanceMetrics.failedRequests++;
+                    logToNetwork('GET', 'PAGE', url, 'error');
+                }
+                throw error;
+            }
+        }
+
+        async function fetchAndDisplayContent(tabId, url) {
+            const contentElement = document.getElementById(`content-${tabId}`);
+            const activeTab = tabs.find(tab => tab.id === tabId);
+            
+            if (!contentElement || !activeTab) return;
+            
+            // Show loading only for active tab
+            if (tabId === activeTabId) {
+                showLoading();
+            }
+            
+            try {
+                // Check cache first
+                let pageData = getCachedPage(url);
+                let fromCache = !!pageData;
+                
+                if (!pageData) {
+                    pageData = await fetchPageContent(url);
+                    setCachedPage(url, pageData);
+                } else {
+                    logToNetwork('GET', 'PAGE', url, 'cached');
+                }
+                
+                const { html, loadTime } = pageData;
+                
+                // Parse and clean HTML
+                const cleanedContent = parseAndCleanHTML(html, url);
+                
+                // Update tab title safely with better extraction
+                let title = 'Untitled Page';
+                try {
+                    const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
+                    if (titleMatch && titleMatch[1]) {
+                        title = titleMatch[1].trim().replace(/\s+/g, ' ');
+                        // Decode HTML entities
+                        const tempDiv = document.createElement('div');
+                        tempDiv.innerHTML = title;
+                        title = tempDiv.textContent || title;
+                    } else {
+                        title = new URL(url).hostname;
+                    }
+                } catch (e) {
+                    title = 'Error loading page';
+                }
+                
+                if (activeTab) {
+                    activeTab.title = title;
+                    activeTab.content = cleanedContent; // Cache content
+                    updateTabTitle(tabId, title);
+                }
+                
+                // Display content with full HTML support
+                displayFullHTML(contentElement, cleanedContent);
+                
+                // Make links work within the browser
+                makeLinksWork(contentElement, url);
+                
+                // Apply current settings and optimizations
+                applyContentSettings(contentElement);
+                optimizeImages(contentElement);
+                
+                // Background optimization for visible content
+                setTimeout(() => {
+                    if (contentElement.classList.contains('active')) {
+                        optimizeVisibleContent(contentElement);
+                    }
+                }, 100);
+                
+            } catch (error) {
+                console.error('Failed to fetch content:', error);
+                logToNetwork('GET', 'PAGE', url, 'error');
+                
+                const errorType = error.name === 'AbortError' ? 'Request timed out' : error.message;
+                contentElement.innerHTML = `
+                    <div class="error-message">
+                        <div class="error-icon">⚠️</div>
+                        <h2>Unable to load page</h2>
+                        <p>Failed to load: ${url}</p>
+                        <p>Error: ${errorType}</p>
+                        <div style="margin-top: 16px; display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;">
+                            <button onclick="fetchAndDisplayContent('${tabId}', '${url}')" style="padding: 8px 16px; background: #3b82f6; color: white; border: none; border-radius: 6px; cursor: pointer;">Try Again</button>
+                            <button onclick="navigateToUrl('${config.homepage_url || defaultConfig.homepage_url}')" style="padding: 8px 16px; background: #6b7280; color: white; border: none; border-radius: 6px; cursor: pointer;">Go Home</button>
+                        </div>
+                    </div>
+                `;
+                if (activeTab) {
+                    activeTab.title = 'Error loading page';
+                    updateTabTitle(tabId, activeTab.title);
+                }
+            }
+            
+            // Hide loading only for active tab
+            if (tabId === activeTabId) {
+                hideLoading();
+            }
+        }
+
+        function applyContentSettings(container) {
+            // Apply zoom level
+            const zoomLevel = config.zoom_level || defaultConfig.zoom_level;
+            container.style.zoom = `${zoomLevel}%`;
+            
+            // Apply image loading setting
+            if (!config.enable_images) {
+                const images = container.querySelectorAll('img');
+                images.forEach(img => {
+                    img.style.display = 'none';
+                });
+            }
+            
+            // Apply ad blocking (basic)
+            if (config.block_ads) {
+                const adSelectors = [
+                    '[class*="ad"]', '[id*="ad"]', '[class*="banner"]', 
+                    '[class*="popup"]', '[class*="overlay"]', '.advertisement',
+                    '.sponsored', '[data-ad]', 'iframe[src*="ads"]'
+                ];
+                
+                adSelectors.forEach(selector => {
+                    try {
+                        const elements = container.querySelectorAll(selector);
+                        elements.forEach(el => {
+                            if (el.textContent.length < 100) { // Only hide small elements likely to be ads
+                                el.style.display = 'none';
+                            }
+                        });
+                    } catch (e) {
+                        // Ignore selector errors
+                    }
+                });
+            }
+        }
+
+        function parseAndCleanHTML(html, baseUrl) {
+            // Create a temporary DOM to parse HTML
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            
+            // Check for meta redirects and handle them
+            const metaRefresh = doc.querySelector('meta[http-equiv="refresh"]');
+            if (metaRefresh) {
+                const content = metaRefresh.getAttribute('content');
+                const match = content.match(/(\d+);\s*url=(.+)/i);
+                if (match) {
+                    const delay = parseInt(match[1]) * 1000;
+                    let redirectUrl = match[2].trim();
+                    
+                    // Handle relative URLs
+                    if (!redirectUrl.startsWith('http')) {
+                        try {
+                            redirectUrl = new URL(redirectUrl, baseUrl).href;
+                        } catch (e) {
+                            redirectUrl = baseUrl;
+                        }
+                    }
+                    
+                    // Create new tab for redirect after delay
+                    setTimeout(() => {
+                        createNewTabWithUrl(redirectUrl);
+                        showToast(`Redirect opened in new tab: ${new URL(redirectUrl).hostname}`);
+                    }, Math.min(delay, 5000)); // Cap at 5 seconds
+                    
+                    // Remove the meta refresh to prevent browser redirect
+                    metaRefresh.remove();
+                }
+            }
+            
+            // Remove dangerous elements and potential redirect scripts
+            const elementsToRemove = ['noscript', 'embed', 'object', 'applet'];
+            elementsToRemove.forEach(tag => {
+                const elements = doc.querySelectorAll(tag);
+                elements.forEach(el => el.remove());
+            });
+            
+            // Intercept and modify scripts that might cause redirects
+            const scripts = doc.querySelectorAll('script');
+            scripts.forEach(script => {
+                if (script.textContent) {
+                    let scriptContent = script.textContent;
+                    
+                    // Replace window.location redirects with new tab opens
+                    scriptContent = scriptContent.replace(
+                        /window\.location\s*=\s*['"`]([^'"`]+)['"`]/g,
+                        (match, url) => {
+                            return `window.browserOpenNewTab && window.browserOpenNewTab('${url}')`;
+                        }
+                    );
+                    
+                    scriptContent = scriptContent.replace(
+                        /window\.location\.href\s*=\s*['"`]([^'"`]+)['"`]/g,
+                        (match, url) => {
+                            return `window.browserOpenNewTab && window.browserOpenNewTab('${url}')`;
+                        }
+                    );
+                    
+                    scriptContent = scriptContent.replace(
+                        /location\.href\s*=\s*['"`]([^'"`]+)['"`]/g,
+                        (match, url) => {
+                            return `window.browserOpenNewTab && window.browserOpenNewTab('${url}')`;
+                        }
+                    );
+                    
+                    // Replace window.open with our handler
+                    scriptContent = scriptContent.replace(
+                        /window\.open\s*\(/g,
+                        'window.browserOpenNewTab && window.browserOpenNewTab('
+                    );
+                    
+                    script.textContent = scriptContent;
+                }
+            });
+            
+            // Fix relative URLs in links
+            const links = doc.querySelectorAll('a[href]');
+            links.forEach(link => {
+                const href = link.getAttribute('href');
+                if (href && !href.startsWith('http') && !href.startsWith('mailto:') && !href.startsWith('tel:') && !href.startsWith('#')) {
+                    try {
+                        const absoluteUrl = new URL(href, baseUrl).href;
+                        link.setAttribute('href', absoluteUrl);
+                    } catch (e) {
+                        // Invalid URL, remove href
+                        link.removeAttribute('href');
+                    }
+                }
+                
+                // Handle target="_blank" links
+                if (link.getAttribute('target') === '_blank') {
+                    link.setAttribute('data-new-tab', 'true');
+                }
+            });
+            
+            // Fix CSS URLs with better error handling
+            const styleElements = doc.querySelectorAll('style');
+            styleElements.forEach(style => {
+                let css = style.textContent;
+                // Fix relative URLs in CSS
+                css = css.replace(/url\(['"]?([^'")]+)['"]?\)/g, (match, url) => {
+                    if (!url.startsWith('http') && !url.startsWith('data:') && !url.startsWith('#')) {
+                        try {
+                            const absoluteUrl = new URL(url, baseUrl).href;
+                            return `url('${absoluteUrl}')`;
+                        } catch (e) {
+                            return match;
+                        }
+                    }
+                    return match;
+                });
+                style.textContent = css;
+            });
+            
+            // Fix external CSS links with better error handling
+            const cssLinks = doc.querySelectorAll('link[rel="stylesheet"]');
+            cssLinks.forEach(link => {
+                const href = link.getAttribute('href');
+                if (href && !href.startsWith('http')) {
+                    try {
+                        const absoluteUrl = new URL(href, baseUrl).href;
+                        link.setAttribute('href', absoluteUrl);
+                    } catch (e) {
+                        link.remove();
+                    }
+                }
+            });
+            
+            // Fix script sources with better error handling
+            const scriptElements = doc.querySelectorAll('script[src]');
+            scriptElements.forEach(script => {
+                const src = script.getAttribute('src');
+                if (src && !src.startsWith('http')) {
+                    try {
+                        const absoluteUrl = new URL(src, baseUrl).href;
+                        script.setAttribute('src', absoluteUrl);
+                    } catch (e) {
+                        script.remove();
+                    }
+                }
+            });
+            
+            // Fix image URLs with lazy loading and better error handling
+            const images = doc.querySelectorAll('img[src]');
+            images.forEach(img => {
+                const src = img.getAttribute('src');
+                if (src && !src.startsWith('http') && !src.startsWith('data:')) {
+                    try {
+                        const absoluteUrl = new URL(src, baseUrl).href;
+                        img.setAttribute('src', absoluteUrl);
+                    } catch (e) {
+                        // Invalid URL, remove src
+                        img.removeAttribute('src');
+                    }
+                }
+                
+                // Add loading attribute for better performance
+                if (!img.hasAttribute('loading')) {
+                    img.setAttribute('loading', 'lazy');
+                }
+                
+                // Enhanced error handling for images
+                img.setAttribute('onerror', `
+                    this.style.display = 'none';
+                    this.setAttribute('alt', 'Failed to load image');
+                `);
+            });
+            
+            // Fix form actions with better handling
+            const forms = doc.querySelectorAll('form[action]');
+            forms.forEach(form => {
+                const action = form.getAttribute('action');
+                if (action && !action.startsWith('http') && !action.startsWith('#')) {
+                    try {
+                        const absoluteUrl = new URL(action, baseUrl).href;
+                        form.setAttribute('action', absoluteUrl);
+                    } catch (e) {
+                        form.removeAttribute('action');
+                    }
+                }
+                
+                // Add target="_blank" to external forms to prevent navigation
+                if (form.getAttribute('action') && form.getAttribute('action').startsWith('http')) {
+                    form.setAttribute('target', '_blank');
+                    form.setAttribute('rel', 'noopener noreferrer');
+                }
+            });
+            
+            // Fix video and audio sources
+            const mediaElements = doc.querySelectorAll('video[src], audio[src], source[src]');
+            mediaElements.forEach(media => {
+                const src = media.getAttribute('src');
+                if (src && !src.startsWith('http') && !src.startsWith('data:')) {
+                    try {
+                        const absoluteUrl = new URL(src, baseUrl).href;
+                        media.setAttribute('src', absoluteUrl);
+                    } catch (e) {
+                        media.removeAttribute('src');
+                    }
+                }
+            });
+            
+            // Get the full document HTML to preserve head elements
+            return doc.documentElement.innerHTML;
+        }
+
+        function displayFullHTML(container, htmlContent) {
+            // Create a new document fragment to safely parse and execute HTML
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = htmlContent;
+            
+            // Clear the container
+            container.innerHTML = '';
+            
+            // Set up redirect handler for this tab
+            setupRedirectHandler(container);
+            
+            // Move all content from temp div to container
+            while (tempDiv.firstChild) {
+                container.appendChild(tempDiv.firstChild);
+            }
+            
+            // Execute scripts with proper isolation and redirect handling
+            const scripts = container.querySelectorAll('script');
+            scripts.forEach(script => {
+                if (script.src) {
+                    // External script
+                    const newScript = document.createElement('script');
+                    newScript.src = script.src;
+                    newScript.async = false;
+                    
+                    // Add error handling for external scripts
+                    newScript.onerror = function() {
+                        console.warn('Failed to load external script:', script.src);
+                        logToNetwork('GET', 'SCRIPT', script.src, 'error');
+                    };
+                    
+                    newScript.onload = function() {
+                        logToNetwork('GET', 'SCRIPT', script.src, '200');
+                    };
+                    
+                    // Add script to a container-specific context
+                    newScript.setAttribute('data-tab-id', activeTabId);
+                    document.head.appendChild(newScript);
+                } else if (script.textContent) {
+                    // Inline script with sandboxing and redirect handling
+                    try {
+                        // Wrap script in a function to provide isolation and redirect handling
+                        const wrappedScript = `
+                            (function() {
+                                // Set up redirect handler for this script context
+                                window.browserOpenNewTab = function(url, target, features) {
+                                    if (typeof url === 'string' && url.trim()) {
+                                        const tabId = createNewTabWithUrl(url);
+                                        showToast('Link opened in new tab: ' + new URL(url).hostname);
+                                        return { closed: false, focus: function() {} };
+                                    }
+                                    return null;
+                                };
+                                
+                                try {
+                                    ${script.textContent}
+                                } catch (error) {
+                                    console.warn('Script execution error:', error);
+                                }
+                            })();
+                        `;
+                        
+                        const newScript = document.createElement('script');
+                        newScript.textContent = wrappedScript;
+                        newScript.setAttribute('data-tab-id', activeTabId);
+                        document.head.appendChild(newScript);
+                        
+                        // Clean up script after execution
+                        setTimeout(() => {
+                            if (newScript.parentNode) {
+                                newScript.parentNode.removeChild(newScript);
+                            }
+                        }, 100);
+                    } catch (error) {
+                        console.warn('Error executing inline script:', error);
+                    }
+                }
+            });
+            
+            // Process CSS links and styles with better error handling
+            const cssLinks = container.querySelectorAll('link[rel="stylesheet"]');
+            cssLinks.forEach(link => {
+                if (!document.querySelector(`link[href="${link.href}"]`)) {
+                    const newLink = document.createElement('link');
+                    newLink.rel = 'stylesheet';
+                    newLink.href = link.href;
+                    newLink.onerror = function() {
+                        console.warn('Failed to load stylesheet:', link.href);
+                        logToNetwork('GET', 'CSS', link.href, 'error');
+                    };
+                    newLink.onload = function() {
+                        logToNetwork('GET', 'CSS', link.href, '200');
+                    };
+                    newLink.setAttribute('data-tab-id', activeTabId);
+                    document.head.appendChild(newLink);
+                }
+            });
+            
+            const styles = container.querySelectorAll('style');
+            styles.forEach(style => {
+                const newStyle = document.createElement('style');
+                newStyle.textContent = style.textContent;
+                newStyle.setAttribute('data-tab-id', activeTabId);
+                document.head.appendChild(newStyle);
+            });
+        }
+
+        function setupRedirectHandler(container) {
+            // Set up global redirect handler for this container
+            window.browserOpenNewTab = function(url, target, features) {
+                if (typeof url === 'string' && url.trim()) {
+                    try {
+                        const tabId = createNewTabWithUrl(url);
+                        showToast(`Link opened in new tab: ${new URL(url).hostname}`);
+                        return { closed: false, focus: function() {} };
+                    } catch (e) {
+                        console.warn('Failed to open new tab:', e);
+                        return null;
+                    }
+                }
+                return null;
+            };
+        }
+
+        function makeLinksWork(container, baseUrl) {
+            const links = container.querySelectorAll('a[href]');
+            links.forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const href = link.getAttribute('href');
+                    const target = link.getAttribute('target');
+                    const isNewTab = link.hasAttribute('data-new-tab') || target === '_blank';
+                    
+                    if (href && (href.startsWith('http') || href.startsWith('https'))) {
+                        if (isNewTab || e.ctrlKey || e.metaKey || e.button === 1) {
+                            // Open in new tab
+                            createNewTabWithUrl(href);
+                            showToast(`Link opened in new tab: ${new URL(href).hostname}`);
+                        } else {
+                            // Navigate in current tab
+                            navigateToUrl(href);
+                        }
+                    } else if (href && href.startsWith('#')) {
+                        // Handle anchor links within the page
+                        const target = container.querySelector(href);
+                        if (target) {
+                            target.scrollIntoView({ behavior: 'smooth' });
+                        }
+                    } else if (href && (href.startsWith('mailto:') || href.startsWith('tel:'))) {
+                        // Handle special links
+                        window.open(href, '_blank', 'noopener,noreferrer');
+                    }
+                });
+                
+                // Add middle-click support for new tabs
+                link.addEventListener('mousedown', (e) => {
+                    if (e.button === 1) { // Middle mouse button
+                        e.preventDefault();
+                        const href = link.getAttribute('href');
+                        if (href && (href.startsWith('http') || href.startsWith('https'))) {
+                            createNewTabWithUrl(href);
+                            showToast(`Link opened in new tab: ${new URL(href).hostname}`);
+                        }
+                    }
+                });
+                
+                // Smart preloading with link analysis
+                link.addEventListener('mouseenter', (e) => {
+                    const href = link.getAttribute('href');
+                    if (href && (href.startsWith('http') || href.startsWith('https'))) {
+                        // Analyze link priority
+                        const priority = analyzeLinkPriority(link, href);
+                        
+                        // Enhanced tooltip with page info
+                        const cachedPage = getCachedPage(href);
+                        if (cachedPage) {
+                            link.title = `${href} (cached)`;
+                        } else {
+                            link.title = href;
+                        }
+                        
+                        // Start preload timer with priority
+                        if (preloadTimeout) clearTimeout(preloadTimeout);
+                        preloadTimeout = setTimeout(() => {
+                            preloadUrl(href, priority);
+                        }, priority === 'high' ? PRELOAD_DELAY / 2 : PRELOAD_DELAY);
+                    }
+                });
+                
+                // Cancel preload on mouse leave
+                link.addEventListener('mouseleave', (e) => {
+                    if (preloadTimeout) {
+                        clearTimeout(preloadTimeout);
+                        preloadTimeout = null;
+                    }
+                });
+                
+                // Intelligent prefetch for visible links
+                if (isElementInViewport(link)) {
+                    const href = link.getAttribute('href');
+                    if (href && (href.startsWith('http') || href.startsWith('https'))) {
+                        // Prefetch DNS for visible links
+                        try {
+                            const hostname = new URL(href).hostname;
+                            prefetchDNS(hostname);
+                        } catch (e) {
+                            // Invalid URL, skip
+                        }
+                    }
+                }
+            });
+            
+            // Handle form submissions with better error handling
+            const forms = container.querySelectorAll('form');
+            forms.forEach(form => {
+                form.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    const action = form.getAttribute('action');
+                    const method = form.getAttribute('method') || 'GET';
+                    const target = form.getAttribute('target');
+                    
+                    if (action && (action.startsWith('http') || action.startsWith('https'))) {
+                        if (method.toLowerCase() === 'get') {
+                            const formData = new FormData(form);
+                            const params = new URLSearchParams(formData);
+                            const url = action + (action.includes('?') ? '&' : '?') + params.toString();
+                            
+                            if (target === '_blank') {
+                                createNewTabWithUrl(url);
+                                showToast(`Form submitted in new tab: ${new URL(url).hostname}`);
+                            } else {
+                                navigateToUrl(url);
+                            }
+                        } else {
+                            // For POST requests, open in new tab since we can't handle them properly
+                            window.open(action, '_blank', 'noopener,noreferrer');
+                            showToast('Form opened in external tab (POST method)');
+                        }
+                    } else {
+                        showToast('Form submission blocked (invalid action)');
+                    }
+                });
+            });
+            
+            // Handle button clicks that might trigger navigation
+            const buttons = container.querySelectorAll('button[onclick], input[type="button"][onclick]');
+            buttons.forEach(button => {
+                const originalOnclick = button.getAttribute('onclick');
+                if (originalOnclick && (originalOnclick.includes('location') || originalOnclick.includes('window.open'))) {
+                    button.removeAttribute('onclick');
+                    button.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        // Try to extract URL from onclick
+                        const urlMatch = originalOnclick.match(/['"`]([^'"`]+)['"`]/);
+                        if (urlMatch && urlMatch[1]) {
+                            const url = urlMatch[1];
+                            if (url.startsWith('http')) {
+                                createNewTabWithUrl(url);
+                                showToast(`Button opened new tab: ${new URL(url).hostname}`);
+                            }
+                        }
+                    });
+                }
+            });
+        }
+
+        function updateTabTitle(tabId, title) {
+            const tabElement = document.querySelector(`[data-tab-id="${tabId}"]`);
+            if (tabElement) {
+                const titleElement = tabElement.querySelector('.tab-title');
+                if (titleElement && title) {
+                    const displayTitle = title.length > 20 ? title.substring(0, 20) + '...' : title;
+                    titleElement.textContent = displayTitle;
+                }
+            }
+        }
+
+        function goBack() {
+            const activeTab = tabs.find(tab => tab.id === activeTabId);
+            if (!activeTab || !activeTab.canGoBack) return;
+            
+            activeTab.historyIndex--;
+            const url = activeTab.history[activeTab.historyIndex];
+            activeTab.url = url;
+            
+            document.getElementById('urlBar').value = url;
+            fetchAndDisplayContent(activeTabId, url);
+            updateNavigationButtons();
+        }
+
+        function goForward() {
+            const activeTab = tabs.find(tab => tab.id === activeTabId);
+            if (!activeTab || !activeTab.canGoForward) return;
+            
+            activeTab.historyIndex++;
+            const url = activeTab.history[activeTab.historyIndex];
+            activeTab.url = url;
+            
+            document.getElementById('urlBar').value = url;
+            fetchAndDisplayContent(activeTabId, url);
+            updateNavigationButtons();
+        }
+
+        function refresh() {
+            const activeTab = tabs.find(tab => tab.id === activeTabId);
+            if (!activeTab || !activeTab.url) return;
+            
+            fetchAndDisplayContent(activeTabId, activeTab.url);
+        }
+
+        function goHome() {
+            const homepage = config.homepage_url || defaultConfig.homepage_url;
+            navigateToUrl(homepage);
+        }
+
+        function updateNavigationButtons() {
+            const activeTab = tabs.find(tab => tab.id === activeTabId);
+            
+            if (activeTab) {
+                activeTab.canGoBack = activeTab.historyIndex > 0;
+                activeTab.canGoForward = activeTab.historyIndex < activeTab.history.length - 1;
+                
+                document.getElementById('backBtn').disabled = !activeTab.canGoBack;
+                document.getElementById('forwardBtn').disabled = !activeTab.canGoForward;
+            } else {
+                document.getElementById('backBtn').disabled = true;
+                document.getElementById('forwardBtn').disabled = true;
+            }
+        }
+
+        function showLoading() {
+            const indicator = document.getElementById('loadingIndicator');
+            indicator.classList.add('active');
+            isLoading = true;
+        }
+
+        function hideLoading() {
+            const indicator = document.getElementById('loadingIndicator');
+            indicator.classList.remove('active');
+            isLoading = false;
+        }
+
+        // Menu functions
+        function toggleMenu() {
+            const panel = document.getElementById('menuPanel');
+            const overlay = document.getElementById('menuOverlay');
+            
+            panel.classList.toggle('open');
+            overlay.classList.toggle('open');
+        }
+
+        function closeMenu() {
+            document.getElementById('menuPanel').classList.remove('open');
+            document.getElementById('menuOverlay').classList.remove('open');
+        }
+
+        // Bookmark functions
+        function bookmarkCurrentPage() {
+            const activeTab = tabs.find(tab => tab.id === activeTabId);
+            if (!activeTab || !activeTab.url) return;
+            
+            const success = addBookmark(activeTab.url, activeTab.title);
+            if (success) {
+                showToast('Page bookmarked!');
+            } else {
+                showToast('Page already bookmarked');
+            }
+        }
+
+        function updateBookmarksList() {
+            const bookmarks = getBookmarks();
+            const container = document.getElementById('bookmarksList');
+            
+            if (bookmarks.length === 0) {
+                container.innerHTML = '<p style="color: #6b7280; font-size: 14px; text-align: center; padding: 20px;">No bookmarks yet</p>';
+                return;
+            }
+            
+            container.innerHTML = bookmarks.map(bookmark => `
+                <div class="bookmark-item" onclick="navigateToUrl('${bookmark.url}'); closeMenu();">
+                    <div style="flex: 1;">
+                        <div class="bookmark-title">${bookmark.title}</div>
+                        <div class="bookmark-url">${bookmark.url}</div>
+                    </div>
+                    <button class="delete-btn" onclick="event.stopPropagation(); removeBookmark('${bookmark.id}')">×</button>
+                </div>
+            `).join('');
+        }
+
+        // History functions
+        function clearHistory() {
+            clearAllHistory();
+            showToast('History cleared');
+        }
+
+        function updateHistoryList() {
+            const history = getHistory().slice(0, 20);
+            const container = document.getElementById('historyList');
+            
+            if (history.length === 0) {
+                container.innerHTML = '<p style="color: #6b7280; font-size: 14px; text-align: center; padding: 20px;">No history yet</p>';
+                return;
+            }
+            
+            container.innerHTML = history.map(item => `
+                <div class="history-item" onclick="navigateToUrl('${item.url}'); closeMenu();">
+                    <div style="flex: 1;">
+                        <div class="history-title">${item.title}</div>
+                        <div class="history-url">${item.url}</div>
+                    </div>
+                    <button class="delete-btn" onclick="event.stopPropagation(); removeHistoryItem('${item.id}')">×</button>
+                </div>
+            `).join('');
+        }
+
+        // Settings functions
+        function loadSettings() {
+            const homepageInput = document.getElementById('homepageInput');
+            const searchEngineInput = document.getElementById('searchEngineInput');
+            
+            homepageInput.value = config.homepage_url || defaultConfig.homepage_url;
+            searchEngineInput.value = config.search_engine || defaultConfig.search_engine;
+            
+            applyTheme(config.theme || defaultConfig.theme);
+        }
+
+        async function updateHomepage() {
+            const value = document.getElementById('homepageInput').value;
+            if (window.elementSdk) {
+                await window.elementSdk.setConfig({ homepage_url: value });
+            } else {
+                config.homepage_url = value;
+            }
+            saveToLocalStorage();
+        }
+
+        async function updateSearchEngine() {
+            const value = document.getElementById('searchEngineInput').value;
+            if (window.elementSdk) {
+                await window.elementSdk.setConfig({ search_engine: value });
+            } else {
+                config.search_engine = value;
+            }
+            saveToLocalStorage();
+        }
+
+        async function setTheme(theme) {
+            if (window.elementSdk) {
+                await window.elementSdk.setConfig({ theme: theme });
+            } else {
+                config.theme = theme;
+                applyTheme(theme);
+            }
+            saveToLocalStorage();
+        }
+
+        function applyTheme(theme) {
+            document.body.classList.toggle('dark', theme === 'dark');
+            
+            // Update theme buttons
+            document.getElementById('lightTheme').classList.toggle('active', theme === 'light');
+            document.getElementById('darkTheme').classList.toggle('active', theme === 'dark');
+        }
+
+        // Utility functions
+        function showToast(message, type = 'info') {
+            // Haptic feedback simulation
+            if (navigator.vibrate) {
+                navigator.vibrate(50);
+            }
+            
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.textContent = message;
+            
+            // Add type-specific styling
+            if (type === 'success') {
+                toast.style.background = 'rgba(16, 185, 129, 0.95)';
+            } else if (type === 'error') {
+                toast.style.background = 'rgba(239, 68, 68, 0.95)';
+            } else if (type === 'warning') {
+                toast.style.background = 'rgba(245, 158, 11, 0.95)';
+            }
+            
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.style.animation = 'slideDown 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
+                setTimeout(() => toast.remove(), 400);
+            }, 3000);
+        }
+
+        // Developer Tools Functions
+        let devToolsOpen = false;
+        let consoleHistory = [];
+        let networkRequests = [];
+        let selectedElement = null;
+
+        function toggleDevTools() {
+            if (!config.developer_tools) {
+                showToast('Developer tools are disabled in settings');
+                return;
+            }
+            
+            devToolsOpen = !devToolsOpen;
+            const devTools = document.getElementById('devTools');
+            devTools.classList.toggle('open', devToolsOpen);
+            
+            if (devToolsOpen) {
+                refreshElementTree();
+                updatePerformanceMetrics();
+                updateSecurityInfo();
+                updateStorageInfo();
+                logToConsole('Developer tools opened');
+            }
+        }
+
+        // Enhanced performance monitoring
+        function updatePerformanceMetrics() {
+            const metricsContainer = document.getElementById('performanceMetrics');
+            const uptime = Math.floor((Date.now() - performanceMetrics.startTime) / 1000);
+            const avgLoadTime = performanceMetrics.pageLoads > 0 ? 
+                Math.round(performanceMetrics.totalLoadTime / performanceMetrics.pageLoads) : 0;
+            const cacheHitRate = performanceMetrics.networkRequests > 0 ? 
+                Math.round((performanceMetrics.cacheHits / performanceMetrics.networkRequests) * 100) : 0;
+            const dataTransferred = Math.round(performanceMetrics.bytesTransferred / 1024); // KB
+            const compressionSavings = Math.round(performanceMetrics.compressionSavings / 1024); // KB
+            
+            metricsContainer.innerHTML = `
+                <div class="metric-card">
+                    <div class="metric-value">${performanceMetrics.pageLoads}</div>
+                    <div class="metric-label">Pages Loaded</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">${performanceMetrics.cacheHits}</div>
+                    <div class="metric-label">Cache Hits</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">${avgLoadTime}ms</div>
+                    <div class="metric-label">Avg Load Time</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">${cacheHitRate}%</div>
+                    <div class="metric-label">Cache Hit Rate</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">${dataTransferred}KB</div>
+                    <div class="metric-label">Data Transfer</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">${compressionSavings}KB</div>
+                    <div class="metric-label">Compression Saved</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">${uptime}s</div>
+                    <div class="metric-label">Uptime</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">${performanceMetrics.failedRequests}</div>
+                    <div class="metric-label">Failed Requests</div>
+                </div>
+            `;
+        }
+
+        // Security analysis
+        function updateSecurityInfo() {
+            const activeTab = tabs.find(tab => tab.id === activeTabId);
+            const securityContainer = document.getElementById('securityInfo');
+            
+            if (!activeTab || !activeTab.url) {
+                securityContainer.innerHTML = '<div>No active page to analyze</div>';
+                return;
+            }
+            
+            const url = new URL(activeTab.url);
+            const isSecure = url.protocol === 'https:';
+            const isLocalhost = url.hostname === 'localhost' || url.hostname === '127.0.0.1';
+            
+            let securityLevel = 'insecure';
+            let securityText = 'Not Secure';
+            
+            if (isSecure) {
+                securityLevel = 'secure';
+                securityText = 'Secure Connection';
+            } else if (isLocalhost) {
+                securityLevel = 'mixed';
+                securityText = 'Local Development';
+            }
+            
+            securityContainer.innerHTML = `
+                <div>
+                    <span class="security-indicator security-${securityLevel}"></span>
+                    ${securityText} - ${url.protocol}//${url.host}
+                </div>
+                <div style="margin-top: 8px; font-size: 11px; color: #9ca3af;">
+                    Protocol: ${url.protocol.toUpperCase()}<br>
+                    Host: ${url.host}<br>
+                    Port: ${url.port || (url.protocol === 'https:' ? '443' : '80')}
+                </div>
+            `;
+        }
+
+        // Storage information
+        function updateStorageInfo() {
+            const storageContainer = document.getElementById('storageInfo');
+            const cacheSize = pageCache.size;
+            const cacheUsage = Math.round((cacheSize / MAX_CACHE_SIZE) * 100);
+            
+            // Estimate storage usage
+            let totalSize = 0;
+            pageCache.forEach(page => {
+                totalSize += (page.html || '').length;
+            });
+            
+            const sizeInKB = Math.round(totalSize / 1024);
+            
+            storageContainer.innerHTML = `
+                <div>Page Cache: ${cacheSize}/${MAX_CACHE_SIZE} pages (${sizeInKB} KB)</div>
+                <div class="storage-bar">
+                    <div class="storage-fill" style="width: ${cacheUsage}%"></div>
+                </div>
+                <div style="margin-top: 8px; font-size: 11px; color: #9ca3af;">
+                    Bookmarks: ${getBookmarks().length}<br>
+                    History: ${getHistory().length}<br>
+                    Active Tabs: ${tabs.length}
+                </div>
+            `;
+        }
+
+        // File download functions using File System Access API
+        async function downloadCurrentPage() {
+            const activeTab = tabs.find(tab => tab.id === activeTabId);
+            if (!activeTab || !activeTab.url) {
+                logToSources('No active page to download');
+                return;
+            }
+            
+            try {
+                const contentElement = document.getElementById(`content-${activeTab.id}`);
+                if (!contentElement) {
+                    logToSources('No content available to download');
+                    return;
+                }
+                
+                const pageHtml = contentElement.innerHTML;
+                const fullHtml = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${activeTab.title}</title>
+    <base href="${activeTab.url}">
+</head>
+<body>
+${pageHtml}
+</body>
+</html>`;
+                
+                await downloadFile(fullHtml, `${activeTab.title || 'page'}.html`, 'text/html');
+                logToSources(`Downloaded: ${activeTab.title}.html`);
+                
+            } catch (error) {
+                logToSources(`Download failed: ${error.message}`);
+            }
+        }
+
+        async function downloadPageHTML() {
+            const activeTab = tabs.find(tab => tab.id === activeTabId);
+            if (!activeTab || !activeTab.content) {
+                logToSources('No page content available');
+                return;
+            }
+            
+            try {
+                await downloadFile(activeTab.content, `${activeTab.title || 'page'}-source.html`, 'text/html');
+                logToSources(`Downloaded source: ${activeTab.title}-source.html`);
+            } catch (error) {
+                logToSources(`Download failed: ${error.message}`);
+            }
+        }
+
+        async function downloadPageResources() {
+            const activeTab = tabs.find(tab => tab.id === activeTabId);
+            if (!activeTab || !activeTab.url) {
+                logToSources('No active page');
+                return;
+            }
+            
+            try {
+                const contentElement = document.getElementById(`content-${activeTab.id}`);
+                const resources = [];
+                
+                // Extract all resource URLs
+                const images = contentElement.querySelectorAll('img[src]');
+                const links = contentElement.querySelectorAll('link[href]');
+                const scripts = contentElement.querySelectorAll('script[src]');
+                
+                images.forEach(img => resources.push({ type: 'image', url: img.src }));
+                links.forEach(link => resources.push({ type: 'stylesheet', url: link.href }));
+                scripts.forEach(script => resources.push({ type: 'script', url: script.src }));
+                
+                const resourceList = resources.map(r => `${r.type}: ${r.url}`).join('\n');
+                await downloadFile(resourceList, `${activeTab.title || 'page'}-resources.txt`, 'text/plain');
+                logToSources(`Downloaded resource list: ${resources.length} resources`);
+                
+            } catch (error) {
+                logToSources(`Resource download failed: ${error.message}`);
+            }
+        }
+
+        async function exportBookmarks() {
+            try {
+                const bookmarks = getBookmarks();
+                const bookmarkData = {
+                    exported: new Date().toISOString(),
+                    browser: 'Mobile Browser',
+                    bookmarks: bookmarks
+                };
+                
+                await downloadFile(JSON.stringify(bookmarkData, null, 2), 'bookmarks.json', 'application/json');
+                logToSources(`Exported ${bookmarks.length} bookmarks`);
+                
+            } catch (error) {
+                logToSources(`Bookmark export failed: ${error.message}`);
+            }
+        }
+
+        async function downloadFile(content, filename, mimeType) {
+            if (fileSystemSupported) {
+                try {
+                    const fileHandle = await window.showSaveFilePicker({
+                        suggestedName: filename,
+                        types: [{
+                            description: 'Files',
+                            accept: { [mimeType]: [`.${filename.split('.').pop()}`] }
+                        }]
+                    });
+                    
+                    const writable = await fileHandle.createWritable();
+                    await writable.write(content);
+                    await writable.close();
+                    
+                } catch (error) {
+                    if (error.name !== 'AbortError') {
+                        throw error;
+                    }
+                }
+            } else {
+                // Fallback to blob download
+                const blob = new Blob([content], { type: mimeType });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }
+        }
+
+        function logToSources(message) {
+            const output = document.getElementById('sourcesLog');
+            const timestamp = new Date().toLocaleTimeString();
+            output.textContent += `\n[${timestamp}] ${message}`;
+            output.scrollTop = output.scrollHeight;
+        }
+
+        function switchDevTab(tabName) {
+            // Update tab buttons
+            document.querySelectorAll('.dev-tab').forEach(tab => {
+                tab.classList.toggle('active', tab.dataset.tab === tabName);
+            });
+            
+            // Update tab content
+            document.querySelectorAll('.dev-tab-content').forEach(content => {
+                content.style.display = 'none';
+            });
+            document.getElementById(`${tabName}-tab`).style.display = 'block';
+            
+            if (tabName === 'elements') {
+                refreshElementTree();
+            }
+        }
+
+        function executeConsoleCommand() {
+            const input = document.getElementById('consoleInput');
+            const command = input.value.trim();
+            if (!command) return;
+            
+            consoleHistory.push(command);
+            logToConsole(`> ${command}`);
+            
+            try {
+                if (command === 'help') {
+                    logToConsole(`Available commands:
+- help: Show this help
+- clear: Clear console
+- document: Access current page document
+- $('selector'): Find elements by CSS selector
+- $$('selector'): Find all elements by CSS selector
+- inspect(element): Inspect an element
+- reload(): Reload current page
+- tabs: Show all open tabs`);
+                } else if (command === 'clear') {
+                    document.getElementById('consoleOutput').textContent = '';
+                } else if (command === 'reload()') {
+                    refresh();
+                    logToConsole('Page reloaded');
+                } else if (command === 'tabs') {
+                    logToConsole(`Open tabs: ${tabs.length}`);
+                    tabs.forEach((tab, i) => {
+                        logToConsole(`  ${i + 1}. ${tab.title} - ${tab.url}`);
+                    });
+                } else if (command.startsWith('$$(')) {
+                    const selector = command.match(/\$\$\(['"`]([^'"`]+)['"`]\)/);
+                    if (selector) {
+                        const activeContent = document.querySelector('.browser-content.active');
+                        if (activeContent) {
+                            const elements = activeContent.querySelectorAll(selector[1]);
+                            logToConsole(`Found ${elements.length} elements matching "${selector[1]}"`);
+                            elements.forEach((el, i) => {
+                                logToConsole(`  ${i + 1}. <${el.tagName.toLowerCase()}${el.id ? ` id="${el.id}"` : ''}${el.className ? ` class="${el.className}"` : ''}>`);
+                            });
+                        }
+                    }
+                } else if (command.startsWith('$(')) {
+                    const selector = command.match(/\$\(['"`]([^'"`]+)['"`]\)/);
+                    if (selector) {
+                        const activeContent = document.querySelector('.browser-content.active');
+                        if (activeContent) {
+                            const element = activeContent.querySelector(selector[1]);
+                            if (element) {
+                                logToConsole(`Found: <${element.tagName.toLowerCase()}${element.id ? ` id="${element.id}"` : ''}${element.className ? ` class="${element.className}"` : ''}>`);
+                                selectedElement = element;
+                            } else {
+                                logToConsole(`No element found matching "${selector[1]}"`);
+                            }
+                        }
+                    }
+                } else {
+                    // Try to evaluate as JavaScript
+                    const activeContent = document.querySelector('.browser-content.active');
+                    if (activeContent) {
+                        const result = eval(`(function() { 
+                            const document = arguments[0];
+                            const $ = (sel) => document.querySelector(sel);
+                            const $$ = (sel) => document.querySelectorAll(sel);
+                            return ${command}; 
+                        })(activeContent)`);
+                        logToConsole(`Result: ${result}`);
+                    } else {
+                        logToConsole('No active page to execute command on');
+                    }
+                }
+            } catch (error) {
+                logToConsole(`Error: ${error.message}`);
+            }
+            
+            input.value = '';
+        }
+
+        function logToConsole(message) {
+            const output = document.getElementById('consoleOutput');
+            output.textContent += '\n' + message;
+            output.scrollTop = output.scrollHeight;
+        }
+
+        function refreshElementTree() {
+            const activeContent = document.querySelector('.browser-content.active');
+            const tree = document.getElementById('elementTree');
+            
+            if (!activeContent) {
+                tree.textContent = 'No active page';
+                return;
+            }
+            
+            tree.innerHTML = '';
+            
+            function addElementToTree(element, depth = 0) {
+                const indent = '  '.repeat(depth);
+                const tagName = element.tagName.toLowerCase();
+                const id = element.id ? `#${element.id}` : '';
+                const classes = element.className ? `.${element.className.split(' ').join('.')}` : '';
+                
+                const item = document.createElement('div');
+                item.className = 'element-item';
+                item.textContent = `${indent}<${tagName}${id}${classes}>`;
+                item.onclick = () => {
+                    document.querySelectorAll('.element-item').forEach(el => el.classList.remove('selected'));
+                    item.classList.add('selected');
+                    selectedElement = element;
+                    document.getElementById('elementSelector').value = `${tagName}${id}${classes}`;
+                };
+                
+                tree.appendChild(item);
+                
+                // Add children (limit depth to prevent overwhelming display)
+                if (depth < 3) {
+                    Array.from(element.children).forEach(child => {
+                        addElementToTree(child, depth + 1);
+                    });
+                }
+            }
+            
+            Array.from(activeContent.children).forEach(child => {
+                addElementToTree(child);
+            });
+        }
+
+        function removeElements() {
+            const selector = document.getElementById('elementSelector').value.trim();
+            if (!selector) {
+                logToConsole('Please enter a CSS selector');
+                return;
+            }
+            
+            const activeContent = document.querySelector('.browser-content.active');
+            if (!activeContent) {
+                logToConsole('No active page');
+                return;
+            }
+            
+            try {
+                const elements = activeContent.querySelectorAll(selector);
+                if (elements.length === 0) {
+                    logToConsole(`No elements found matching "${selector}"`);
+                    return;
+                }
+                
+                elements.forEach(el => el.remove());
+                logToConsole(`Removed ${elements.length} elements matching "${selector}"`);
+                refreshElementTree();
+                logToNetwork('DOM', 'REMOVE', selector, 'success');
+            } catch (error) {
+                logToConsole(`Error removing elements: ${error.message}`);
+            }
+        }
+
+        function highlightElements() {
+            const selector = document.getElementById('elementSelector').value.trim();
+            if (!selector) return;
+            
+            const activeContent = document.querySelector('.browser-content.active');
+            if (!activeContent) return;
+            
+            // Remove previous highlights
+            activeContent.querySelectorAll('.dev-highlight').forEach(el => {
+                el.classList.remove('dev-highlight');
+                el.style.outline = '';
+            });
+            
+            try {
+                const elements = activeContent.querySelectorAll(selector);
+                elements.forEach(el => {
+                    el.classList.add('dev-highlight');
+                    el.style.outline = '4px solid #3b82f6';
+                });
+                logToConsole(`Highlighted ${elements.length} elements matching "${selector}"`);
+            } catch (error) {
+                logToConsole(`Error highlighting elements: ${error.message}`);
+            }
+        }
+
+        function logToNetwork(method, type, url, status) {
+            const timestamp = new Date().toLocaleTimeString();
+            const networkLog = document.getElementById('networkLog');
+            
+            const item = document.createElement('div');
+            item.className = 'network-item';
+            item.innerHTML = `
+                <span class="network-method">${method}</span> 
+                <span class="network-status-${status}">${status}</span> 
+                ${type} ${url} 
+                <span style="color: #6b7280;">${timestamp}</span>
+            `;
+            
+            networkLog.appendChild(item);
+            networkLog.scrollTop = networkLog.scrollHeight;
+        }
+
+        // Settings Functions
+        function loadSettings() {
+            const homepageInput = document.getElementById('homepageInput');
+            const searchEngineInput = document.getElementById('searchEngineInput');
+            const userAgentInput = document.getElementById('userAgentInput');
+            const zoomSlider = document.getElementById('zoomSlider');
+            const zoomValue = document.getElementById('zoomValue');
+            const blockAdsToggle = document.getElementById('blockAdsToggle');
+            const enableJsToggle = document.getElementById('enableJsToggle');
+            const enableImagesToggle = document.getElementById('enableImagesToggle');
+            const devToolsToggle = document.getElementById('devToolsToggle');
+            
+            homepageInput.value = config.homepage_url || defaultConfig.homepage_url;
+            searchEngineInput.value = config.search_engine || defaultConfig.search_engine;
+            userAgentInput.value = config.user_agent || defaultConfig.user_agent;
+            zoomSlider.value = config.zoom_level || defaultConfig.zoom_level;
+            zoomValue.textContent = `${config.zoom_level || defaultConfig.zoom_level}%`;
+            blockAdsToggle.checked = config.block_ads !== undefined ? config.block_ads : defaultConfig.block_ads;
+            enableJsToggle.checked = config.enable_javascript !== undefined ? config.enable_javascript : defaultConfig.enable_javascript;
+            enableImagesToggle.checked = config.enable_images !== undefined ? config.enable_images : defaultConfig.enable_images;
+            devToolsToggle.checked = config.developer_tools !== undefined ? config.developer_tools : defaultConfig.developer_tools;
+            
+            applyTheme(config.theme || defaultConfig.theme);
+            applyZoom(config.zoom_level || defaultConfig.zoom_level);
+            updateDevToolsButton();
+        }
+
+        async function updateUserAgent() {
+            const value = document.getElementById('userAgentInput').value;
+            if (window.elementSdk) {
+                await window.elementSdk.setConfig({ user_agent: value });
+            } else {
+                config.user_agent = value;
+            }
+            saveToLocalStorage();
+        }
+
+        async function updateZoom() {
+            const value = parseInt(document.getElementById('zoomSlider').value);
+            document.getElementById('zoomValue').textContent = `${value}%`;
+            
+            if (window.elementSdk) {
+                await window.elementSdk.setConfig({ zoom_level: value });
+            } else {
+                config.zoom_level = value;
+                applyZoom(value);
+            }
+            saveToLocalStorage();
+        }
+
+        async function updateBlockAds() {
+            const value = document.getElementById('blockAdsToggle').checked;
+            if (window.elementSdk) {
+                await window.elementSdk.setConfig({ block_ads: value });
+            } else {
+                config.block_ads = value;
+            }
+            saveToLocalStorage();
+        }
+
+        async function updateEnableJs() {
+            const value = document.getElementById('enableJsToggle').checked;
+            if (window.elementSdk) {
+                await window.elementSdk.setConfig({ enable_javascript: value });
+            } else {
+                config.enable_javascript = value;
+            }
+            saveToLocalStorage();
+        }
+
+        async function updateEnableImages() {
+            const value = document.getElementById('enableImagesToggle').checked;
+            if (window.elementSdk) {
+                await window.elementSdk.setConfig({ enable_images: value });
+            } else {
+                config.enable_images = value;
+            }
+            saveToLocalStorage();
+        }
+
+        async function updateDevToolsEnabled() {
+            const value = document.getElementById('devToolsToggle').checked;
+            if (window.elementSdk) {
+                await window.elementSdk.setConfig({ developer_tools: value });
+            } else {
+                config.developer_tools = value;
+                updateDevToolsButton();
+            }
+            saveToLocalStorage();
+        }
+
+        function applyZoom(zoomLevel) {
+            const contentElements = document.querySelectorAll('.browser-content');
+            contentElements.forEach(content => {
+                content.style.zoom = `${zoomLevel}%`;
+            });
+        }
+
+        function updateDevToolsButton() {
+            const devToolsBtn = document.getElementById('devToolsBtn');
+            if (config.developer_tools) {
+                devToolsBtn.style.display = 'flex';
+            } else {
+                devToolsBtn.style.display = 'none';
+                if (devToolsOpen) {
+                    toggleDevTools();
+                }
+            }
+        }
+
+        // Auto-save and performance monitoring
+        setInterval(() => {
+            saveToLocalStorage();
+            
+            // Update dev tools if open
+            if (devToolsOpen) {
+                updatePerformanceMetrics();
+                updateStorageInfo();
+            }
+            
+            // Memory management - clean up old cache entries
+            if (pageCache.size > MAX_CACHE_SIZE * 0.8) {
+                const entries = Array.from(pageCache.entries());
+                const oldEntries = entries.filter(([url, data]) => 
+                    Date.now() - data.timestamp > CACHE_DURATION / 2
+                );
+                
+                oldEntries.forEach(([url]) => pageCache.delete(url));
+                
+                if (oldEntries.length > 0) {
+                    console.log(`Cleaned up ${oldEntries.length} old cache entries`);
+                }
+            }
+        }, 30000); // Every 30 seconds
+
+        // Utility functions for smart optimization
+        function analyzeLinkPriority(linkElement, href) {
+            // High priority indicators
+            const highPrioritySelectors = [
+                'nav a', '.navigation a', '.menu a', '.nav-link',
+                '.primary-link', '.main-link', '.important'
+            ];
+            
+            const lowPrioritySelectors = [
+                '.footer a', '.sidebar a', '.ad a', '.advertisement a',
+                '.social a', '.share a', '.external'
+            ];
+            
+            // Check if link matches high priority patterns
+            for (const selector of highPrioritySelectors) {
+                if (linkElement.matches(selector)) return 'high';
+            }
+            
+            // Check if link matches low priority patterns
+            for (const selector of lowPrioritySelectors) {
+                if (linkElement.matches(selector)) return 'low';
+            }
+            
+            // Analyze link text and context
+            const linkText = linkElement.textContent.toLowerCase();
+            const highPriorityWords = ['next', 'continue', 'read more', 'article', 'post', 'page'];
+            const lowPriorityWords = ['share', 'tweet', 'facebook', 'social', 'ad', 'sponsor'];
+            
+            if (highPriorityWords.some(word => linkText.includes(word))) return 'high';
+            if (lowPriorityWords.some(word => linkText.includes(word))) return 'low';
+            
+            // Check if same domain (higher priority for internal links)
+            try {
+                const currentDomain = new URL(window.location.href).hostname;
+                const linkDomain = new URL(href).hostname;
+                if (currentDomain === linkDomain) return 'high';
+            } catch (e) {
+                // Invalid URL
+            }
+            
+            return 'medium';
+        }
+
+        function isElementInViewport(element) {
+            const rect = element.getBoundingClientRect();
+            const windowHeight = window.innerHeight || document.documentElement.clientHeight;
+            const windowWidth = window.innerWidth || document.documentElement.clientWidth;
+            
+            return (
+                rect.top >= -100 && // Allow some buffer above viewport
+                rect.left >= -100 && // Allow some buffer to the left
+                rect.bottom <= windowHeight + 100 && // Allow some buffer below viewport
+                rect.right <= windowWidth + 100 // Allow some buffer to the right
+            );
+        }
+
+        function optimizeImages(container) {
+            const images = container.querySelectorAll('img');
+            images.forEach(img => {
+                // Add intersection observer for lazy loading
+                if ('IntersectionObserver' in window) {
+                    const imageObserver = new IntersectionObserver((entries) => {
+                        entries.forEach(entry => {
+                            if (entry.isIntersecting) {
+                                const image = entry.target;
+                                if (image.dataset.src) {
+                                    image.src = image.dataset.src;
+                                    image.removeAttribute('data-src');
+                                }
+                                imageObserver.unobserve(image);
+                            }
+                        });
+                    }, { rootMargin: '50px' });
+                    
+                    if (img.src && !img.complete) {
+                        imageObserver.observe(img);
+                    }
+                }
+                
+                // Add loading optimization
+                if (!img.hasAttribute('loading')) {
+                    img.setAttribute('loading', 'lazy');
+                }
+                
+                // Add decode hint for better performance
+                if (!img.hasAttribute('decoding')) {
+                    img.setAttribute('decoding', 'async');
+                }
+            });
+        }
+
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+
+        function throttle(func, limit) {
+            let inThrottle;
+            return function() {
+                const args = arguments;
+                const context = this;
+                if (!inThrottle) {
+                    func.apply(context, args);
+                    inThrottle = true;
+                    setTimeout(() => inThrottle = false, limit);
+                }
+            }
+        }
+
+        // Enhanced performance monitoring with adaptive cleanup
+        if ('memory' in performance) {
+            const memoryMonitor = throttle(() => {
+                const memory = performance.memory;
+                const usageRatio = memory.usedJSHeapSize / memory.jsHeapSizeLimit;
+                
+                if (usageRatio > 0.9) {
+                    // Critical memory usage - aggressive cleanup
+                    const cacheSize = pageCache.size;
+                    if (cacheSize > 5) {
+                        const entries = Array.from(pageCache.entries());
+                        const toDelete = entries.slice(0, Math.floor(cacheSize / 2));
+                        toDelete.forEach(([url]) => pageCache.delete(url));
+                        console.log(`Critical memory cleanup: removed ${toDelete.length} cache entries`);
+                    }
+                } else if (usageRatio > 0.7) {
+                    // High memory usage - moderate cleanup
+                    const entries = Array.from(pageCache.entries());
+                    const oldEntries = entries.filter(([url, data]) => 
+                        Date.now() - data.timestamp > CACHE_DURATION / 3
+                    );
+                    oldEntries.forEach(([url]) => pageCache.delete(url));
+                    if (oldEntries.length > 0) {
+                        console.log(`Memory optimization: removed ${oldEntries.length} old cache entries`);
+                    }
+                }
+            }, 30000);
+            
+            setInterval(memoryMonitor, 60000); // Every minute
+        }
+
+        // Content optimization for better performance
+        function optimizeVisibleContent(container) {
+            // Optimize fonts for better rendering
+            const textElements = container.querySelectorAll('h1, h2, h3, h4, h5, h6, p, span, div');
+            textElements.forEach(el => {
+                if (!el.style.fontDisplay) {
+                    el.style.fontDisplay = 'swap';
+                }
+            });
+            
+            // Add will-change hints for animated elements
+            const animatedElements = container.querySelectorAll('[style*="transition"], [style*="animation"]');
+            animatedElements.forEach(el => {
+                if (!el.style.willChange) {
+                    el.style.willChange = 'transform, opacity';
+                }
+            });
+            
+            // Optimize video elements
+            const videos = container.querySelectorAll('video');
+            videos.forEach(video => {
+                if (!video.hasAttribute('preload')) {
+                    video.setAttribute('preload', 'metadata');
+                }
+                if (!video.hasAttribute('playsinline')) {
+                    video.setAttribute('playsinline', '');
+                }
+            });
+            
+            // Add resource hints for external domains
+            const externalLinks = container.querySelectorAll('a[href^="http"]');
+            const domains = new Set();
+            externalLinks.forEach(link => {
+                try {
+                    const url = new URL(link.href);
+                    if (url.hostname !== window.location.hostname) {
+                        domains.add(url.hostname);
+                    }
+                } catch (e) {
+                    // Invalid URL
+                }
+            });
+            
+            // Add DNS prefetch hints to document head
+            domains.forEach(domain => {
+                if (!document.querySelector(`link[rel="dns-prefetch"][href*="${domain}"]`)) {
+                    const prefetchLink = document.createElement('link');
+                    prefetchLink.rel = 'dns-prefetch';
+                    prefetchLink.href = `//${domain}`;
+                    document.head.appendChild(prefetchLink);
+                }
+            });
+        }
+
+        // Enhanced auto-save with intelligent batching
+        const debouncedSave = debounce(() => {
+            saveToLocalStorage();
+        }, 5000);
+
+        // Smart performance monitoring
+        const performanceMonitor = throttle(() => {
+            if (devToolsOpen) {
+                updatePerformanceMetrics();
+                updateStorageInfo();
+                updateSecurityInfo();
+            }
+            
+            // Background optimizations
+            if (pageCache.size > MAX_CACHE_SIZE * 0.8) {
+                const entries = Array.from(pageCache.entries());
+                const oldEntries = entries.filter(([url, data]) => 
+                    Date.now() - data.timestamp > CACHE_DURATION / 2
+                );
+                
+                oldEntries.forEach(([url]) => pageCache.delete(url));
+                
+                if (oldEntries.length > 0) {
+                    console.log(`Background cleanup: removed ${oldEntries.length} old cache entries`);
+                }
+            }
+            
+            // Clean up DNS cache
+            const dnsEntries = Array.from(dnsCache.entries());
+            const expiredDNS = dnsEntries.filter(([hostname, data]) => 
+                Date.now() - data.timestamp > 30 * 60 * 1000 // 30 minutes
+            );
+            expiredDNS.forEach(([hostname]) => dnsCache.delete(hostname));
+        }, 15000);
+
+        // Start monitoring
+        setInterval(performanceMonitor, 30000);
+
+        // Smart Suggestions System
+        function showSmartSuggestions(query) {
+            if (!query || query.length < 2) {
+                hideSuggestions();
+                return;
+            }
+            
+            const suggestions = generateSuggestions(query);
+            if (suggestions.length === 0) {
+                hideSuggestions();
+                return;
+            }
+            
+            renderSuggestions(suggestions);
+        }
+
+        function generateSuggestions(query) {
+            const suggestions = [];
+            const lowerQuery = query.toLowerCase();
+            
+            // Search suggestions (always first)
+            if (!query.includes('.') && !query.startsWith('http')) {
+                suggestions.push({
+                    type: 'search',
+                    title: `Search for "${query}"`,
+                    url: (config.search_engine || defaultConfig.search_engine) + encodeURIComponent(query),
+                    icon: '🔍'
+                });
+            }
+            
+            // History suggestions
+            const history = getHistory();
+            const historyMatches = history.filter(item => 
+                item.title.toLowerCase().includes(lowerQuery) || 
+                item.url.toLowerCase().includes(lowerQuery)
+            ).slice(0, 3);
+            
+            historyMatches.forEach(item => {
+                suggestions.push({
+                    type: 'history',
+                    title: item.title,
+                    url: item.url,
+                    icon: '🕒'
+                });
+            });
+            
+            // Bookmark suggestions
+            const bookmarks = getBookmarks();
+            const bookmarkMatches = bookmarks.filter(item => 
+                item.title.toLowerCase().includes(lowerQuery) || 
+                item.url.toLowerCase().includes(lowerQuery)
+            ).slice(0, 3);
+            
+            bookmarkMatches.forEach(item => {
+                suggestions.push({
+                    type: 'bookmark',
+                    title: item.title,
+                    url: item.url,
+                    icon: '⭐'
+                });
+            });
+            
+            // Popular sites suggestions
+            const popularSites = [
+                { title: 'Google', url: 'https://www.google.com', keywords: ['google', 'search'] },
+                { title: 'YouTube', url: 'https://www.youtube.com', keywords: ['youtube', 'video', 'videos'] },
+                { title: 'Wikipedia', url: 'https://www.wikipedia.org', keywords: ['wikipedia', 'wiki', 'encyclopedia'] },
+                { title: 'GitHub', url: 'https://github.com', keywords: ['github', 'git', 'code', 'programming'] },
+                { title: 'Stack Overflow', url: 'https://stackoverflow.com', keywords: ['stackoverflow', 'stack', 'programming', 'code'] },
+                { title: 'Reddit', url: 'https://www.reddit.com', keywords: ['reddit', 'social', 'news'] },
+                { title: 'Twitter', url: 'https://twitter.com', keywords: ['twitter', 'social', 'tweets'] },
+                { title: 'Facebook', url: 'https://www.facebook.com', keywords: ['facebook', 'social'] },
+                { title: 'Amazon', url: 'https://www.amazon.com', keywords: ['amazon', 'shopping', 'buy'] },
+                { title: 'Netflix', url: 'https://www.netflix.com', keywords: ['netflix', 'movies', 'shows', 'streaming'] }
+            ];
+            
+            const siteMatches = popularSites.filter(site => 
+                site.title.toLowerCase().includes(lowerQuery) ||
+                site.keywords.some(keyword => keyword.includes(lowerQuery))
+            ).slice(0, 2);
+            
+            siteMatches.forEach(site => {
+                suggestions.push({
+                    type: 'popular',
+                    title: site.title,
+                    url: site.url,
+                    icon: '🌐'
+                });
+            });
+            
+            // URL completion suggestions
+            if (query.includes('.') || query.startsWith('http')) {
+                const processedUrl = processUrl(query);
+                if (processedUrl !== query) {
+                    suggestions.push({
+                        type: 'url',
+                        title: 'Go to ' + processedUrl,
+                        url: processedUrl,
+                        icon: '🔗'
+                    });
+                }
+            }
+            
+            return suggestions.slice(0, 8); // Limit to 8 suggestions
+        }
+
+        function renderSuggestions(suggestions) {
+            const container = document.getElementById('suggestionsContainer');
+            
+            // Group suggestions by type
+            const grouped = {};
+            suggestions.forEach(suggestion => {
+                if (!grouped[suggestion.type]) {
+                    grouped[suggestion.type] = [];
+                }
+                grouped[suggestion.type].push(suggestion);
+            });
+            
+            let html = '';
+            
+            // Render each group
+            Object.entries(grouped).forEach(([type, items]) => {
+                const sectionTitle = {
+                    'search': 'Search',
+                    'history': 'Recent History',
+                    'bookmark': 'Bookmarks',
+                    'popular': 'Popular Sites',
+                    'url': 'Direct Navigation'
+                }[type] || type;
+                
+                html += `<div class="suggestion-section">`;
+                html += `<div class="suggestion-header">${sectionTitle}</div>`;
+                
+                items.forEach(suggestion => {
+                    html += `
+                        <div class="suggestion-item" data-url="${suggestion.url}" onclick="selectSuggestion('${suggestion.url}')">
+                            <div class="suggestion-icon">${suggestion.icon}</div>
+                            <div class="suggestion-content">
+                                <div class="suggestion-title">${suggestion.title}</div>
+                                <div class="suggestion-url">${suggestion.url}</div>
+                            </div>
+                            <div class="suggestion-type">${type}</div>
+                        </div>
+                    `;
+                });
+                
+                html += `</div>`;
+            });
+            
+            container.innerHTML = html;
+            container.classList.add('show');
+            currentSuggestionIndex = -1;
+        }
+
+        function hideSuggestions() {
+            const container = document.getElementById('suggestionsContainer');
+            container.classList.remove('show');
+            currentSuggestionIndex = -1;
+        }
+
+        function updateSuggestionSelection() {
+            const suggestions = document.querySelectorAll('.suggestion-item');
+            suggestions.forEach((item, index) => {
+                item.classList.toggle('selected', index === currentSuggestionIndex);
+            });
+            
+            if (currentSuggestionIndex >= 0 && suggestions[currentSuggestionIndex]) {
+                const selectedUrl = suggestions[currentSuggestionIndex].dataset.url;
+                document.getElementById('urlBar').value = selectedUrl;
+            }
+        }
+
+        function selectSuggestion(url) {
+            navigateToUrl(url);
+            hideSuggestions();
+        }
+
+        // Enhanced URL bar event listeners
+        function setupUrlBarListeners() {
+            const urlBar = document.getElementById('urlBar');
+            let suggestionTimeout;
+            let currentSuggestionIndex = -1;
+            
+            urlBar.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    const suggestions = document.querySelectorAll('.suggestion-item');
+                    if (currentSuggestionIndex >= 0 && suggestions[currentSuggestionIndex]) {
+                        const selectedUrl = suggestions[currentSuggestionIndex].dataset.url;
+                        navigateToUrl(selectedUrl);
+                    } else {
+                        navigateToUrl(urlBar.value);
+                    }
+                    hideSuggestions();
+                }
+            });
+            
+            urlBar.addEventListener('keydown', (e) => {
+                const suggestions = document.querySelectorAll('.suggestion-item');
+                if (suggestions.length === 0) return;
+                
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    currentSuggestionIndex = Math.min(currentSuggestionIndex + 1, suggestions.length - 1);
+                    updateSuggestionSelection();
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    currentSuggestionIndex = Math.max(currentSuggestionIndex - 1, -1);
+                    updateSuggestionSelection();
+                } else if (e.key === 'Escape') {
+                    hideSuggestions();
+                }
+            });
+            
+            urlBar.addEventListener('input', (e) => {
+                clearTimeout(suggestionTimeout);
+                currentSuggestionIndex = -1;
+                suggestionTimeout = setTimeout(() => {
+                    showSmartSuggestions(e.target.value);
+                }, 200);
+            });
+            
+            urlBar.addEventListener('focus', (e) => {
+                setTimeout(() => e.target.select(), 0);
+                if (e.target.value) {
+                    showSmartSuggestions(e.target.value);
+                }
+            });
+            
+            urlBar.addEventListener('blur', () => {
+                setTimeout(hideSuggestions, 200);
+            });
+        }
+
+        // Initialize the app
+        initializeApp();
+    </script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'99781c3ce5440102',t:'MTc2MTk2NTY5NS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
