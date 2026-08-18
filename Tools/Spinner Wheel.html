@@ -1,0 +1,1387 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spinner App</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #e2e8f0;
+            overflow-x: hidden;
+        }
+        
+        .container {
+            max-width: 400px;
+            margin: 0 auto;
+            background: linear-gradient(145deg, #1e1e3f 0%, #2a2a5a 100%);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4), 0 0 20px rgba(139, 92, 246, 0.1);
+            overflow: hidden;
+            border: 1px solid rgba(139, 92, 246, 0.2);
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #8b5cf6 0%, #a855f7 100%);
+            padding: 20px;
+            text-align: center;
+            color: white;
+            position: relative;
+            box-shadow: 0 4px 20px rgba(139, 92, 246, 0.3);
+        }
+        
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.1) 50%, transparent 70%);
+            animation: shimmer 3s infinite;
+        }
+        
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+        
+        .header h1 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 5px;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            position: relative;
+            z-index: 1;
+        }
+        
+        .header p {
+            opacity: 0.9;
+            font-size: 14px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .header-controls {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 2;
+        }
+        
+        .icon-btn {
+            width: 40px;
+            height: 40px;
+            border: none;
+            border-radius: 10px;
+            background: rgba(255,255,255,0.1);
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        
+        .icon-btn:hover {
+            background: rgba(255,255,255,0.2);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+        
+        .spinner-container {
+            padding: 30px 20px;
+            text-align: center;
+            position: relative;
+            background: radial-gradient(circle at center, rgba(139, 92, 246, 0.05) 0%, transparent 70%);
+        }
+        
+        .wheel-container {
+            position: relative;
+            width: 250px;
+            height: 250px;
+            margin: 0 auto 20px;
+        }
+        
+        .wheel {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            position: relative;
+            border: 3px solid rgba(139, 92, 246, 0.5);
+            transition: transform 6s cubic-bezier(0.17, 0.67, 0.12, 0.99);
+            background: #2a2a5a;
+            box-shadow: 
+                0 8px 32px rgba(0,0,0,0.3), 
+                inset 0 2px 8px rgba(139, 92, 246, 0.1),
+                0 0 20px rgba(139, 92, 246, 0.2);
+            overflow: hidden;
+        }
+        
+        .wheel.spinning {
+            box-shadow: 
+                0 8px 32px rgba(0,0,0,0.3), 
+                inset 0 2px 8px rgba(139, 92, 246, 0.1),
+                0 0 40px rgba(139, 92, 246, 0.6);
+        }
+        
+        .wheel-svg {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+        
+        .wheel-segment {
+            cursor: pointer;
+            transition: all 0.2s ease;
+            stroke: rgba(139, 92, 246, 0.3);
+            stroke-width: 1;
+        }
+        
+        .wheel-segment:hover {
+            filter: brightness(1.2);
+            stroke: rgba(139, 92, 246, 0.8);
+            stroke-width: 2;
+        }
+        
+        .segment-text {
+            font-size: 14px;
+            font-weight: 700;
+            fill: white;
+            text-anchor: middle;
+            dominant-baseline: middle;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+            pointer-events: none;
+        }
+        
+        .pointer {
+            position: absolute;
+            top: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 15px solid transparent;
+            border-right: 15px solid transparent;
+            border-top: 35px solid #8b5cf6;
+            z-index: 10;
+            filter: drop-shadow(0 3px 6px rgba(0,0,0,0.4)) drop-shadow(0 0 10px rgba(139, 92, 246, 0.6));
+        }
+        
+        .spin-btn {
+            background: linear-gradient(135deg, #8b5cf6 0%, #a855f7 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 50px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);
+            border: 1px solid rgba(139, 92, 246, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .spin-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+        
+        .spin-btn:hover::before {
+            left: 100%;
+        }
+        
+        .spin-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(139, 92, 246, 0.6);
+        }
+        
+        .spin-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .controls {
+            padding: 20px;
+            border-top: 1px solid rgba(139, 92, 246, 0.2);
+            background: linear-gradient(145deg, #1a1a3a 0%, #252550 100%);
+        }
+        
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .word-input {
+            flex: 1;
+            padding: 12px 15px;
+            border: 2px solid rgba(139, 92, 246, 0.3);
+            border-radius: 10px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            background: rgba(30, 30, 60, 0.8);
+            color: #e2e8f0;
+            backdrop-filter: blur(10px);
+        }
+        
+        .word-input:focus {
+            outline: none;
+            border-color: #8b5cf6;
+            box-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
+        }
+        
+        .word-input::placeholder {
+            color: rgba(226, 232, 240, 0.5);
+        }
+        
+        .add-btn {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+        
+        .add-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+        }
+        
+        .words-list {
+            max-height: 120px;
+            overflow-y: auto;
+            margin-bottom: 15px;
+            border: 1px solid rgba(139, 92, 246, 0.2);
+            border-radius: 10px;
+            padding: 10px;
+            background: rgba(30, 30, 60, 0.5);
+            backdrop-filter: blur(10px);
+        }
+        
+        .words-list::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .words-list::-webkit-scrollbar-track {
+            background: rgba(139, 92, 246, 0.1);
+            border-radius: 3px;
+        }
+        
+        .words-list::-webkit-scrollbar-thumb {
+            background: rgba(139, 92, 246, 0.5);
+            border-radius: 3px;
+        }
+        
+        .word-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(139, 92, 246, 0.1);
+            color: #e2e8f0;
+        }
+        
+        .word-item:last-child {
+            border-bottom: none;
+        }
+        
+        .remove-btn {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 5px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+        }
+        
+        .remove-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+        }
+        
+        .clear-btn {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+        
+        .clear-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4);
+        }
+        
+        .empty-state {
+            text-align: center;
+            color: rgba(226, 232, 240, 0.6);
+            font-style: italic;
+            padding: 20px;
+        }
+        
+        .word-tooltip {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            pointer-events: none;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+            transform: translate(-50%, -100%);
+            margin-top: -10px;
+            border: 1px solid rgba(139, 92, 246, 0.5);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+        }
+        
+        .word-tooltip.show {
+            opacity: 1;
+        }
+        
+        .word-tooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 5px solid transparent;
+            border-top-color: rgba(0, 0, 0, 0.9);
+        }
+        
+        .confetti {
+            position: fixed;
+            width: 10px;
+            height: 10px;
+            background: #8b5cf6;
+            pointer-events: none;
+            z-index: 10000;
+        }
+        
+        @keyframes confetti-fall {
+            0% {
+                transform: translateY(-100vh) rotate(0deg);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(100vh) rotate(720deg);
+                opacity: 0;
+            }
+        }
+        
+        .wheel-glow {
+            position: absolute;
+            top: -20px;
+            left: -20px;
+            right: -20px;
+            bottom: -20px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(139, 92, 246, 0.4) 0%, transparent 70%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+        
+        .wheel-container.winner .wheel-glow {
+            opacity: 1;
+            animation: pulse 1s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        
+        /* Modal Styles */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .modal.show {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .modal-content {
+            background: linear-gradient(145deg, #1e1e3f 0%, #2a2a5a 100%);
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            border: 1px solid rgba(139, 92, 246, 0.3);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.5), 0 0 30px rgba(139, 92, 246, 0.2);
+            transform: scale(0.9);
+            transition: transform 0.3s ease;
+        }
+        
+        .modal.show .modal-content {
+            transform: scale(1);
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(139, 92, 246, 0.2);
+        }
+        
+        .modal-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #e2e8f0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .close-btn {
+            background: none;
+            border: none;
+            color: #e2e8f0;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 5px;
+            transition: all 0.2s ease;
+        }
+        
+        .close-btn:hover {
+            background: rgba(139, 92, 246, 0.2);
+            color: #8b5cf6;
+        }
+        
+        .setting-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding: 10px;
+            border-radius: 10px;
+            background: rgba(30, 30, 60, 0.5);
+            border: 1px solid rgba(139, 92, 246, 0.1);
+        }
+        
+        .setting-item:last-child {
+            margin-bottom: 0;
+        }
+        
+        .toggle {
+            position: relative;
+            width: 50px;
+            height: 24px;
+            background: rgba(100, 100, 150, 0.5);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(139, 92, 246, 0.3);
+        }
+        
+        .toggle.active {
+            background: linear-gradient(135deg, #8b5cf6 0%, #a855f7 100%);
+            box-shadow: 0 0 15px rgba(139, 92, 246, 0.4);
+        }
+        
+        .toggle-slider {
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 18px;
+            height: 18px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .toggle.active .toggle-slider {
+            transform: translateX(24px);
+        }
+        
+        .theme-selector {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin: 15px 0;
+        }
+        
+        .theme-option {
+            width: 50px;
+            height: 40px;
+            border-radius: 8px;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .theme-option.active {
+            border-color: #8b5cf6;
+            transform: scale(1.1);
+            box-shadow: 0 0 20px rgba(139, 92, 246, 0.5);
+        }
+        
+        .theme-option.default { background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1); }
+        .theme-option.sunset { background: linear-gradient(45deg, #ff9a56, #ff6b9d, #c44569); }
+        .theme-option.ocean { background: linear-gradient(45deg, #0abde3, #006ba6, #0c2461); }
+        .theme-option.forest { background: linear-gradient(45deg, #6c5ce7, #a29bfe, #fd79a8); }
+        .theme-option.fire { background: linear-gradient(45deg, #e17055, #fdcb6e, #e84393); }
+        .theme-option.neon { background: linear-gradient(45deg, #00d2d3, #54a0ff, #5f27cd); }
+        
+        .history-list {
+            max-height: 300px;
+            overflow-y: auto;
+            font-size: 14px;
+        }
+        
+        .history-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid rgba(139, 92, 246, 0.1);
+            background: rgba(30, 30, 60, 0.3);
+            margin-bottom: 5px;
+            border-radius: 8px;
+        }
+        
+        .history-item:last-child {
+            border-bottom: none;
+        }
+        
+        .history-word {
+            font-weight: 600;
+            color: #e2e8f0;
+        }
+        
+        .history-time {
+            font-size: 12px;
+            color: rgba(226, 232, 240, 0.6);
+        }
+        
+        .clear-history-btn {
+            background: #8b5cf6;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+        }
+        
+        .clear-history-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .stat-item {
+            background: rgba(30, 30, 60, 0.5);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            border: 1px solid rgba(139, 92, 246, 0.2);
+        }
+        
+        .stat-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #8b5cf6;
+            text-shadow: 0 0 10px rgba(139, 92, 246, 0.5);
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            color: rgba(226, 232, 240, 0.6);
+            margin-top: 5px;
+        }
+        
+        .result-modal .modal-content {
+            text-align: center;
+            max-width: 400px;
+        }
+        
+        .result-icon {
+            font-size: 48px;
+            margin-bottom: 20px;
+            animation: bounce 1s ease-in-out;
+        }
+        
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-20px); }
+            60% { transform: translateY(-10px); }
+        }
+        
+        .result-word {
+            font-size: 32px;
+            font-weight: bold;
+            color: #8b5cf6;
+            text-shadow: 0 0 20px rgba(139, 92, 246, 0.5);
+            margin-bottom: 20px;
+            padding: 20px;
+            background: rgba(139, 92, 246, 0.1);
+            border-radius: 15px;
+            border: 1px solid rgba(139, 92, 246, 0.3);
+        }
+        
+        .result-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+        
+        .result-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .result-btn.primary {
+            background: linear-gradient(135deg, #8b5cf6 0%, #a855f7 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);
+        }
+        
+        .result-btn.secondary {
+            background: rgba(100, 100, 150, 0.3);
+            color: #e2e8f0;
+            border: 1px solid rgba(139, 92, 246, 0.3);
+        }
+        
+        .result-btn:hover {
+            transform: translateY(-2px);
+        }
+        .header-controls {
+            display: flex;
+            flex-direction: column;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-controls">
+                <button class="icon-btn" id="historyBtn" title="History">📊</button>
+                <button class="icon-btn" id="settingsBtn" title="Settings">⚙️</button>
+            </div>
+            <h1>🎯 Spinner App</h1>
+            <p>Add words and spin to get random results</p>
+        </div>
+        
+        <div class="spinner-container">
+            <div class="wheel-container" id="wheelContainer">
+                <div class="wheel-glow"></div>
+                <div class="pointer"></div>
+                <div class="wheel" id="wheel">
+                    <div class="empty-state" id="emptyState">
+                        Add some words to start spinning!
+                    </div>
+                </div>
+            </div>
+            <div class="word-tooltip" id="wordTooltip"></div>
+            <button class="spin-btn" id="spinBtn" disabled>SPIN</button>
+        </div>
+        
+        <div class="controls">
+            <div class="input-group">
+                <input type="text" class="word-input" id="wordInput" placeholder="Enter a word..." maxlength="20">
+                <button class="add-btn" id="addBtn">Add</button>
+            </div>
+            
+            <div class="words-list" id="wordsList">
+                <div class="empty-state">No words added yet</div>
+            </div>
+            
+            <button class="clear-btn" id="clearBtn">Clear All Words</button>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="modal" id="settingsModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">⚙️ Settings</h2>
+                <button class="close-btn" id="closeSettings">×</button>
+            </div>
+            
+            <div class="setting-item">
+                <span>Color Theme</span>
+            </div>
+            <div class="theme-selector">
+                <div class="theme-option default active" data-theme="default" title="Default"></div>
+                <div class="theme-option sunset" data-theme="sunset" title="Sunset"></div>
+                <div class="theme-option ocean" data-theme="ocean" title="Ocean"></div>
+                <div class="theme-option forest" data-theme="forest" title="Forest"></div>
+                <div class="theme-option fire" data-theme="fire" title="Fire"></div>
+                <div class="theme-option neon" data-theme="neon" title="Neon"></div>
+            </div>
+            
+            <div class="setting-item">
+                <span>Hide words on spinner</span>
+                <div class="toggle" id="hideWordsToggle">
+                    <div class="toggle-slider"></div>
+                </div>
+            </div>
+            
+            <div class="setting-item">
+                <span>Remove word after landing</span>
+                <div class="toggle" id="removeToggle">
+                    <div class="toggle-slider"></div>
+                </div>
+            </div>
+            
+            <div class="setting-item">
+                <span>Show result popup</span>
+                <div class="toggle active" id="popupToggle">
+                    <div class="toggle-slider"></div>
+                </div>
+            </div>
+            
+            <div class="setting-item">
+                <span>Spin sound effects</span>
+                <div class="toggle active" id="soundToggle">
+                    <div class="toggle-slider"></div>
+                </div>
+            </div>
+            
+            <div class="setting-item">
+                <span>Confetti celebration</span>
+                <div class="toggle active" id="confettiToggle">
+                    <div class="toggle-slider"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- History Modal -->
+    <div class="modal" id="historyModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">📊 Spin History</h2>
+                <button class="close-btn" id="closeHistory">×</button>
+            </div>
+            
+            <div class="history-list" id="historyList">
+                <div class="empty-state">No spins yet</div>
+            </div>
+            
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-number" id="totalSpins">0</div>
+                    <div class="stat-label">Total Spins</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number" id="favoriteWord">-</div>
+                    <div class="stat-label">Most Picked</div>
+                </div>
+            </div>
+            
+            <div style="margin-top: 20px; text-align: center;">
+                <button class="clear-history-btn" id="clearHistoryBtn">Clear History</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Result Modal -->
+    <div class="modal result-modal" id="resultModal">
+        <div class="modal-content">
+            <div class="result-icon">🎉</div>
+            <h3 style="color: #e2e8f0; margin-bottom: 15px;">Result:</h3>
+            <div class="result-word" id="resultWord"></div>
+            <div class="result-actions">
+                <button class="result-btn primary" id="spinAgainBtn">Spin Again</button>
+                <button class="result-btn secondary" id="closeResultBtn">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class SpinnerApp {
+            constructor() {
+                this.words = [];
+                this.isSpinning = false;
+                this.spinHistory = [];
+                this.currentTheme = 'default';
+                this.settings = {
+                    hideWords: false,
+                    removeAfterLanding: false,
+                    showPopup: true,
+                    soundEffects: true,
+                    confetti: true
+                };
+                
+                this.themes = {
+                    default: ['#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4', '#feca57', '#ff9ff3', '#a8e6cf', '#ffd93d', '#ff8a80', '#82b1ff'],
+                    sunset: ['#ff9a56', '#ff6b9d', '#c44569', '#f8b500', '#e55039', '#3c6382', '#40407a', '#706fd3', '#f5cd79', '#33d9b2'],
+                    ocean: ['#0abde3', '#006ba6', '#0c2461', '#3742fa', '#2f3542', '#57606f', '#747d8c', '#a4b0be', '#5352ed', '#3742fa'],
+                    forest: ['#6c5ce7', '#a29bfe', '#fd79a8', '#fdcb6e', '#e17055', '#00b894', '#00cec9', '#6c5ce7', '#a29bfe', '#fd79a8'],
+                    fire: ['#e17055', '#fdcb6e', '#e84393', '#fd79a8', '#fdcb6e', '#e17055', '#d63031', '#e84393', '#fd79a8', '#fdcb6e'],
+                    neon: ['#00d2d3', '#54a0ff', '#5f27cd', '#00d2d3', '#ff9ff3', '#54a0ff', '#5f27cd', '#00d2d3', '#ff9ff3', '#54a0ff']
+                };
+                
+                this.initElements();
+                this.bindEvents();
+                this.loadFromStorage();
+            }
+            
+            initElements() {
+                this.wheel = document.getElementById('wheel');
+                this.wheelContainer = document.getElementById('wheelContainer');
+                this.spinBtn = document.getElementById('spinBtn');
+                this.wordInput = document.getElementById('wordInput');
+                this.addBtn = document.getElementById('addBtn');
+                this.wordsList = document.getElementById('wordsList');
+                this.clearBtn = document.getElementById('clearBtn');
+                this.emptyState = document.getElementById('emptyState');
+                this.wordTooltip = document.getElementById('wordTooltip');
+                
+                // Modal elements
+                this.settingsModal = document.getElementById('settingsModal');
+                this.historyModal = document.getElementById('historyModal');
+                this.resultModal = document.getElementById('resultModal');
+                this.settingsBtn = document.getElementById('settingsBtn');
+                this.historyBtn = document.getElementById('historyBtn');
+                
+                this.historyList = document.getElementById('historyList');
+                this.clearHistoryBtn = document.getElementById('clearHistoryBtn');
+                this.totalSpins = document.getElementById('totalSpins');
+                this.favoriteWord = document.getElementById('favoriteWord');
+                this.resultWord = document.getElementById('resultWord');
+                
+                this.hideWordsToggle = document.getElementById('hideWordsToggle');
+                this.removeToggle = document.getElementById('removeToggle');
+                this.popupToggle = document.getElementById('popupToggle');
+                this.soundToggle = document.getElementById('soundToggle');
+                this.confettiToggle = document.getElementById('confettiToggle');
+            }
+            
+            bindEvents() {
+                this.spinBtn.addEventListener('click', () => this.spin());
+                this.addBtn.addEventListener('click', () => this.addWord());
+                this.wordInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') this.addWord();
+                });
+                this.clearBtn.addEventListener('click', () => this.clearAllWords());
+                this.clearHistoryBtn.addEventListener('click', () => this.clearHistory());
+                
+                // Modal events
+                this.settingsBtn.addEventListener('click', () => this.showModal('settings'));
+                this.historyBtn.addEventListener('click', () => this.showModal('history'));
+                document.getElementById('closeSettings').addEventListener('click', () => this.hideModal('settings'));
+                document.getElementById('closeHistory').addEventListener('click', () => this.hideModal('history'));
+                document.getElementById('closeResultBtn').addEventListener('click', () => this.hideModal('result'));
+                document.getElementById('spinAgainBtn').addEventListener('click', () => {
+                    this.hideModal('result');
+                    if (!this.isSpinning && this.words.length > 0) {
+                        this.spin();
+                    }
+                });
+                
+                // Close modals on backdrop click
+                [this.settingsModal, this.historyModal, this.resultModal].forEach(modal => {
+                    modal.addEventListener('click', (e) => {
+                        if (e.target === modal) {
+                            modal.classList.remove('show');
+                        }
+                    });
+                });
+                
+                // Settings toggles
+                this.hideWordsToggle.addEventListener('click', () => this.toggleSetting('hideWords'));
+                this.removeToggle.addEventListener('click', () => this.toggleSetting('removeAfterLanding'));
+                this.popupToggle.addEventListener('click', () => this.toggleSetting('showPopup'));
+                this.soundToggle.addEventListener('click', () => this.toggleSetting('soundEffects'));
+                this.confettiToggle.addEventListener('click', () => this.toggleSetting('confetti'));
+                
+                // Theme selector events
+                document.querySelectorAll('.theme-option').forEach(option => {
+                    option.addEventListener('click', () => this.changeTheme(option.dataset.theme));
+                });
+            }
+            
+            showModal(type) {
+                const modals = {
+                    settings: this.settingsModal,
+                    history: this.historyModal,
+                    result: this.resultModal
+                };
+                
+                modals[type].classList.add('show');
+            }
+            
+            hideModal(type) {
+                const modals = {
+                    settings: this.settingsModal,
+                    history: this.historyModal,
+                    result: this.resultModal
+                };
+                
+                modals[type].classList.remove('show');
+            }
+            
+            addWord() {
+                const word = this.wordInput.value.trim();
+                if (word && !this.words.includes(word)) {
+                    this.words.push(word);
+                    this.wordInput.value = '';
+                    this.updateDisplay();
+                    this.saveToStorage();
+                }
+            }
+            
+            removeWord(word) {
+                this.words = this.words.filter(w => w !== word);
+                this.updateDisplay();
+                this.saveToStorage();
+            }
+            
+            clearAllWords() {
+                if (confirm('Are you sure you want to clear all words?')) {
+                    this.words = [];
+                    this.updateDisplay();
+                    this.saveToStorage();
+                }
+            }
+            
+            updateDisplay() {
+                this.updateWordsList();
+                this.updateWheel();
+                this.spinBtn.disabled = this.words.length === 0;
+            }
+            
+            updateWordsList() {
+                if (this.words.length === 0) {
+                    this.wordsList.innerHTML = '<div class="empty-state">No words added yet</div>';
+                    return;
+                }
+                
+                this.wordsList.innerHTML = this.words.map(word => `
+                    <div class="word-item">
+                        <span>${word}</span>
+                        <button class="remove-btn" onclick="app.removeWord('${word}')">×</button>
+                    </div>
+                `).join('');
+            }
+            
+            updateWheel() {
+                if (this.words.length === 0) {
+                    this.wheel.innerHTML = '<div class="empty-state">Add some words to start spinning!</div>';
+                    this.wheel.style.background = '#2a2a5a';
+                    return;
+                }
+                
+                const colors = this.themes[this.currentTheme];
+                const segmentAngle = 360 / this.words.length;
+                const radius = 125;
+                const centerX = 125;
+                const centerY = 125;
+                
+                let svgContent = `<svg class="wheel-svg" viewBox="0 0 250 250">`;
+                
+                this.words.forEach((word, index) => {
+                    const startAngle = (index * segmentAngle - 90) * (Math.PI / 180);
+                    const endAngle = ((index + 1) * segmentAngle - 90) * (Math.PI / 180);
+                    const midAngle = (startAngle + endAngle) / 2;
+                    
+                    const x1 = centerX + radius * Math.cos(startAngle);
+                    const y1 = centerY + radius * Math.sin(startAngle);
+                    const x2 = centerX + radius * Math.cos(endAngle);
+                    const y2 = centerY + radius * Math.sin(endAngle);
+                    
+                    const largeArcFlag = segmentAngle > 180 ? 1 : 0;
+                    
+                    const pathData = [
+                        `M ${centerX} ${centerY}`,
+                        `L ${x1} ${y1}`,
+                        `A ${radius} ${radius} 0 ${largeArcFlag} 1 ${x2} ${y2}`,
+                        'Z'
+                    ].join(' ');
+                    
+                    const color = colors[index % colors.length];
+                    
+                    svgContent += `
+                        <path d="${pathData}" 
+                              fill="${color}" 
+                              class="wheel-segment"
+                              data-word="${word}"
+                              data-index="${index}"
+                              onmouseenter="app.showTooltip(event, '${word}')"
+                              onmouseleave="app.hideTooltip()"
+                              onclick="app.showWordPreview('${word}')"/>
+                    `;
+                    
+                    // Only add text if hideWords is false
+                    if (!this.settings.hideWords) {
+                        const textRadius = radius * 0.7;
+                        const textX = centerX + textRadius * Math.cos(midAngle);
+                        const textY = centerY + textRadius * Math.sin(midAngle);
+                        
+                        let fontSize = 14;
+                        if (this.words.length > 8) fontSize = 12;
+                        if (this.words.length > 12) fontSize = 10;
+                        if (this.words.length > 16) fontSize = 8;
+                        
+                        let displayWord = word;
+                        if (this.words.length > 12 && word.length > 8) {
+                            displayWord = word.substring(0, 6) + '...';
+                        }
+                        
+                        svgContent += `
+                            <text x="${textX}" 
+                                  y="${textY}" 
+                                  class="segment-text" 
+                                  font-size="${fontSize}"
+                                  transform="rotate(${(midAngle * 180 / Math.PI) + 90}, ${textX}, ${textY})">
+                                ${displayWord}
+                            </text>
+                        `;
+                    }
+                });
+                
+                svgContent += '</svg>';
+                this.wheel.innerHTML = svgContent;
+            }
+            
+            spin() {
+                if (this.isSpinning || this.words.length === 0) return;
+                
+                this.isSpinning = true;
+                this.spinBtn.disabled = true;
+                this.hideModal('result');
+                this.wheel.classList.add('spinning');
+                
+                const minSpins = 3600;
+                const maxSpins = 7200;
+                const randomSpin = Math.random() * (maxSpins - minSpins) + minSpins;
+                
+                const segmentAngle = 360 / this.words.length;
+                const finalAngle = randomSpin % 360;
+                const normalizedAngle = (360 - finalAngle + (segmentAngle / 50)) % 360;
+                const selectedIndex = Math.floor(normalizedAngle / segmentAngle) % this.words.length;
+                const selectedWord = this.words[selectedIndex];
+                
+                this.wheel.style.transform = `rotate(${randomSpin}deg)`;
+                
+                if (this.settings.soundEffects) {
+                    this.playSpinSound();
+                }
+                
+                setTimeout(() => {
+                    this.wheel.classList.remove('spinning');
+                    this.showResult(selectedWord);
+                    this.addToHistory(selectedWord);
+                    
+                    if (this.settings.removeAfterLanding) {
+                        this.removeWord(selectedWord);
+                    }
+                    
+                    this.isSpinning = false;
+                    this.spinBtn.disabled = this.words.length === 0;
+                }, 7000);
+            }
+            
+            showResult(word) {
+                this.resultWord.textContent = word;
+                
+                if (this.settings.showPopup) {
+                    this.showModal('result');
+                }
+                
+                this.wheelContainer.classList.add('winner');
+                setTimeout(() => {
+                    this.wheelContainer.classList.remove('winner');
+                }, 3000);
+                
+                if (this.settings.confetti) {
+                    this.createConfetti();
+                }
+                
+                if (navigator.vibrate) {
+                    navigator.vibrate([200, 100, 200]);
+                }
+            }
+            
+            playSpinSound() {
+                try {
+                    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    const oscillator = audioContext.createOscillator();
+                    const gainNode = audioContext.createGain();
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioContext.destination);
+                    
+                    oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+                    oscillator.frequency.exponentialRampToValueAtTime(200, audioContext.currentTime + 0.5);
+                    
+                    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+                    
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + 0.5);
+                } catch (e) {
+                    console.log('Audio not supported');
+                }
+            }
+            
+            toggleSetting(setting) {
+                this.settings[setting] = !this.settings[setting];
+                this.updateSettingsDisplay();
+                this.updateDisplay(); // Update wheel if hideWords changed
+                this.saveToStorage();
+            }
+            
+            updateSettingsDisplay() {
+                this.hideWordsToggle.classList.toggle('active', this.settings.hideWords);
+                this.removeToggle.classList.toggle('active', this.settings.removeAfterLanding);
+                this.popupToggle.classList.toggle('active', this.settings.showPopup);
+                this.soundToggle.classList.toggle('active', this.settings.soundEffects);
+                this.confettiToggle.classList.toggle('active', this.settings.confetti);
+                
+                document.querySelectorAll('.theme-option').forEach(option => {
+                    option.classList.toggle('active', option.dataset.theme === this.currentTheme);
+                });
+            }
+            
+            saveToStorage() {
+                localStorage.setItem('spinnerApp', JSON.stringify({
+                    words: this.words,
+                    spinHistory: this.spinHistory,
+                    settings: this.settings,
+                    currentTheme: this.currentTheme
+                }));
+            }
+            
+            showTooltip(event, word) {
+                if (this.isSpinning) return;
+                
+                this.wordTooltip.textContent = word;
+                this.wordTooltip.style.left = event.pageX + 'px';
+                this.wordTooltip.style.top = event.pageY + 'px';
+                this.wordTooltip.classList.add('show');
+            }
+            
+            hideTooltip() {
+                this.wordTooltip.classList.remove('show');
+            }
+            
+            showWordPreview(word) {
+                if (this.isSpinning) return;
+                
+                const preview = document.createElement('div');
+                preview.style.cssText = `
+                    position: fixed;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                    background: linear-gradient(135deg, #8b5cf6 0%, #a855f7 100%);
+                    color: white;
+                    padding: 20px 30px;
+                    border-radius: 15px;
+                    font-size: 20px;
+                    font-weight: bold;
+                    z-index: 2000;
+                    box-shadow: 0 10px 30px rgba(0,0,0,0.5), 0 0 20px rgba(139, 92, 246, 0.4);
+                    animation: popIn 0.3s ease;
+                    border: 1px solid rgba(139, 92, 246, 0.5);
+                `;
+                preview.textContent = word;
+                
+                if (!document.querySelector('#popInAnimation')) {
+                    const style = document.createElement('style');
+                    style.id = 'popInAnimation';
+                    style.textContent = `
+                        @keyframes popIn {
+                            0% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+                            100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+                        }
+                    `;
+                    document.head.appendChild(style);
+                }
+                
+                document.body.appendChild(preview);
+                
+                setTimeout(() => {
+                    if (preview.parentNode) {
+                        preview.parentNode.removeChild(preview);
+                    }
+                }, 1500);
+                
+                if (navigator.vibrate) {
+                    navigator.vibrate(50);
+                }
+            }
+            
+            addToHistory(word) {
+                const timestamp = new Date();
+                this.spinHistory.unshift({
+                    word: word,
+                    time: timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                    date: timestamp.toLocaleDateString()
+                });
+                
+                if (this.spinHistory.length > 20) {
+                    this.spinHistory = this.spinHistory.slice(0, 20);
+                }
+                
+                this.updateHistoryDisplay();
+                this.saveToStorage();
+            }
+            
+            clearHistory() {
+                if (confirm('Clear all spin history?')) {
+                    this.spinHistory = [];
+                    this.updateHistoryDisplay();
+                    this.saveToStorage();
+                }
+            }
+            
+            updateHistoryDisplay() {
+                if (this.spinHistory.length === 0) {
+                    this.historyList.innerHTML = '<div class="empty-state">No spins yet</div>';
+                    this.totalSpins.textContent = '0';
+                    this.favoriteWord.textContent = '-';
+                    return;
+                }
+                
+                this.historyList.innerHTML = this.spinHistory.slice(0, 10).map(item => `
+                    <div class="history-item">
+                        <span class="history-word">${item.word}</span>
+                        <span class="history-time">${item.time}</span>
+                    </div>
+                `).join('');
+                
+                this.totalSpins.textContent = this.spinHistory.length;
+                
+                const wordCounts = {};
+                this.spinHistory.forEach(item => {
+                    wordCounts[item.word] = (wordCounts[item.word] || 0) + 1;
+                });
+                
+                const mostFrequent = Object.entries(wordCounts).reduce((a, b) => 
+                    wordCounts[a[0]] > wordCounts[b[0]] ? a : b
+                );
+                
+                this.favoriteWord.textContent = mostFrequent ? mostFrequent[0] : '-';
+            }
+            
+            loadFromStorage() {
+                const saved = localStorage.getItem('spinnerApp');
+                if (saved) {
+                    const data = JSON.parse(saved);
+                    this.words = data.words || [];
+                    this.spinHistory = data.spinHistory || [];
+                    this.settings = { ...this.settings, ...data.settings };
+                    this.currentTheme = data.currentTheme || 'default';
+                }
+                this.updateDisplay();
+                this.updateHistoryDisplay();
+                this.updateSettingsDisplay();
+            }
+            
+            changeTheme(theme) {
+                this.currentTheme = theme;
+                this.updateDisplay();
+                this.updateSettingsDisplay();
+                this.saveToStorage();
+            }
+            
+            createConfetti() {
+                const colors = this.themes[this.currentTheme];
+                for (let i = 0; i < 50; i++) {
+                    setTimeout(() => {
+                        const confetti = document.createElement('div');
+                        confetti.className = 'confetti';
+                        confetti.style.left = Math.random() * 100 + 'vw';
+                        confetti.style.background = colors[Math.floor(Math.random() * colors.length)];
+                        confetti.style.animation = `confetti-fall ${2 + Math.random() * 3}s linear forwards`;
+                        confetti.style.animationDelay = Math.random() * 2 + 's';
+                        document.body.appendChild(confetti);
+                        
+                        setTimeout(() => {
+                            if (confetti.parentNode) {
+                                confetti.parentNode.removeChild(confetti);
+                            }
+                        }, 5000);
+                    }, i * 50);
+                }
+            }
+        }
+        
+        const app = new SpinnerApp();
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'965c871d709500f8',t:'MTc1MzYyMzQwOC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
+
+
