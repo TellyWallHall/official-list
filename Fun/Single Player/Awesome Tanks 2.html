@@ -1,0 +1,458 @@
+  <html lang="en">
+
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Awesome Tanks 2</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+      #fullscreen-btn {
+        position: fixed;
+        top: 92.8%;
+        right: 15px;
+        z-index: 100000;
+        font-size: 10px;
+        background: rgba(20, 20, 20, 0.6);
+        backdrop-filter: blur(5px);
+        color: #fff;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 12px;
+        cursor: pointer;
+        padding: 12px;
+      }
+
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        background: black;
+        overflow: hidden;
+        height: 100%;
+        width: 100%;
+      }
+
+      #flash-container {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: black;
+        overflow: hidden;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+
+      .black-box {
+        position: fixed;
+        background: black;
+        z-index: 10;
+      }
+
+      #box-bottom {
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 0;
+      }
+
+      #box-right {
+        top: 0;
+        right: 0;
+        width: 0;
+        height: 100%;
+      }
+
+      ruffle-player {
+        width: 100%;
+        height: 100%;
+        background: black;
+        overflow: hidden;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+
+      #alu-joystick-wrap {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 99999;
+        pointer-events: none;
+        display: none;
+      }
+
+      @media (hover: none) and (pointer: coarse) {
+        #alu-joystick-wrap {
+          display: block;
+        }
+      }
+
+      #alu-joystick {
+        position: absolute;
+        bottom: 70px;
+        left: 30px;
+        width: 130px;
+        height: 130px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.08);
+        border: 2px solid rgba(255, 255, 255, 0.25);
+        pointer-events: none;
+        touch-action: none;
+      }
+
+      #alu-joystick .stick {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 55px;
+        height: 55px;
+        margin: -27.5px 0 0 -27.5px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.35);
+        pointer-events: none;
+      }
+
+      /* --- WEAPON BAR --- */
+      #weapon-bar {
+        position: absolute;
+        top: 82%;
+        right: 15px;
+        transform: translateY(-50%);
+        /*         display: flex;
+        flex-direction: row; */
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        grid-template-rows: repeat(4, 1fr);
+        gap: 10px;
+        pointer-events: auto;
+      }
+
+      #weapon-bar> :nth-child(10) {
+        grid-column: 2 / 3;
+        grid-row: 4 / 5;
+      }
+
+      .weapon-btn {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        background: rgba(20, 20, 20, 0.5);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        color: rgba(255, 255, 255, 0.7);
+        font-size: 18px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        cursor: pointer;
+        position: relative;
+        transition: all 0.1s ease;
+        touch-action: manipulation;
+      }
+
+      .weapon-btn:active {
+        background: rgba(255, 255, 255, 0.2);
+        transform: scale(0.9);
+        border-color: rgba(255, 255, 255, 0.5);
+        color: #fff;
+      }
+
+      .weapon-btn .key-hint {
+        position: absolute;
+        bottom: 2px;
+        right: 4px;
+        font-size: 8px;
+        font-family: sans-serif;
+        color: rgba(255, 255, 255, 0.4);
+        font-weight: bold;
+      }
+
+      .weapon-btn[data-key="1"] i {
+        color: #ffeb3b;
+      }
+
+      .weapon-btn[data-key="2"] i {
+        color: #ff9800;
+      }
+
+      .weapon-btn[data-key="3"] i {
+        color: #03a9f4;
+      }
+
+      .weapon-btn[data-key="4"] i {
+        color: #f44336;
+      }
+
+      .weapon-btn[data-key="5"] i {
+        color: #795548;
+      }
+
+      .weapon-btn[data-key="6"] i {
+        color: #e91e63;
+      }
+
+      .weapon-btn[data-key="Shift"] i {
+        color: #607d8b;
+      }
+
+      .weapon-btn[data-key="7"] i {
+        color: #ff5722;
+      }
+
+      .weapon-btn[data-key="8"] i {
+        color: #00e5ff;
+      }
+
+      .weapon-btn[data-key="9"] i {
+        color: #ba68c8;
+      }
+
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/@ruffle-rs/ruffle@0.2.0-nightly.2025.10.2/ruffle.min.js"></script>
+  </head>
+
+  <body>
+    <button id="fullscreen-btn"><i class="fa-solid fa-expand"></i></button>
+    <div id="flash-container"></div>
+    <div class="black-box" id="box-top"></div>
+    <div class="black-box" id="box-bottom"></div>
+    <div class="black-box" id="box-left"></div>
+    <div class="black-box" id="box-right"></div>
+    <div id="alu-joystick-wrap">
+      <div id="alu-joystick">
+        <div class="stick"></div>
+      </div>
+      <div id="weapon-bar">
+        <button class="weapon-btn" data-key="1"><i class="fa-solid fa-asterisk"></i><span class="key-hint">1</span></button>
+        <button class="weapon-btn" data-key="2"><i class="fa-solid fa-gun"></i><span class="key-hint">2</span></button>
+        <button class="weapon-btn" data-key="3"><i class="fa-solid fa-arrows-turn-right"></i><span class="key-hint">3</span></button>
+        <button class="weapon-btn" data-key="4"><i class="fa-solid fa-fire-flame-curved"></i><span class="key-hint">4</span></button>
+        <button class="weapon-btn" data-key="5"><i class="fa-solid fa-burst"></i><span class="key-hint">5</span></button>
+        <button class="weapon-btn" data-key="6"><i class="fa-solid fa-bolt"></i><span class="key-hint">6</span></button>
+        <button class="weapon-btn" data-key="7"><i class="fa-solid fa-rocket"></i><span class="key-hint">7</span></button>
+        <button class="weapon-btn" data-key="8"><i class="fa-solid fa-wand-magic-sparkles"></i><span class="key-hint">8</span></button>
+        <button class="weapon-btn" data-key="9"><i class="fa-solid fa-bolt-lightning"></i><span class="key-hint">9</span></button>
+        <button class="weapon-btn" data-key="Shift"><i class="fa-solid fa-land-mine-on"></i><span class="key-hint">Shift</span></button>
+      </div>
+    </div>
+
+    <script>
+      const container = document.getElementById("flash-container");
+      const boxTop = document.getElementById("box-top");
+      const boxBottom = document.getElementById("box-bottom");
+      const boxLeft = document.getElementById("box-left");
+      const boxRight = document.getElementById("box-right");
+      const SWF_URL = "https://cdn.jsdelivr.net/gh/bubbls/UGS-file-encryption@754a57837e92bb4552e8247c6a401bd4ce8e4ee7/599993_dingo.swf";
+      let rufflePlayer;
+
+      function resizeGame() {
+        const windowWidth = window.innerWidth;
+        const windowHeight = window.innerHeight;
+        const aspectRatio = 5.5 / 3;
+        let width = Math.floor(windowWidth * 1);
+        let height = Math.floor(width / aspectRatio);
+        if (height > windowHeight * 1) {
+          height = Math.floor(windowHeight * 1);
+          width = Math.floor(height * aspectRatio);
+        }
+        container.style.width = `${width}px`;
+        container.style.height = `${height}px`;
+        const topMargin = (windowHeight - height) / 2;
+        const leftMargin = (windowWidth - width) / 2;
+        boxTop.style.height = `${topMargin}px`;
+        boxBottom.style.height = `${topMargin}px`;
+        boxLeft.style.width = `${leftMargin}px`;
+        boxRight.style.width = `${leftMargin}px`;
+      }
+      window.addEventListener("resize", resizeGame);
+      window.addEventListener("DOMContentLoaded", () => {
+        resizeGame();
+        const ruffle = window.RufflePlayer?.newest() || window.RufflePlayer?.createPlayer();
+        if (ruffle && container) {
+          rufflePlayer = ruffle.createPlayer({
+            contextMenu: false
+          });
+          rufflePlayer.style.width = "100%";
+          rufflePlayer.style.height = "100%";
+          rufflePlayer.style.background = "black";
+          rufflePlayer.tabIndex = 0;
+          container.appendChild(rufflePlayer);
+          rufflePlayer.load(SWF_URL).then(() => {
+            rufflePlayer.focus();
+            setupThumbpad();
+            setupWeaponBar();
+          }).catch(e => container.textContent = "Ruffle failed: " + e);
+        } else {
+          container.textContent = "Ruffle failed to load.";
+        }
+      });
+
+      document.getElementById('fullscreen-btn').addEventListener('click', () => {
+        if (!document.fullscreenElement) {
+          document.documentElement.requestFullscreen();
+        } else {
+          document.exitFullscreen();
+        }
+      });
+
+      const KEYCODES = {
+        w: 87,
+        a: 65,
+        s: 83,
+        d: 68
+      };
+
+      function sendKey(key, down) {
+        const type = down ? 'keydown' : 'keyup';
+        const code = `Key${key.toUpperCase()}`;
+        const keyCode = KEYCODES[key];
+        const ev = new KeyboardEvent(type, {
+          key,
+          code,
+          keyCode,
+          which: keyCode,
+          bubbles: true
+        });
+        window.dispatchEvent(ev);
+      }
+
+      function sendWeaponKey(keyStr) {
+        let keyCode, code;
+        if (keyStr === 'Shift') {
+          keyCode = 16;
+          code = 'ShiftLeft';
+        } else {
+          keyCode = keyStr.charCodeAt(0);
+          code = `Digit${keyStr}`;
+        }
+        const evDown = new KeyboardEvent('keydown', {
+          key: keyStr,
+          code,
+          keyCode,
+          which: keyCode,
+          bubbles: true
+        });
+        const evUp = new KeyboardEvent('keyup', {
+          key: keyStr,
+          code,
+          keyCode,
+          which: keyCode,
+          bubbles: true
+        });
+        window.dispatchEvent(evDown);
+        setTimeout(() => window.dispatchEvent(evUp), 50);
+      }
+
+      function setupThumbpad() {
+        if (!('ontouchstart' in window)) return;
+        const joy = document.getElementById('alu-joystick'),
+          stick = joy.querySelector('.stick');
+        let activeTouchId = null,
+          cx, cy;
+        const size = 130,
+          stickSize = 55,
+          maxDist = size / 2 - stickSize / 2;
+        const pressed = {
+          w: 0,
+          a: 0,
+          s: 0,
+          d: 0
+        };
+
+        window.addEventListener('touchstart', e => {
+          for (let t of e.touches) {
+            const r = joy.getBoundingClientRect();
+            if (t.clientX > r.left && t.clientX < r.right && t.clientY > r.top && t.clientY < r.bottom) {
+              if (activeTouchId === null) {
+                activeTouchId = t.identifier;
+                cx = r.left + size / 2;
+                cy = r.top + size / 2;
+                updateStick(t);
+              }
+            }
+          }
+        }, {
+          passive: false
+        });
+
+        window.addEventListener('touchmove', e => {
+          if (activeTouchId === null) return;
+          const t = [...e.touches].find(touch => touch.identifier === activeTouchId);
+          if (t) {
+            e.preventDefault();
+            updateStick(t);
+          }
+        }, {
+          passive: false
+        });
+
+        window.addEventListener('touchend', e => {
+          const ended = [...e.changedTouches].find(touch => touch.identifier === activeTouchId);
+          if (ended) resetStick();
+        });
+        window.addEventListener('touchcancel', resetStick);
+
+        function updateStick(touch) {
+          const dx = touch.clientX - cx,
+            dy = touch.clientY - cy;
+          const dist = Math.min(Math.hypot(dx, dy), maxDist);
+          const angle = Math.atan2(dy, dx);
+          stick.style.transform = `translate(${Math.cos(angle)*dist}px, ${Math.sin(angle)*dist}px)`;
+          const deadzone = 18;
+          const ns = {
+            w: dy < -deadzone,
+            s: dy > deadzone,
+            a: dx < -deadzone,
+            d: dx > deadzone
+          };
+          for (let k in ns)
+            if (ns[k] != pressed[k]) {
+              sendKey(k, ns[k]);
+              pressed[k] = ns[k];
+            }
+        }
+
+        function resetStick() {
+          activeTouchId = null;
+          stick.style.transform = 'translate(0,0)';
+          for (let k in pressed)
+            if (pressed[k]) {
+              sendKey(k, 0);
+              pressed[k] = 0;
+            }
+        }
+      }
+
+      function setupWeaponBar() {
+        if (!('ontouchstart' in window)) return;
+        const buttons = document.querySelectorAll('.weapon-btn');
+        buttons.forEach(btn => {
+          btn.addEventListener('touchstart', e => {
+            e.preventDefault();
+            const key = btn.getAttribute('data-key');
+            sendWeaponKey(key);
+            btn.classList.add('active');
+          }, {
+            passive: false
+          });
+
+          btn.addEventListener('touchend', e => {
+            e.preventDefault();
+            btn.classList.remove('active');
+          }, {
+            passive: false
+          });
+        });
+      }
+
+    </script>
+    <param name="movie" value="https://cdn.jsdelivr.net/gh/bubbls/UGS-file-encryption@754a57837e92bb4552e8247c6a401bd4ce8e4ee7/599993_dingo.swf">
+    <embed src="https://cdn.jsdelivr.net/gh/bubbls/UGS-file-encryption@754a57837e92bb4552e8247c6a401bd4ce8e4ee7/599993_dingo.swf" width="100%" height="100%">
+  </body>
+
+  </html>
