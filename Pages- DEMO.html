@@ -1,0 +1,2294 @@
+<!doctype html>
+<html lang="en">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>AI Pages</title>
+  <script>
+// Complete Working AI Script - v2.0
+// Fixed all bugs from v1.js
+alert('chances are you didnt set up the Ai so this wont work. Check the Ai config');
+// AI Configuration Object
+let ai = {
+    model: '@cf/meta/llama-3.1-70b-instruct',
+    temperature: 1,
+    maxTokens: null,
+    topP: 1,
+    topK: 40,
+    repetitionPenalty: 1.1,
+    frequencyPenalty: 0,
+    presencePenalty: 0,
+    seed: null,
+    responseFormat: 'text',
+    streamResponse: false,
+    systemPrompt: null,
+    baseApiUrl: '<cors anywhere proxy>https://api.cloudflare.com/client/v4/accounts/<cloudflare account id>/ai/run/',
+    apiKey: '<cloudflare api key>',
+    message: null,
+    response: null
+};
+
+// Main AI Function - Simple Interface
+async function askAi(systemPrompt, message, maxTokenOutput = 10, debug = false) {
+    if (debug) console.log('askAi called with:', {systemPrompt, message, maxTokenOutput, debug});
+    
+    if (!message || !systemPrompt) {
+        console.error('AI Error: required argument(s) missing');
+        return 'Here we go again';
+    }
+    
+    // Set parameters
+    ai.systemPrompt = systemPrompt;
+    ai.message = message;
+    ai.maxTokens = maxTokenOutput;
+    
+    try {
+        const result = await callCloudflareAPI(false, debug);
+        return result;
+    } catch (error) {
+        console.error('askAi error:', error);
+        return 'Here we go again';
+    }
+}
+
+// Core API Function
+async function callCloudflareAPI(stream = false, debug = false) {
+    if (debug) console.log('callCloudflareAPI called with stream:', stream);
+    
+    if (!ai.systemPrompt || !ai.message || !ai.maxTokens) {
+        console.error('Missing required AI parameters');
+        return 'Here we go again';
+    }
+    
+    const apiUrl = ai.baseApiUrl + ai.model;
+    
+    const messages = [
+        { role: "system", content: ai.systemPrompt },
+        { role: "user", content: ai.message }
+    ];
+    
+    const requestBody = {
+        messages: messages,
+        max_tokens: ai.maxTokens,
+        temperature: ai.temperature,
+        stream: stream,
+        raw: false
+    };
+    
+    if (debug) {
+        console.log('API URL:', apiUrl);
+        console.log('Request body:', JSON.stringify(requestBody, null, 2));
+    }
+    
+    try {
+        if (debug) console.log('Sending request...');
+        
+        const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${ai.apiKey}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(requestBody)
+        });
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`API request failed: ${response.status} - ${errorText}`);
+        }
+        
+        const data = await response.json();
+        
+        if (debug) {
+            console.log('Full API response:');
+            console.log(JSON.stringify(data, null, 2));
+        }
+        
+        // Store response in ai object
+        if (data.result && data.result.response) {
+            ai.response = data.result.response;
+            return data.result.response;
+        } else if (typeof data.result === 'string') {
+            ai.response = data.result;
+            return data.result;
+        } else {
+            throw new Error('Unexpected response format from API');
+        }
+        
+    } catch (error) {
+        console.error('API Error:', error.message);
+        ai.response = null;
+        return 'Here we go again';
+    }
+}
+
+// Advanced AI Function with full control
+async function askAiAdvanced(options = {}) {
+    const {
+        systemPrompt,
+        message,
+        maxTokens = 10,
+        temperature = 1,
+        model = '@cf/meta/llama-3.1-70b-instruct',
+        stream = false,
+        debug = false
+    } = options;
+    
+    if (!systemPrompt || !message) {
+        console.error('askAiAdvanced: systemPrompt and message are required');
+        return 'Here we go again';
+    }
+    
+    // Temporarily store current settings
+    const originalSettings = {
+        systemPrompt: ai.systemPrompt,
+        message: ai.message,
+        maxTokens: ai.maxTokens,
+        temperature: ai.temperature,
+        model: ai.model
+    };
+    
+    // Apply new settings
+    ai.systemPrompt = systemPrompt;
+    ai.message = message;
+    ai.maxTokens = maxTokens;
+    ai.temperature = temperature;
+    ai.model = model;
+    
+    try {
+        const result = await callCloudflareAPI(stream, debug);
+        return result;
+    } catch (error) {
+        console.error('askAiAdvanced error:', error);
+        return 'Here we go again';
+    } finally {
+        // Restore original settings
+        Object.assign(ai, originalSettings);
+    }
+}
+
+// Utility function to get current AI status
+function getAiStatus() {
+    return {
+        hasApiKey: !!ai.apiKey,
+        model: ai.model,
+        lastResponse: ai.response,
+        ready: !!(ai.apiKey && ai.baseApiUrl)
+    };
+}
+
+// Export functions for module environments (optional)
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = { askAi, askAiAdvanced, callCloudflareAPI, getAiStatus, ai };
+}
+
+console.log('✅ AI Script v2.0 loaded successfully!');
+  </script>
+  <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
+  <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+  <style>
+        body {
+            box-sizing: border-box;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #1a202c;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .app-container {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            background: #ffffff;
+        }
+
+        /* Header */
+        .header {
+            background: #ffffff;
+            padding: 12px 16px;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+        }
+
+        .header-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #2d3748;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        /* Dark Mode */
+        body.dark-mode {
+            background: linear-gradient(135deg, #1a202c 0%, #2d3748 100%);
+        }
+
+        body.dark-mode .app-container {
+            background: #1a202c;
+        }
+
+        body.dark-mode .header {
+            background: #2d3748;
+            border-bottom-color: #4a5568;
+        }
+
+        body.dark-mode .header-title {
+            color: #f7fafc;
+        }
+
+        body.dark-mode .icon-btn {
+            background: #4a5568;
+            color: #e2e8f0;
+        }
+
+        body.dark-mode .icon-btn:active {
+            background: #718096;
+        }
+
+        body.dark-mode .icon-btn.active {
+            background: #667eea;
+            color: #ffffff;
+        }
+
+        body.dark-mode .tab-bar {
+            background: #2d3748;
+            border-bottom-color: #4a5568;
+        }
+
+        body.dark-mode .tab {
+            color: #a0aec0;
+        }
+
+        body.dark-mode .tab.active {
+            color: #667eea;
+        }
+
+        body.dark-mode .ql-toolbar {
+            background: #2d3748;
+            border-color: #4a5568;
+        }
+
+        body.dark-mode .ql-container {
+            background: #1a202c;
+            border-color: #4a5568;
+        }
+
+        body.dark-mode .ql-editor {
+            color: #e2e8f0;
+        }
+
+        body.dark-mode .ql-editor.ql-blank::before {
+            color: #718096;
+        }
+
+        body.dark-mode .ql-stroke {
+            stroke: #e2e8f0;
+        }
+
+        body.dark-mode .ql-fill {
+            fill: #e2e8f0;
+        }
+
+        body.dark-mode .ql-picker-label {
+            color: #e2e8f0;
+        }
+
+        body.dark-mode .message.ai {
+            background: #2d3748;
+            color: #e2e8f0;
+        }
+
+        body.dark-mode .input-area {
+            background: #2d3748;
+            border-top-color: #4a5568;
+        }
+
+        body.dark-mode .chat-input {
+            background: #1a202c;
+            border-color: #4a5568;
+            color: #e2e8f0;
+        }
+
+        body.dark-mode .modal-panel {
+            background: #2d3748;
+        }
+
+        body.dark-mode .modal-header {
+            border-bottom-color: #4a5568;
+        }
+
+        body.dark-mode .modal-title {
+            color: #f7fafc;
+        }
+
+        body.dark-mode .modal-close {
+            background: #4a5568;
+            color: #e2e8f0;
+        }
+
+        body.dark-mode .setting-label {
+            color: #e2e8f0;
+        }
+
+        body.dark-mode .setting-row {
+            background: #1a202c;
+        }
+
+        body.dark-mode .setting-value {
+            color: #f7fafc;
+        }
+
+        body.dark-mode .arrow-btn {
+            background: #4a5568;
+            color: #667eea;
+        }
+
+        body.dark-mode .arrow-btn:active {
+            background: #718096;
+        }
+
+        body.dark-mode .setting-description {
+            color: #a0aec0;
+        }
+
+        body.dark-mode .model-select {
+            background: #1a202c;
+            border-color: #4a5568;
+            color: #e2e8f0;
+        }
+
+        body.dark-mode .document-item {
+            background: #1a202c;
+        }
+
+        body.dark-mode .document-item:active {
+            background: #4a5568;
+        }
+
+        body.dark-mode .document-title {
+            color: #f7fafc;
+        }
+
+        body.dark-mode .document-meta {
+            color: #a0aec0;
+        }
+
+        body.dark-mode .empty-state {
+            color: #718096;
+        }
+        
+        .reset-chat-area {
+            padding: 8px 16px;
+            border-top: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: center;
+            background: #ffffff;
+        }
+        
+        body.dark-mode .reset-chat-area {
+            border-top-color: #4a5568;
+            background: #2d3748;
+        }
+
+        body.dark-mode .loading-indicator {
+            background: #1a202c;
+            color: #e2e8f0;
+        }
+
+        body.dark-mode .spinner {
+            border-color: #4a5568;
+            border-top-color: #667eea;
+        }
+
+        body.dark-mode .system-prompt-input {
+            background: #1a202c;
+            border-color: #4a5568;
+            color: #e2e8f0;
+        }
+
+        .icon-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            border: none;
+            background: #f7fafc;
+            color: #4a5568;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            transition: all 0.2s;
+        }
+
+        .icon-btn:active {
+            background: #edf2f7;
+            transform: scale(0.95);
+        }
+
+        .icon-btn.active {
+            background: #667eea;
+            color: #ffffff;
+        }
+
+        /* Tab Bar */
+        .tab-bar {
+            display: flex;
+            background: #ffffff;
+            border-bottom: 1px solid #e2e8f0;
+            flex-shrink: 0;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            background: transparent;
+            color: #718096;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .tab.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+
+        /* Main Content */
+        .content {
+            flex: 1;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .view {
+            display: none;
+            height: 100%;
+            flex-direction: column;
+        }
+
+        .view.active {
+            display: flex;
+        }
+
+        /* Editor View */
+        .editor-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .title-bar {
+            display: flex;
+            gap: 8px;
+            padding: 12px 16px;
+            background: #ffffff;
+            border-bottom: 1px solid #e2e8f0;
+            align-items: center;
+        }
+
+        body.dark-mode .title-bar {
+            background: #2d3748;
+            border-bottom-color: #4a5568;
+        }
+
+        .title-input {
+            flex: 1;
+            padding: 10px 14px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            font-family: inherit;
+            background: #f7fafc;
+            color: #2d3748;
+        }
+
+        .title-input:focus {
+            outline: none;
+            border-color: #667eea;
+            background: #ffffff;
+        }
+
+        body.dark-mode .title-input {
+            background: #1a202c;
+            border-color: #4a5568;
+            color: #f7fafc;
+        }
+
+        body.dark-mode .title-input:focus {
+            border-color: #667eea;
+            background: #2d3748;
+        }
+
+        .generate-title-btn {
+            padding: 10px 16px;
+            border: none;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #ffffff;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.2s;
+        }
+
+        .generate-title-btn:active {
+            transform: scale(0.95);
+        }
+
+        .generate-title-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .generate-title-btn.loading {
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        #editor {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .ql-container {
+            font-size: 16px;
+            height: 100%;
+        }
+
+        .ql-editor {
+            padding: 20px;
+            min-height: 100%;
+        }
+
+        .ql-editor.ql-blank::before {
+            color: #a0aec0;
+            font-style: normal;
+        }
+
+        /* Chat View */
+        .chat-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .message {
+            max-width: 85%;
+            padding: 12px 16px;
+            border-radius: 16px;
+            font-size: 15px;
+            line-height: 1.5;
+            word-wrap: break-word;
+            white-space: pre-wrap;
+        }
+        
+        .message strong {
+            font-weight: 600;
+        }
+        
+        .message em {
+            font-style: italic;
+        }
+        
+        .message code {
+            background: rgba(0, 0, 0, 0.1);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+        
+        body.dark-mode .message code {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .message.user {
+            align-self: flex-end;
+            background: #667eea;
+            color: #ffffff;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.ai {
+            align-self: flex-start;
+            background: #f7fafc;
+            color: #2d3748;
+            border-bottom-left-radius: 4px;
+        }
+
+        .message.system {
+            align-self: center;
+            background: #fed7d7;
+            color: #c53030;
+            font-size: 13px;
+            max-width: 90%;
+        }
+
+        /* Input Area */
+        .input-area {
+            padding: 12px 16px;
+            background: #ffffff;
+            border-top: 1px solid #e2e8f0;
+            display: flex;
+            gap: 8px;
+            align-items: flex-end;
+        }
+
+        .input-wrapper {
+            flex: 1;
+            position: relative;
+        }
+
+        .chat-input {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid #e2e8f0;
+            border-radius: 20px;
+            font-size: 15px;
+            font-family: inherit;
+            resize: none;
+            max-height: 100px;
+            overflow-y: auto;
+        }
+
+        .chat-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .send-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: none;
+            background: #667eea;
+            color: #ffffff;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+
+        .send-btn:active {
+            transform: scale(0.95);
+            background: #5a67d8;
+        }
+
+        .send-btn:disabled {
+            background: #cbd5e0;
+            cursor: not-allowed;
+        }
+
+        /* AI Assistant Button */
+        .ai-assist-btn {
+            position: absolute;
+            bottom: 30px;
+            right: 20px;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            border: none;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #ffffff;
+            font-size: 18px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+            z-index: 100;
+        }
+
+        .ai-assist-btn:active {
+            transform: scale(0.95);
+        }
+
+        .ai-assist-btn.loading {
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        /* Modal Overlay */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            animation: fadeIn 0.2s;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        /* Modal Panel */
+        .modal-panel {
+            background: #ffffff;
+            border-radius: 20px 20px 0 0;
+            width: 100%;
+            max-height: 80%;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            animation: slideUp 0.3s;
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
+        }
+
+        .modal-header {
+            padding: 20px;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #2d3748;
+        }
+
+        .modal-close {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: none;
+            background: #f7fafc;
+            color: #4a5568;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .modal-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        /* Settings */
+        .setting-section {
+            margin-bottom: 32px;
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        body.dark-mode .section-title {
+            color: #f7fafc;
+            border-bottom-color: #4a5568;
+        }
+
+        .setting-group {
+            margin-bottom: 24px;
+        }
+
+        .setting-label {
+            font-size: 14px;
+            font-weight: 500;
+            color: #4a5568;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .setting-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px;
+            background: #f7fafc;
+            border-radius: 8px;
+        }
+
+        .setting-value {
+            font-size: 16px;
+            font-weight: 600;
+            color: #2d3748;
+            min-width: 60px;
+            text-align: center;
+            padding: 4px 8px;
+            border: 1px solid transparent;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .setting-value:hover {
+            border-color: #e2e8f0;
+            background: #ffffff;
+        }
+
+        body.dark-mode .setting-value:hover {
+            border-color: #4a5568;
+            background: #1a202c;
+        }
+
+        .setting-value-input {
+            width: 60px;
+            text-align: center;
+            font-size: 16px;
+            font-weight: 600;
+            padding: 4px 8px;
+            border: 2px solid #667eea;
+            border-radius: 6px;
+            background: #ffffff;
+            color: #2d3748;
+            outline: none;
+        }
+
+        body.dark-mode .setting-value-input {
+            background: #1a202c;
+            color: #f7fafc;
+            border-color: #667eea;
+        }
+
+        .setting-controls {
+            display: flex;
+            gap: 8px;
+        }
+
+        .arrow-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            border: none;
+            background: #ffffff;
+            color: #667eea;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+
+        .arrow-btn:active {
+            background: #edf2f7;
+            transform: scale(0.95);
+        }
+
+        .arrow-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .setting-description {
+            font-size: 12px;
+            color: #718096;
+            margin-top: 4px;
+        }
+
+        .model-select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 15px;
+            font-family: inherit;
+            background: #ffffff;
+            color: #2d3748;
+        }
+
+        .system-prompt-input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            background: #ffffff;
+            color: #2d3748;
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .system-prompt-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .expandable-section {
+            margin-bottom: 16px;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        body.dark-mode .expandable-section {
+            border-color: #4a5568;
+        }
+
+        .expandable-header {
+            padding: 16px;
+            background: #f7fafc;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            user-select: none;
+            transition: background 0.2s;
+        }
+
+        body.dark-mode .expandable-header {
+            background: #1a202c;
+        }
+
+        .expandable-header:active {
+            background: #edf2f7;
+        }
+
+        body.dark-mode .expandable-header:active {
+            background: #4a5568;
+        }
+
+        .expandable-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #2d3748;
+        }
+
+        body.dark-mode .expandable-title {
+            color: #f7fafc;
+        }
+
+        .expandable-icon {
+            font-size: 20px;
+            transition: transform 0.3s;
+            color: #718096;
+        }
+
+        .expandable-section.expanded .expandable-icon {
+            transform: rotate(180deg);
+        }
+
+        .expandable-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+        }
+
+        .expandable-section.expanded .expandable-content {
+            max-height: 2000px;
+        }
+
+        .expandable-body {
+            padding: 16px;
+            background: #ffffff;
+        }
+
+        body.dark-mode .expandable-body {
+            background: #2d3748;
+        }
+
+        /* Documents List */
+        .documents-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .document-item {
+            padding: 16px;
+            background: #f7fafc;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .document-item:active {
+            background: #edf2f7;
+            transform: scale(0.98);
+        }
+
+        .document-info {
+            flex: 1;
+        }
+
+        .document-title {
+            font-size: 16px;
+            font-weight: 500;
+            color: #2d3748;
+            margin-bottom: 4px;
+        }
+
+        .document-meta {
+            font-size: 13px;
+            color: #718096;
+        }
+
+        .document-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .delete-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            border: none;
+            background: #fed7d7;
+            color: #c53030;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #a0aec0;
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+        }
+
+        .empty-state-text {
+            font-size: 15px;
+        }
+
+        /* Loading Indicator */
+        .loading-indicator {
+            display: none;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: #f7fafc;
+            border-radius: 20px;
+            font-size: 14px;
+            color: #4a5568;
+        }
+
+        .loading-indicator.active {
+            display: flex;
+        }
+
+        .spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid #e2e8f0;
+            border-top-color: #667eea;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Toast Notification */
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: #2d3748;
+            color: #ffffff;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            z-index: 2000;
+            opacity: 0;
+            transition: all 0.3s;
+        }
+
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+    </style>
+  <style>@view-transition { navigation: auto; }</style>
+  <script src="https://cdn.tailwindcss.com" type="text/javascript"></script>
+ </head>
+ <body>
+  <div class="app-container"><!-- Header -->
+   <div class="header">
+    <div class="header-title" id="appTitle">
+     AI Pages
+    </div>
+    <div class="header-actions"><button onclick="document.getElementById('content').requestFullscreen();" class="icon-btn" title="Full-screen">💥</button><button class="icon-btn" id="darkModeBtn" title="Toggle Dark Mode">🌙</button> <button class="icon-btn" id="newDocBtn" title="New Document">📄</button> <button class="icon-btn" id="saveDocBtn" title="Save Document">💾</button> <button class="icon-btn" id="docsBtn" title="My Documents">📚</button> <button class="icon-btn" id="settingsBtn" title="Settings">⚙️</button>
+    </div>
+   </div><!-- Tab Bar -->
+   <div class="tab-bar"><button class="tab active" data-view="editor">✍️ Editor</button> <button class="tab" data-view="chat">💬 Chat</button>
+   </div><!-- Main Content -->
+   <div class="content" id="content" ><!-- Editor View -->
+    <div class="view active" id="editorView">
+     <div class="editor-container">
+      <div class="title-bar"><input type="text" class="title-input" id="titleInput" placeholder="Untitled Document"> <button class="generate-title-btn" id="generateTitleBtn" title="Generate Title with AI">✨ Title</button>
+      </div>
+      <div id="editor"></div>
+     </div><button class="ai-assist-btn" id="aiAssistBtn" title="AI Continue Writing">✨</button>
+    </div><!-- Chat View -->
+    <div class="view" id="chatView">
+     <div class="chat-container">
+      <div class="chat-messages" id="chatMessages"></div>
+      <div class="reset-chat-area"><button class="icon-btn" id="resetChatBtn" title="Reset Chat" style="width: auto; padding: 8px 16px; font-size: 14px;">🔄 Reset Chat</button>
+      </div>
+      <div class="input-area">
+       <div class="input-wrapper"><textarea class="chat-input" id="chatInput" placeholder="Ask AI anything..." rows="1"></textarea>
+       </div><button class="send-btn" id="sendBtn">➤</button>
+      </div>
+     </div>
+    </div>
+   </div>
+  </div><!-- Settings Modal -->
+  <div class="modal-overlay" id="settingsModal">
+   <div class="modal-panel">
+    <div class="modal-header">
+     <div class="modal-title">
+      ⚙️ Settings
+     </div><button class="modal-close" id="closeSettingsBtn">×</button>
+    </div>
+    <div class="modal-body">
+     <div class="tab-bar" style="border-bottom: none; margin-bottom: 20px;"><button class="tab active" data-settings="chat">Chat AI</button> <button class="tab" data-settings="assistant">Assistant AI</button>
+     </div><!-- Chat Settings -->
+     <div class="settings-view active" id="chatSettings"><!-- System Prompt Section -->
+      <div class="expandable-section">
+       <div class="expandable-header" data-section="chatPrompt">
+        <div class="expandable-title">
+         💬 System Prompt
+        </div>
+        <div class="expandable-icon">
+         ▼
+        </div>
+       </div>
+       <div class="expandable-content">
+        <div class="expandable-body"><textarea class="system-prompt-input" id="chatSystemPrompt" placeholder="Enter system prompt for chat AI..."></textarea>
+        </div>
+       </div>
+      </div><!-- Model Settings Section -->
+      <div class="setting-section">
+       <div class="section-title">
+        🤖 Model Settings
+       </div>
+       <div class="setting-group"><label class="setting-label">Model</label> <select class="model-select" id="chatModel"> <option value="@cf/meta/llama-3.1-70b-instruct">Llama 3.1 70B</option> <option value="@cf/meta/llama-3.1-8b-instruct">Llama 3.1 8B</option> <option value="@cf/meta/llama-2-7b-chat-int8">Llama 2 7B</option> <option value="@cf/mistral/mistral-7b-instruct-v0.1">Mistral 7B</option> </select>
+       </div>
+       <div class="setting-group"><label class="setting-label">Temperature</label>
+        <div class="setting-row">
+         <div class="setting-controls"><button class="arrow-btn" data-action="decrease" data-setting="chatTemp">−</button>
+         </div>
+         <div class="setting-value" id="chatTempValue">
+          0.7
+         </div>
+         <div class="setting-controls"><button class="arrow-btn" data-action="increase" data-setting="chatTemp">+</button>
+         </div>
+        </div>
+        <div class="setting-description">
+         Controls randomness (0.0 - 2.0)
+        </div>
+       </div>
+       <div class="setting-group"><label class="setting-label">Max Tokens</label>
+        <div class="setting-row">
+         <div class="setting-controls"><button class="arrow-btn" data-action="decrease" data-setting="chatTokens">−</button>
+         </div>
+         <div class="setting-value" id="chatTokensValue">
+          512
+         </div>
+         <div class="setting-controls"><button class="arrow-btn" data-action="increase" data-setting="chatTokens">+</button>
+         </div>
+        </div>
+        <div class="setting-description">
+         Maximum response length (10 - 2048)
+        </div>
+       </div>
+       <div class="setting-group"><label class="setting-label">Max Context Length</label>
+        <div class="setting-row">
+         <div class="setting-controls"><button class="arrow-btn" data-action="decrease" data-setting="chatContext">−</button>
+         </div>
+         <div class="setting-value" id="chatContextValue">
+          2000
+         </div>
+         <div class="setting-controls"><button class="arrow-btn" data-action="increase" data-setting="chatContext">+</button>
+         </div>
+        </div>
+        <div class="setting-description">
+         Max characters from document (0 - 8000)
+        </div>
+       </div>
+      </div><!-- Advanced Settings Section -->
+      <div class="expandable-section">
+       <div class="expandable-header" data-section="chatAdvanced">
+        <div class="expandable-title">
+         ⚡ Advanced Settings
+        </div>
+        <div class="expandable-icon">
+         ▼
+        </div>
+       </div>
+       <div class="expandable-content">
+        <div class="expandable-body">
+         <div class="setting-group"><label class="setting-label">Top P (Nucleus Sampling)</label>
+          <div class="setting-row">
+           <div class="setting-controls"><button class="arrow-btn" data-action="decrease" data-setting="chatTopP">−</button>
+           </div>
+           <div class="setting-value" id="chatTopPValue">
+            0.9
+           </div>
+           <div class="setting-controls"><button class="arrow-btn" data-action="increase" data-setting="chatTopP">+</button>
+           </div>
+          </div>
+          <div class="setting-description">
+           Cumulative probability cutoff (0.0 - 1.0)
+          </div>
+         </div>
+         <div class="setting-group"><label class="setting-label">Top K</label>
+          <div class="setting-row">
+           <div class="setting-controls"><button class="arrow-btn" data-action="decrease" data-setting="chatTopK">−</button>
+           </div>
+           <div class="setting-value" id="chatTopKValue">
+            50
+           </div>
+           <div class="setting-controls"><button class="arrow-btn" data-action="increase" data-setting="chatTopK">+</button>
+           </div>
+          </div>
+          <div class="setting-description">
+           Number of top tokens to consider (1 - 100)
+          </div>
+         </div>
+         <div class="setting-group"><label class="setting-label">Frequency Penalty</label>
+          <div class="setting-row">
+           <div class="setting-controls"><button class="arrow-btn" data-action="decrease" data-setting="chatFreqPenalty">−</button>
+           </div>
+           <div class="setting-value" id="chatFreqPenaltyValue">
+            0.0
+           </div>
+           <div class="setting-controls"><button class="arrow-btn" data-action="increase" data-setting="chatFreqPenalty">+</button>
+           </div>
+          </div>
+          <div class="setting-description">
+           Reduces repetition (0.0 - 2.0)
+          </div>
+         </div>
+         <div class="setting-group"><label class="setting-label">Presence Penalty</label>
+          <div class="setting-row">
+           <div class="setting-controls"><button class="arrow-btn" data-action="decrease" data-setting="chatPresPenalty">−</button>
+           </div>
+           <div class="setting-value" id="chatPresPenaltyValue">
+            0.0
+           </div>
+           <div class="setting-controls"><button class="arrow-btn" data-action="increase" data-setting="chatPresPenalty">+</button>
+           </div>
+          </div>
+          <div class="setting-description">
+           Encourages new topics (0.0 - 2.0)
+          </div>
+         </div>
+         <div class="setting-group"><label class="setting-label">Repetition Penalty</label>
+          <div class="setting-row">
+           <div class="setting-controls"><button class="arrow-btn" data-action="decrease" data-setting="chatRepPenalty">−</button>
+           </div>
+           <div class="setting-value" id="chatRepPenaltyValue">
+            1.0
+           </div>
+           <div class="setting-controls"><button class="arrow-btn" data-action="increase" data-setting="chatRepPenalty">+</button>
+           </div>
+          </div>
+          <div class="setting-description">
+           Penalizes repeated tokens (1.0 - 2.0)
+          </div>
+         </div>
+        </div>
+       </div>
+      </div>
+     </div><!-- Assistant Settings -->
+     <div class="settings-view" id="assistantSettings" style="display: none;"><!-- System Prompt Section -->
+      <div class="expandable-section">
+       <div class="expandable-header" data-section="assistantPrompt">
+        <div class="expandable-title">
+         ✨ System Prompt
+        </div>
+        <div class="expandable-icon">
+         ▼
+        </div>
+       </div>
+       <div class="expandable-content">
+        <div class="expandable-body"><textarea class="system-prompt-input" id="assistantSystemPrompt" placeholder="Enter system prompt for writing assistant..."></textarea>
+        </div>
+       </div>
+      </div><!-- Model Settings Section -->
+      <div class="setting-section">
+       <div class="section-title">
+        🤖 Model Settings
+       </div>
+       <div class="setting-group"><label class="setting-label">Model</label> <select class="model-select" id="assistantModel"> <option value="@cf/meta/llama-3.1-70b-instruct">Llama 3.1 70B</option> <option value="@cf/meta/llama-3.1-8b-instruct">Llama 3.1 8B</option> <option value="@cf/meta/llama-2-7b-chat-int8">Llama 2 7B</option> </select>
+       </div>
+       <div class="setting-group"><label class="setting-label">Temperature</label>
+        <div class="setting-row">
+         <div class="setting-controls"><button class="arrow-btn" data-action="decrease" data-setting="assistantTemp">−</button>
+         </div>
+         <div class="setting-value" id="assistantTempValue">
+          0.8
+         </div>
+         <div class="setting-controls"><button class="arrow-btn" data-action="increase" data-setting="assistantTemp">+</button>
+         </div>
+        </div>
+        <div class="setting-description">
+         Controls creativity (0.0 - 2.0)
+        </div>
+       </div>
+       <div class="setting-group"><label class="setting-label">Max Tokens</label>
+        <div class="setting-row">
+         <div class="setting-controls"><button class="arrow-btn" data-action="decrease" data-setting="assistantTokens">−</button>
+         </div>
+         <div class="setting-value" id="assistantTokensValue">
+          256
+         </div>
+         <div class="setting-controls"><button class="arrow-btn" data-action="increase" data-setting="assistantTokens">+</button>
+         </div>
+        </div>
+        <div class="setting-description">
+         Length of continuation (10 - 1024)
+        </div>
+       </div>
+       <div class="setting-group"><label class="setting-label">Max Context Length</label>
+        <div class="setting-row">
+         <div class="setting-controls"><button class="arrow-btn" data-action="decrease" data-setting="assistantContext">−</button>
+         </div>
+         <div class="setting-value" id="assistantContextValue">
+          2000
+         </div>
+         <div class="setting-controls"><button class="arrow-btn" data-action="increase" data-setting="assistantContext">+</button>
+         </div>
+        </div>
+        <div class="setting-description">
+         Max characters from document (0 - 8000)
+        </div>
+       </div>
+      </div><!-- Advanced Settings Section -->
+      <div class="expandable-section">
+       <div class="expandable-header" data-section="assistantAdvanced">
+        <div class="expandable-title">
+         ⚡ Advanced Settings
+        </div>
+        <div class="expandable-icon">
+         ▼
+        </div>
+       </div>
+       <div class="expandable-content">
+        <div class="expandable-body">
+         <div class="setting-group"><label class="setting-label">Top P (Nucleus Sampling)</label>
+          <div class="setting-row">
+           <div class="setting-controls"><button class="arrow-btn" data-action="decrease" data-setting="assistantTopP">−</button>
+           </div>
+           <div class="setting-value" id="assistantTopPValue">
+            0.9
+           </div>
+           <div class="setting-controls"><button class="arrow-btn" data-action="increase" data-setting="assistantTopP">+</button>
+           </div>
+          </div>
+          <div class="setting-description">
+           Cumulative probability cutoff (0.0 - 1.0)
+          </div>
+         </div>
+         <div class="setting-group"><label class="setting-label">Top K</label>
+          <div class="setting-row">
+           <div class="setting-controls"><button class="arrow-btn" data-action="decrease" data-setting="assistantTopK">−</button>
+           </div>
+           <div class="setting-value" id="assistantTopKValue">
+            50
+           </div>
+           <div class="setting-controls"><button class="arrow-btn" data-action="increase" data-setting="assistantTopK">+</button>
+           </div>
+          </div>
+          <div class="setting-description">
+           Number of top tokens to consider (1 - 100)
+          </div>
+         </div>
+         <div class="setting-group"><label class="setting-label">Frequency Penalty</label>
+          <div class="setting-row">
+           <div class="setting-controls"><button class="arrow-btn" data-action="decrease" data-setting="assistantFreqPenalty">−</button>
+           </div>
+           <div class="setting-value" id="assistantFreqPenaltyValue">
+            0.0
+           </div>
+           <div class="setting-controls"><button class="arrow-btn" data-action="increase" data-setting="assistantFreqPenalty">+</button>
+           </div>
+          </div>
+          <div class="setting-description">
+           Reduces repetition (0.0 - 2.0)
+          </div>
+         </div>
+         <div class="setting-group"><label class="setting-label">Presence Penalty</label>
+          <div class="setting-row">
+           <div class="setting-controls"><button class="arrow-btn" data-action="decrease" data-setting="assistantPresPenalty">−</button>
+           </div>
+           <div class="setting-value" id="assistantPresPenaltyValue">
+            0.0
+           </div>
+           <div class="setting-controls"><button class="arrow-btn" data-action="increase" data-setting="assistantPresPenalty">+</button>
+           </div>
+          </div>
+          <div class="setting-description">
+           Encourages new topics (0.0 - 2.0)
+          </div>
+         </div>
+         <div class="setting-group"><label class="setting-label">Repetition Penalty</label>
+          <div class="setting-row">
+           <div class="setting-controls"><button class="arrow-btn" data-action="decrease" data-setting="assistantRepPenalty">−</button>
+           </div>
+           <div class="setting-value" id="assistantRepPenaltyValue">
+            1.0
+           </div>
+           <div class="setting-controls"><button class="arrow-btn" data-action="increase" data-setting="assistantRepPenalty">+</button>
+           </div>
+          </div>
+          <div class="setting-description">
+           Penalizes repeated tokens (1.0 - 2.0)
+          </div>
+         </div>
+        </div>
+       </div>
+      </div>
+     </div>
+    </div>
+   </div>
+  </div><!-- Documents Modal -->
+  <div class="modal-overlay" id="docsModal">
+   <div class="modal-panel">
+    <div class="modal-header">
+     <div class="modal-title">
+      📚 My Documents
+     </div><button class="modal-close" id="closeDocsBtn">×</button>
+    </div>
+    <div class="modal-body">
+     <div class="documents-list" id="documentsList"></div>
+    </div>
+   </div>
+  </div><!-- Toast Notification -->
+  <div class="toast" id="toast"></div>
+  <script>
+        // Initialize Quill Editor
+        const quill = new Quill('#editor', {
+            theme: 'snow',
+            placeholder: 'Start writing or tap ✨ for AI assistance...',
+            modules: {
+                toolbar: [
+                    [{ 'font': [] }],
+                    [{ 'size': ['small', false, 'large', 'huge'] }],
+                    ['bold', 'italic', 'underline', 'strike'],
+                    [{ 'color': [] }, { 'background': [] }],
+                    [{ 'script': 'sub'}, { 'script': 'super' }],
+                    [{ 'header': 1 }, { 'header': 2 }],
+                    ['blockquote', 'code-block'],
+                    [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                    [{ 'indent': '-1'}, { 'indent': '+1' }],
+                    [{ 'align': [] }],
+                    ['link'],
+                    ['clean']
+                ]
+            }
+        });
+
+        // Default Config
+        const defaultConfig = {
+            app_title: 'AI Pages',
+            welcome_message: 'Start writing or chat with AI...',
+            chat_temp: 0.7,
+            chat_tokens: 512,
+            chat_context: 2000,
+            chat_model: '@cf/meta/llama-3.1-70b-instruct',
+            chat_system_prompt: 'You are a creative and insightful AI writing assistant. Provide clear, concise, and constructive feedback on stories and ideas. Help identify plot holes, strengthen character motivations, refine pacing, and enhance worldbuilding. Offer thoughtful suggestions and creative solutions while maintaining the writer’s original vision and tone.',
+            chat_top_p: 0.9,
+            chat_top_k: 50,
+            chat_freq_penalty: 0.0,
+            chat_pres_penalty: 0.0,
+            chat_rep_penalty: 1.0,
+            assistant_temp: 0.8,
+            assistant_tokens: 32,
+            assistant_context: 2000,
+            assistant_model: '@cf/meta/llama-3.1-70b-instruct',
+            assistant_system_prompt: 'You are a skilled creative writing assistant. Continue the text naturally and seamlessly, maintaining the same style, tone, and perspective. Move the story forward with purposeful action, dialogue, or emotional development. Avoid repeating or lingering on existing details. Provide only the continuation, with no explanations or commentary.',
+            assistant_top_p: 0.9,
+            assistant_top_k: 50,
+            assistant_freq_penalty: 0.0,
+            assistant_pres_penalty: 0.0,
+            assistant_rep_penalty: 1.0,
+            dark_mode: true
+        };
+
+        // State Management
+        let currentDocId = null;
+        let chatHistory = [];
+
+        // Load settings from localStorage
+        function loadSettings() {
+            const saved = localStorage.getItem('aiWriterSettings');
+            return saved ? { ...defaultConfig, ...JSON.parse(saved) } : { ...defaultConfig };
+        }
+
+        function saveSettings(settings) {
+            localStorage.setItem('aiWriterSettings', JSON.stringify(settings));
+        }
+
+        let settings = loadSettings();
+
+        // Initialize UI with config
+        function updateUI() {
+            document.getElementById('appTitle').textContent = settings.app_title || defaultConfig.app_title;
+            
+            // Chat settings
+            document.getElementById('chatTempValue').textContent = settings.chat_temp.toFixed(1);
+            document.getElementById('chatTokensValue').textContent = settings.chat_tokens;
+            document.getElementById('chatContextValue').textContent = settings.chat_context;
+            document.getElementById('chatModel').value = settings.chat_model;
+            document.getElementById('chatSystemPrompt').value = settings.chat_system_prompt || defaultConfig.chat_system_prompt;
+            document.getElementById('chatTopPValue').textContent = settings.chat_top_p.toFixed(1);
+            document.getElementById('chatTopKValue').textContent = settings.chat_top_k;
+            document.getElementById('chatFreqPenaltyValue').textContent = settings.chat_freq_penalty.toFixed(1);
+            document.getElementById('chatPresPenaltyValue').textContent = settings.chat_pres_penalty.toFixed(1);
+            document.getElementById('chatRepPenaltyValue').textContent = settings.chat_rep_penalty.toFixed(1);
+            
+            // Assistant settings
+            document.getElementById('assistantTempValue').textContent = settings.assistant_temp.toFixed(1);
+            document.getElementById('assistantTokensValue').textContent = settings.assistant_tokens;
+            document.getElementById('assistantContextValue').textContent = settings.assistant_context;
+            document.getElementById('assistantModel').value = settings.assistant_model;
+            document.getElementById('assistantSystemPrompt').value = settings.assistant_system_prompt || defaultConfig.assistant_system_prompt;
+            document.getElementById('assistantTopPValue').textContent = settings.assistant_top_p.toFixed(1);
+            document.getElementById('assistantTopKValue').textContent = settings.assistant_top_k;
+            document.getElementById('assistantFreqPenaltyValue').textContent = settings.assistant_freq_penalty.toFixed(1);
+            document.getElementById('assistantPresPenaltyValue').textContent = settings.assistant_pres_penalty.toFixed(1);
+            document.getElementById('assistantRepPenaltyValue').textContent = settings.assistant_rep_penalty.toFixed(1);
+            
+            // Apply dark mode
+            if (settings.dark_mode) {
+                document.body.classList.add('dark-mode');
+                document.getElementById('darkModeBtn').textContent = '☀️';
+            } else {
+                document.body.classList.remove('dark-mode');
+                document.getElementById('darkModeBtn').textContent = '🌙';
+            }
+        }
+
+        // Toast notification
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 2000);
+        }
+
+        // Tab switching
+        document.querySelectorAll('.tab[data-view]').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.tab[data-view]').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById(tab.dataset.view + 'View').classList.add('active');
+            });
+        });
+
+        // Settings tab switching
+        document.querySelectorAll('.tab[data-settings]').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.tab[data-settings]').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.settings-view').forEach(v => v.style.display = 'none');
+                tab.classList.add('active');
+                document.getElementById(tab.dataset.settings + 'Settings').style.display = 'block';
+            });
+        });
+
+        // Dark mode toggle
+        document.getElementById('darkModeBtn').addEventListener('click', () => {
+            settings.dark_mode = !settings.dark_mode;
+            saveSettings(settings);
+            updateUI();
+            showToast(settings.dark_mode ? 'Dark mode enabled' : 'Light mode enabled');
+        });
+
+        // Modal controls
+        document.getElementById('settingsBtn').addEventListener('click', () => {
+            document.getElementById('settingsModal').classList.add('active');
+        });
+
+        document.getElementById('closeSettingsBtn').addEventListener('click', () => {
+            document.getElementById('settingsModal').classList.remove('active');
+        });
+
+        document.getElementById('docsBtn').addEventListener('click', () => {
+            loadDocumentsList();
+            document.getElementById('docsModal').classList.add('active');
+        });
+
+        document.getElementById('closeDocsBtn').addEventListener('click', () => {
+            document.getElementById('docsModal').classList.remove('active');
+        });
+
+        // Close modals on overlay click
+        document.querySelectorAll('.modal-overlay').forEach(overlay => {
+            overlay.addEventListener('click', (e) => {
+                if (e.target === overlay) {
+                    overlay.classList.remove('active');
+                }
+            });
+        });
+
+        // Helper function to make value editable
+        function makeValueEditable(valueElement, settingKey, min, max, step, isInteger = false) {
+            const currentValue = valueElement.textContent;
+            const input = document.createElement('input');
+            input.type = 'number';
+            input.className = 'setting-value-input';
+            input.value = parseFloat(currentValue);
+            input.min = min;
+            input.max = max;
+            input.step = step;
+            
+            valueElement.replaceWith(input);
+            input.focus();
+            input.select();
+            
+            function saveValue() {
+                let newValue = parseFloat(input.value);
+                
+                // Validate and clamp
+                if (isNaN(newValue)) {
+                    newValue = parseFloat(currentValue);
+                } else {
+                    newValue = Math.max(min, Math.min(max, newValue));
+                }
+                
+                if (isInteger) {
+                    newValue = Math.round(newValue);
+                }
+                
+                // Update settings
+                if (settingKey === 'chatTemp') settings.chat_temp = newValue;
+                else if (settingKey === 'chatTokens') settings.chat_tokens = newValue;
+                else if (settingKey === 'chatContext') settings.chat_context = newValue;
+                else if (settingKey === 'chatTopP') settings.chat_top_p = newValue;
+                else if (settingKey === 'chatTopK') settings.chat_top_k = newValue;
+                else if (settingKey === 'chatFreqPenalty') settings.chat_freq_penalty = newValue;
+                else if (settingKey === 'chatPresPenalty') settings.chat_pres_penalty = newValue;
+                else if (settingKey === 'chatRepPenalty') settings.chat_rep_penalty = newValue;
+                else if (settingKey === 'assistantTemp') settings.assistant_temp = newValue;
+                else if (settingKey === 'assistantTokens') settings.assistant_tokens = newValue;
+                else if (settingKey === 'assistantContext') settings.assistant_context = newValue;
+                else if (settingKey === 'assistantTopP') settings.assistant_top_p = newValue;
+                else if (settingKey === 'assistantTopK') settings.assistant_top_k = newValue;
+                else if (settingKey === 'assistantFreqPenalty') settings.assistant_freq_penalty = newValue;
+                else if (settingKey === 'assistantPresPenalty') settings.assistant_pres_penalty = newValue;
+                else if (settingKey === 'assistantRepPenalty') settings.assistant_rep_penalty = newValue;
+                
+                saveSettings(settings);
+                
+                // Restore display
+                const newValueElement = document.createElement('div');
+                newValueElement.className = 'setting-value';
+                newValueElement.id = valueElement.id || input.id;
+                newValueElement.textContent = isInteger ? newValue : newValue.toFixed(1);
+                input.replaceWith(newValueElement);
+                
+                // Re-attach click listener
+                attachValueClickListener(newValueElement, settingKey, min, max, step, isInteger);
+            }
+            
+            input.addEventListener('blur', saveValue);
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    saveValue();
+                } else if (e.key === 'Escape') {
+                    const newValueElement = document.createElement('div');
+                    newValueElement.className = 'setting-value';
+                    newValueElement.id = valueElement.id || input.id;
+                    newValueElement.textContent = currentValue;
+                    input.replaceWith(newValueElement);
+                    attachValueClickListener(newValueElement, settingKey, min, max, step, isInteger);
+                }
+            });
+        }
+        
+        // Attach click listener to value elements
+        function attachValueClickListener(element, settingKey, min, max, step, isInteger) {
+            element.addEventListener('click', () => {
+                makeValueEditable(element, settingKey, min, max, step, isInteger);
+            });
+        }
+        
+        // Initialize click-to-edit for all setting values
+        function initializeEditableValues() {
+            attachValueClickListener(document.getElementById('chatTempValue'), 'chatTemp', 0.0, 2.0, 0.1, false);
+            attachValueClickListener(document.getElementById('chatTokensValue'), 'chatTokens', 10, 2048, 1, true);
+            attachValueClickListener(document.getElementById('chatContextValue'), 'chatContext', 0, 8000, 1, true);
+            attachValueClickListener(document.getElementById('chatTopPValue'), 'chatTopP', 0.0, 1.0, 0.05, false);
+            attachValueClickListener(document.getElementById('chatTopKValue'), 'chatTopK', 1, 100, 1, true);
+            attachValueClickListener(document.getElementById('chatFreqPenaltyValue'), 'chatFreqPenalty', 0.0, 2.0, 0.1, false);
+            attachValueClickListener(document.getElementById('chatPresPenaltyValue'), 'chatPresPenalty', 0.0, 2.0, 0.1, false);
+            attachValueClickListener(document.getElementById('chatRepPenaltyValue'), 'chatRepPenalty', 1.0, 2.0, 0.1, false);
+            
+            attachValueClickListener(document.getElementById('assistantTempValue'), 'assistantTemp', 0.0, 2.0, 0.1, false);
+            attachValueClickListener(document.getElementById('assistantTokensValue'), 'assistantTokens', 10, 1024, 1, true);
+            attachValueClickListener(document.getElementById('assistantContextValue'), 'assistantContext', 0, 8000, 1, true);
+            attachValueClickListener(document.getElementById('assistantTopPValue'), 'assistantTopP', 0.0, 1.0, 0.05, false);
+            attachValueClickListener(document.getElementById('assistantTopKValue'), 'assistantTopK', 1, 100, 1, true);
+            attachValueClickListener(document.getElementById('assistantFreqPenaltyValue'), 'assistantFreqPenalty', 0.0, 2.0, 0.1, false);
+            attachValueClickListener(document.getElementById('assistantPresPenaltyValue'), 'assistantPresPenalty', 0.0, 2.0, 0.1, false);
+            attachValueClickListener(document.getElementById('assistantRepPenaltyValue'), 'assistantRepPenalty', 1.0, 2.0, 0.1, false);
+        }
+
+        // Arrow button controls
+        document.querySelectorAll('.arrow-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const action = btn.dataset.action;
+                const setting = btn.dataset.setting;
+                
+                // Chat settings
+                if (setting === 'chatTemp') {
+                    settings.chat_temp = action === 'increase' 
+                        ? Math.min(2.0, settings.chat_temp + 0.1)
+                        : Math.max(0.0, settings.chat_temp - 0.1);
+                    document.getElementById('chatTempValue').textContent = settings.chat_temp.toFixed(1);
+                } else if (setting === 'chatTokens') {
+                    settings.chat_tokens = action === 'increase'
+                        ? Math.min(2048, settings.chat_tokens + 64)
+                        : Math.max(10, settings.chat_tokens - 64);
+                    document.getElementById('chatTokensValue').textContent = settings.chat_tokens;
+                } else if (setting === 'chatContext') {
+                    settings.chat_context = action === 'increase'
+                        ? Math.min(8000, settings.chat_context + 500)
+                        : Math.max(0, settings.chat_context - 500);
+                    document.getElementById('chatContextValue').textContent = settings.chat_context;
+                } else if (setting === 'chatTopP') {
+                    settings.chat_top_p = action === 'increase'
+                        ? Math.min(1.0, settings.chat_top_p + 0.05)
+                        : Math.max(0.0, settings.chat_top_p - 0.05);
+                    document.getElementById('chatTopPValue').textContent = settings.chat_top_p.toFixed(1);
+                } else if (setting === 'chatTopK') {
+                    settings.chat_top_k = action === 'increase'
+                        ? Math.min(100, settings.chat_top_k + 5)
+                        : Math.max(1, settings.chat_top_k - 5);
+                    document.getElementById('chatTopKValue').textContent = settings.chat_top_k;
+                } else if (setting === 'chatFreqPenalty') {
+                    settings.chat_freq_penalty = action === 'increase'
+                        ? Math.min(2.0, settings.chat_freq_penalty + 0.1)
+                        : Math.max(0.0, settings.chat_freq_penalty - 0.1);
+                    document.getElementById('chatFreqPenaltyValue').textContent = settings.chat_freq_penalty.toFixed(1);
+                } else if (setting === 'chatPresPenalty') {
+                    settings.chat_pres_penalty = action === 'increase'
+                        ? Math.min(2.0, settings.chat_pres_penalty + 0.1)
+                        : Math.max(0.0, settings.chat_pres_penalty - 0.1);
+                    document.getElementById('chatPresPenaltyValue').textContent = settings.chat_pres_penalty.toFixed(1);
+                } else if (setting === 'chatRepPenalty') {
+                    settings.chat_rep_penalty = action === 'increase'
+                        ? Math.min(2.0, settings.chat_rep_penalty + 0.1)
+                        : Math.max(1.0, settings.chat_rep_penalty - 0.1);
+                    document.getElementById('chatRepPenaltyValue').textContent = settings.chat_rep_penalty.toFixed(1);
+                }
+                
+                // Assistant settings
+                else if (setting === 'assistantTemp') {
+                    settings.assistant_temp = action === 'increase'
+                        ? Math.min(2.0, settings.assistant_temp + 0.1)
+                        : Math.max(0.0, settings.assistant_temp - 0.1);
+                    document.getElementById('assistantTempValue').textContent = settings.assistant_temp.toFixed(1);
+                } else if (setting === 'assistantTokens') {
+                    settings.assistant_tokens = action === 'increase'
+                        ? Math.min(1024, settings.assistant_tokens + 32)
+                        : Math.max(10, settings.assistant_tokens - 32);
+                    document.getElementById('assistantTokensValue').textContent = settings.assistant_tokens;
+                } else if (setting === 'assistantContext') {
+                    settings.assistant_context = action === 'increase'
+                        ? Math.min(8000, settings.assistant_context + 500)
+                        : Math.max(0, settings.assistant_context - 500);
+                    document.getElementById('assistantContextValue').textContent = settings.assistant_context;
+                } else if (setting === 'assistantTopP') {
+                    settings.assistant_top_p = action === 'increase'
+                        ? Math.min(1.0, settings.assistant_top_p + 0.05)
+                        : Math.max(0.0, settings.assistant_top_p - 0.05);
+                    document.getElementById('assistantTopPValue').textContent = settings.assistant_top_p.toFixed(1);
+                } else if (setting === 'assistantTopK') {
+                    settings.assistant_top_k = action === 'increase'
+                        ? Math.min(100, settings.assistant_top_k + 5)
+                        : Math.max(1, settings.assistant_top_k - 5);
+                    document.getElementById('assistantTopKValue').textContent = settings.assistant_top_k;
+                } else if (setting === 'assistantFreqPenalty') {
+                    settings.assistant_freq_penalty = action === 'increase'
+                        ? Math.min(2.0, settings.assistant_freq_penalty + 0.1)
+                        : Math.max(0.0, settings.assistant_freq_penalty - 0.1);
+                    document.getElementById('assistantFreqPenaltyValue').textContent = settings.assistant_freq_penalty.toFixed(1);
+                } else if (setting === 'assistantPresPenalty') {
+                    settings.assistant_pres_penalty = action === 'increase'
+                        ? Math.min(2.0, settings.assistant_pres_penalty + 0.1)
+                        : Math.max(0.0, settings.assistant_pres_penalty - 0.1);
+                    document.getElementById('assistantPresPenaltyValue').textContent = settings.assistant_pres_penalty.toFixed(1);
+                } else if (setting === 'assistantRepPenalty') {
+                    settings.assistant_rep_penalty = action === 'increase'
+                        ? Math.min(2.0, settings.assistant_rep_penalty + 0.1)
+                        : Math.max(1.0, settings.assistant_rep_penalty - 0.1);
+                    document.getElementById('assistantRepPenaltyValue').textContent = settings.assistant_rep_penalty.toFixed(1);
+                }
+                
+                saveSettings(settings);
+            });
+        });
+
+        // Expandable sections
+        document.querySelectorAll('.expandable-header').forEach(header => {
+            header.addEventListener('click', () => {
+                const section = header.closest('.expandable-section');
+                section.classList.toggle('expanded');
+            });
+        });
+
+        // Model selection
+        document.getElementById('chatModel').addEventListener('change', (e) => {
+            settings.chat_model = e.target.value;
+            saveSettings(settings);
+        });
+
+        document.getElementById('assistantModel').addEventListener('change', (e) => {
+            settings.assistant_model = e.target.value;
+            saveSettings(settings);
+        });
+
+        // System prompt changes
+        document.getElementById('chatSystemPrompt').addEventListener('input', (e) => {
+            settings.chat_system_prompt = e.target.value;
+            saveSettings(settings);
+        });
+
+        document.getElementById('assistantSystemPrompt').addEventListener('input', (e) => {
+            settings.assistant_system_prompt = e.target.value;
+            saveSettings(settings);
+        });
+
+        // Document Management
+function saveDocument() {
+    const content = quill.root.innerHTML;
+    const text = quill.getText().trim();
+    const title = document.getElementById('titleInput').value.trim();
+    
+    if (!text) {
+        showToast('Document is empty');
+        return;
+    }
+
+    const docs = JSON.parse(localStorage.getItem('documents') || '[]');
+    const now = new Date();
+    
+    if (currentDocId) {
+        const doc = docs.find(d => d.id === currentDocId);
+        if (doc) {
+            doc.content = content;
+            doc.title = title || 'Untitled Document';
+            doc.preview = text.substring(0, 100);
+            doc.updated = now.toISOString();
+            doc.chatHistory = chatHistory; // Save chat history
+        }
+    } else {
+        currentDocId = Date.now().toString();
+        docs.unshift({
+            id: currentDocId,
+            content: content,
+            title: title || 'Untitled Document',
+            preview: text.substring(0, 100),
+            created: now.toISOString(),
+            updated: now.toISOString(),
+            chatHistory: chatHistory // Save chat history
+        });
+    }
+    
+    localStorage.setItem('documents', JSON.stringify(docs));
+    showToast('Document and chat saved');
+}
+
+function loadDocument(docId) {
+    const docs = JSON.parse(localStorage.getItem('documents') || '[]');
+    const doc = docs.find(d => d.id === docId);
+    
+    if (doc) {
+        currentDocId = docId;
+        quill.root.innerHTML = doc.content;
+        document.getElementById('titleInput').value = doc.title || '';
+        
+        // Load chat history
+        chatHistory = doc.chatHistory || [];
+        const messagesDiv = document.getElementById('chatMessages');
+        messagesDiv.innerHTML = '';
+        
+        if (chatHistory.length === 0) {
+            addMessage(settings.welcome_message || defaultConfig.welcome_message, 'system');
+        } else {
+            chatHistory.forEach(msg => {
+                addMessage(msg.content, msg.role === 'user' ? 'user' : 'ai');
+            });
+        }
+        
+        document.getElementById('docsModal').classList.remove('active');
+        showToast('Document and chat loaded');
+    }
+}
+
+
+        function deleteDocument(docId) {
+            const docs = JSON.parse(localStorage.getItem('documents') || '[]');
+            const filtered = docs.filter(d => d.id !== docId);
+            localStorage.setItem('documents', JSON.stringify(filtered));
+            
+            if (currentDocId === docId) {
+                currentDocId = null;
+                quill.setText('');
+            }
+            
+            loadDocumentsList();
+            showToast('Document deleted');
+        }
+
+        function loadDocumentsList() {
+            const docs = JSON.parse(localStorage.getItem('documents') || '[]');
+            const list = document.getElementById('documentsList');
+            
+            if (docs.length === 0) {
+                list.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📄</div>
+                        <div class="empty-state-text">No saved documents yet</div>
+                    </div>
+                `;
+                return;
+            }
+            
+            list.innerHTML = docs.map(doc => {
+                const date = new Date(doc.updated);
+                const dateStr = date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                const displayTitle = doc.title || doc.preview || 'Untitled';
+                
+                return `
+                    <div class="document-item" data-id="${doc.id}">
+                        <div class="document-info">
+                            <div class="document-title">${displayTitle}</div>
+                            <div class="document-meta">${dateStr}</div>
+                        </div>
+                        <div class="document-actions">
+                            <button class="delete-btn" data-id="${doc.id}" onclick="event.stopPropagation()">🗑️</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            // Add click handlers
+            list.querySelectorAll('.document-item').forEach(item => {
+                item.addEventListener('click', () => loadDocument(item.dataset.id));
+            });
+            
+            list.querySelectorAll('.delete-btn').forEach(btn => {
+                btn.addEventListener('click', () => deleteDocument(btn.dataset.id));
+            });
+        }
+
+document.getElementById('newDocBtn').addEventListener('click', () => {
+    currentDocId = null;
+    quill.setText('');
+    document.getElementById('titleInput').value = '';
+    resetChat(); // Reset chat for new document
+    showToast('New document');
+});
+
+        document.getElementById('saveDocBtn').addEventListener('click', saveDocument);
+
+        // Generate Title with AI
+        document.getElementById('generateTitleBtn').addEventListener('click', async () => {
+            const btn = document.getElementById('generateTitleBtn');
+            const content = quill.getText().trim();
+            
+            if (!content) {
+                showToast('Write something first');
+                return;
+            }
+            
+            btn.classList.add('loading');
+            btn.disabled = true;
+            
+            try {
+                const preview = content.substring(0, 500);
+                const response = await askAiAdvanced({
+                    systemPrompt: 'You are a creative writing assistant that crafts vivid, emotionally charged, and imaginative titles for stories. Titles should be short (1–5 words), poetic, and capture the mood, tension, or central theme of the story. Respond with ONLY the title, no quotes, no explanations.',
+                    message: `Create a short, powerful, and imaginative title (1–5 words) that captures the tone, emotion, and imagery of this:\n\n${preview}`,
+                    maxTokens: 16,
+                    temperature: 1,
+                    model: settings.assistant_model,
+                    topP: 0.9,
+                    topK: 50,
+                    frequencyPenalty: 0.2,
+                    presencePenalty: 0.3,
+                    repetitionPenalty: 1.1
+                });
+                
+                if (response && response !== 'Here we go again') {
+                    const title = response.trim().replace(/^["']|["']$/g, '');
+                    document.getElementById('titleInput').value = title;
+                    showToast('Title generated');
+                } else {
+                    showToast('Failed to generate title');
+                }
+            } catch (error) {
+                showToast('Error: ' + error.message);
+            } finally {
+                btn.classList.remove('loading');
+                btn.disabled = false;
+            }
+        });
+
+        // AI Assistant (Continue Writing)
+        document.getElementById('aiAssistBtn').addEventListener('click', async () => {
+            const btn = document.getElementById('aiAssistBtn');
+            const content = quill.getText().trim();
+            
+            if (!content) {
+                showToast('Write something first');
+                return;
+            }
+            
+            btn.classList.add('loading');
+            btn.disabled = true;
+            
+            try {
+                const maxContext = settings.assistant_context || defaultConfig.assistant_context;
+                const contextContent = maxContext > 0 ? content.substring(Math.max(0, content.length - maxContext)) : content;
+                
+                const systemPrompt = settings.assistant_system_prompt || defaultConfig.assistant_system_prompt;
+                const response = await askAiAdvanced({
+                    systemPrompt: systemPrompt,
+                    message: `Continue this story in the same style and tone, ensuring the plot progresses naturally and meaningfully:\n\n${contextContent}`,
+                    maxTokens: settings.assistant_tokens,
+                    temperature: settings.assistant_temp,
+                    model: settings.assistant_model,
+                    topP: settings.assistant_top_p,
+                    topK: settings.assistant_top_k,
+                    frequencyPenalty: settings.assistant_freq_penalty,
+                    presencePenalty: settings.assistant_pres_penalty,
+                    repetitionPenalty: settings.assistant_rep_penalty
+                });
+                
+                if (response && response !== 'Here we go again') {
+                    const currentLength = quill.getLength();
+                    quill.insertText(currentLength - 1, response.trim());
+                    showToast('AI continued writing');
+                } else {
+                    showToast('AI request failed');
+                }
+            } catch (error) {
+                showToast('Error: ' + error.message);
+            } finally {
+                btn.classList.remove('loading');
+                btn.disabled = false;
+            }
+        });
+
+        // Chat functionality
+        function addMessage(text, type) {
+            const messagesDiv = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+            
+            // For AI messages, preserve formatting
+            if (type === 'ai') {
+                // Convert markdown-style formatting to HTML
+                let formatted = text
+                    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')  // Bold
+                    .replace(/\*(.+?)\*/g, '<em>$1</em>')              // Italic
+                    .replace(/`(.+?)`/g, '<code>$1</code>');           // Code
+                messageDiv.innerHTML = formatted;
+            } else {
+                messageDiv.textContent = text;
+            }
+            
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            
+            if (type !== 'system') {
+                chatHistory.push({ role: type === 'user' ? 'user' : 'assistant', content: text });
+            }
+        }
+        
+        // Reset chat
+        function resetChat() {
+            chatHistory = [];
+            const messagesDiv = document.getElementById('chatMessages');
+            messagesDiv.innerHTML = '';
+            addMessage(settings.welcome_message || defaultConfig.welcome_message, 'system');
+            showToast('Chat reset');
+        }
+        
+        document.getElementById('resetChatBtn').addEventListener('click', resetChat);
+
+        async function sendChatMessage() {
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
+            
+            if (!message) return;
+            
+            input.value = '';
+            input.style.height = 'auto';
+            
+            addMessage(message, 'user');
+            
+            const sendBtn = document.getElementById('sendBtn');
+            sendBtn.disabled = true;
+            
+            try {
+                // Get document context
+                const title = document.getElementById('titleInput').value.trim();
+                const content = quill.getText().trim();
+                const maxContext = settings.chat_context || defaultConfig.chat_context;
+                
+                // Build context string
+                let contextStr = '';
+                if (title) {
+                    contextStr += `Document Title: ${title}\n\n`;
+                }
+                if (content && maxContext > 0) {
+                    const truncatedContent = content.substring(0, maxContext);
+                    contextStr += `Document Content:\n${truncatedContent}${content.length > maxContext ? '...' : ''}\n\n`;
+                }
+                
+                // Build full message with context
+                const fullMessage = contextStr ? `${contextStr}User Question: ${message}` : message;
+                
+                const systemPrompt = settings.chat_system_prompt || defaultConfig.chat_system_prompt;
+                const response = await askAiAdvanced({
+                    systemPrompt: systemPrompt,
+                    message: fullMessage,
+                    maxTokens: settings.chat_tokens,
+                    temperature: settings.chat_temp,
+                    model: settings.chat_model,
+                    topP: settings.chat_top_p,
+                    topK: settings.chat_top_k,
+                    frequencyPenalty: settings.chat_freq_penalty,
+                    presencePenalty: settings.chat_pres_penalty,
+                    repetitionPenalty: settings.chat_rep_penalty
+                });
+                
+                if (response && response !== 'Here we go again') {
+                    addMessage(response, 'ai');
+                } else {
+                    addMessage('Sorry, I encountered an error. Please try again.', 'system');
+                }
+            } catch (error) {
+                addMessage('Error: ' + error.message, 'system');
+            } finally {
+                sendBtn.disabled = false;
+            }
+        }
+
+        document.getElementById('sendBtn').addEventListener('click', sendChatMessage);
+
+        document.getElementById('chatInput').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendChatMessage();
+            }
+        });
+
+        // Auto-resize chat input
+        document.getElementById('chatInput').addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = Math.min(this.scrollHeight, 100) + 'px';
+        });
+
+        // Element SDK Integration
+        if (window.elementSdk) {
+            window.elementSdk.init({
+                defaultConfig: defaultConfig,
+                onConfigChange: async (config) => {
+                    settings = { ...settings, ...config };
+                    saveSettings(settings);
+                    updateUI();
+                },
+                mapToCapabilities: (config) => ({
+                    recolorables: [],
+                    borderables: [],
+                    fontEditable: undefined,
+                    fontSizeable: undefined
+                }),
+                mapToEditPanelValues: (config) => new Map([
+                    ['app_title', config.app_title || defaultConfig.app_title],
+                    ['welcome_message', config.welcome_message || defaultConfig.welcome_message]
+                ])
+            });
+        }
+
+        // Initialize
+        updateUI();
+        initializeEditableValues();
+        
+        // Add welcome message to chat
+        addMessage(settings.welcome_message || defaultConfig.welcome_message, 'system');
+    </script>
+ </html>
