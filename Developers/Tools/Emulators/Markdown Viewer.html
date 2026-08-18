@@ -1,0 +1,451 @@
+<!doctype html>
+<html lang="en" class="h-full">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Markdown Browser</title>
+  <script src="https://cdn.jsdelivr.net/npm/marked@11.1.1/marked.min.js"></script>
+  <style>
+    body {
+      box-sizing: border-box;
+    }
+    
+    * {
+      box-sizing: border-box;
+    }
+    
+    .file-item {
+      transition: all 0.2s;
+    }
+    
+    .file-item:hover {
+      transform: translateX(2px);
+    }
+    
+    .file-item.active {
+      font-weight: 600;
+    }
+  </style>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>@view-transition { navigation: auto; }</style>
+ </head>
+ <body class="h-full">
+  <div id="app" class="w-full h-full flex overflow-hidden bg-gradient-to-br from-slate-50 to-slate-100"><!-- Mobile Menu Button --> <button id="mobileMenuBtn" class="fixed top-4 left-4 z-50 lg:hidden bg-white p-3 rounded-lg shadow-lg border border-slate-200" aria-label="Toggle menu">
+    <svg id="menuIcon" class="h-6 w-6 text-slate-700" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+    </svg></button> <!-- Overlay for mobile -->
+   <div id="overlay" class="fixed inset-0 bg-black bg-opacity-50 z-30 hidden lg:hidden"></div><!-- Sidebar Navigation -->
+   <aside id="sidebar" class="fixed lg:relative w-80 h-full bg-white border-r border-slate-200 flex flex-col shadow-lg z-40 transform -translate-x-full lg:translate-x-0 transition-transform duration-300"><!-- Sidebar Header -->
+    <div class="p-6 border-b border-slate-200">
+     <div class="flex items-center justify-between mb-2">
+      <h1 id="mainTitle" class="text-2xl font-bold text-slate-800">Markdown Browser</h1><button id="closeSidebarBtn" class="lg:hidden text-slate-500 hover:text-slate-700 p-1">
+       <svg class="h-6 w-6" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+       </svg></button>
+     </div>
+     <p id="subtitle" class="text-sm text-slate-600">Browse your documents</p>
+    </div><!-- File Upload Area -->
+    <div class="p-4 border-b border-slate-200">
+     <div id="dropZone" class="border-2 border-dashed border-slate-300 rounded-lg p-4 text-center hover:border-blue-500 transition-colors cursor-pointer bg-slate-50">
+      <svg class="mx-auto h-10 w-10 text-slate-400 mb-2" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+      </svg>
+      <p class="text-slate-600 text-sm font-medium mb-2">Drop files here</p><label for="fileInput" class="inline-block bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold py-2 px-4 rounded-lg cursor-pointer transition-colors"> Choose Files </label> <input type="file" id="fileInput" accept=".md,.markdown,.txt" multiple class="hidden">
+     </div>
+    </div><!-- File List -->
+    <div class="flex-1 overflow-auto">
+     <div id="fileList" class="p-2"><!-- File items will be added here -->
+     </div>
+     <div id="emptyFileList" class="p-8 text-center">
+      <svg class="mx-auto h-16 w-16 text-slate-300 mb-3" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+      </svg>
+      <p class="text-slate-500 text-sm">No files loaded</p>
+     </div>
+    </div><!-- Clear Button -->
+    <div class="p-4 border-t border-slate-200"><button id="clearButton" class="w-full bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors text-sm"> Clear All Files </button>
+    </div>
+   </aside><!-- Main Content Area -->
+   <main class="flex-1 overflow-auto w-full"><!-- Document Viewer -->
+    <div id="documentViewer" class="h-full"><!-- Empty State -->
+     <div id="emptyState" class="h-full flex items-center justify-center px-4">
+      <div class="text-center p-8">
+       <svg class="mx-auto h-24 w-24 sm:h-32 sm:w-32 text-slate-300 mb-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+       </svg>
+       <h3 class="text-xl sm:text-3xl font-semibold text-slate-700 mb-2">No File Selected</h3>
+       <p class="text-sm sm:text-lg text-slate-500">Upload and select a markdown file to view its contents</p>
+      </div>
+     </div><!-- Document Content -->
+     <div id="documentContent" class="hidden h-full flex flex-col">
+      <div class="bg-white border-b border-slate-200 shadow-sm p-4 sm:p-6">
+       <div class="max-w-4xl mx-auto flex items-center justify-between gap-4">
+        <h2 id="documentTitle" class="text-xl sm:text-3xl font-bold text-slate-800 truncate flex-1"></h2><button id="closeDocument" class="text-slate-500 hover:text-slate-700 transition-colors flex-shrink-0 p-2">
+         <svg class="h-5 w-5 sm:h-6 sm:w-6" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+         </svg></button>
+       </div>
+      </div>
+      <div class="flex-1 overflow-auto bg-white">
+       <div id="markdownContent" class="max-w-4xl mx-auto p-4 sm:p-8 prose prose-slate prose-sm sm:prose-lg max-w-none"><!-- Rendered markdown will appear here -->
+       </div>
+      </div>
+     </div>
+    </div>
+   </main>
+  </div>
+  <script>
+    const defaultConfig = {
+      main_title: "Markdown Browser",
+      subtitle: "Browse your documents",
+      clear_button_text: "Clear All Files",
+      background_color: "#f8fafc",
+      sidebar_color: "#ffffff",
+      text_color: "#1e293b",
+      primary_color: "#2563eb",
+      accent_color: "#ef4444",
+      font_family: "system-ui",
+      font_size: 16
+    };
+
+    let config = {};
+    let documents = [];
+    let currentDocId = null;
+
+    function toggleSidebar() {
+      const sidebar = document.getElementById('sidebar');
+      const overlay = document.getElementById('overlay');
+      const isOpen = !sidebar.classList.contains('-translate-x-full');
+      
+      if (isOpen) {
+        sidebar.classList.add('-translate-x-full');
+        overlay.classList.add('hidden');
+      } else {
+        sidebar.classList.remove('-translate-x-full');
+        overlay.classList.remove('hidden');
+      }
+    }
+
+    function closeSidebar() {
+      document.getElementById('sidebar').classList.add('-translate-x-full');
+      document.getElementById('overlay').classList.add('hidden');
+    }
+
+    async function onConfigChange(newConfig) {
+      config = newConfig;
+      
+      const baseSize = config.font_size || defaultConfig.font_size;
+      const customFont = config.font_family || defaultConfig.font_family;
+      const fontStack = `${customFont}, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`;
+      
+      // Update colors
+      document.getElementById('app').style.background = `linear-gradient(to bottom right, ${config.background_color || defaultConfig.background_color}, ${adjustColorBrightness(config.background_color || defaultConfig.background_color, -10)})`;
+      
+      document.getElementById('sidebar').style.backgroundColor = config.sidebar_color || defaultConfig.sidebar_color;
+      
+      // Update text
+      const mainTitle = document.getElementById('mainTitle');
+      mainTitle.textContent = config.main_title || defaultConfig.main_title;
+      mainTitle.style.fontSize = `${baseSize * 1.5}px`;
+      mainTitle.style.color = config.text_color || defaultConfig.text_color;
+      mainTitle.style.fontFamily = fontStack;
+      
+      const subtitle = document.getElementById('subtitle');
+      subtitle.textContent = config.subtitle || defaultConfig.subtitle;
+      subtitle.style.fontSize = `${baseSize * 0.875}px`;
+      subtitle.style.color = adjustColorBrightness(config.text_color || defaultConfig.text_color, 40);
+      subtitle.style.fontFamily = fontStack;
+      
+      // Update button
+      const clearButton = document.getElementById('clearButton');
+      clearButton.textContent = config.clear_button_text || defaultConfig.clear_button_text;
+      clearButton.style.backgroundColor = config.accent_color || defaultConfig.accent_color;
+      clearButton.style.fontSize = `${baseSize * 0.875}px`;
+      clearButton.style.fontFamily = fontStack;
+      
+      // Update drop zone button
+      const dropZoneButton = document.querySelector('#dropZone label');
+      if (dropZoneButton) {
+        dropZoneButton.style.backgroundColor = config.primary_color || defaultConfig.primary_color;
+        dropZoneButton.style.fontSize = `${baseSize * 0.875}px`;
+        dropZoneButton.style.fontFamily = fontStack;
+      }
+      
+      // Re-render file list and document
+      renderFileList();
+      if (currentDocId !== null) {
+        displayDocument(currentDocId);
+      }
+    }
+
+    function adjustColorBrightness(color, percent) {
+      const num = parseInt(color.replace("#", ""), 16);
+      const amt = Math.round(2.55 * percent);
+      const R = (num >> 16) + amt;
+      const G = (num >> 8 & 0x00FF) + amt;
+      const B = (num & 0x0000FF) + amt;
+      return "#" + (0x1000000 + (R < 255 ? R < 1 ? 0 : R : 255) * 0x10000 +
+        (G < 255 ? G < 1 ? 0 : G : 255) * 0x100 +
+        (B < 255 ? B < 1 ? 0 : B : 255))
+        .toString(16).slice(1);
+    }
+
+    function renderFileList() {
+      const fileList = document.getElementById('fileList');
+      const emptyFileList = document.getElementById('emptyFileList');
+      
+      if (documents.length === 0) {
+        emptyFileList.style.display = 'block';
+        fileList.innerHTML = '';
+        return;
+      }
+      
+      emptyFileList.style.display = 'none';
+      fileList.innerHTML = '';
+      
+      const baseSize = config.font_size || defaultConfig.font_size;
+      const customFont = config.font_family || defaultConfig.font_family;
+      const fontStack = `${customFont}, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`;
+      
+      documents.forEach((doc, index) => {
+        const item = document.createElement('div');
+        item.className = 'file-item flex items-center justify-between p-3 rounded-lg cursor-pointer hover:bg-slate-100 transition-colors';
+        
+        if (currentDocId === index) {
+          item.classList.add('active');
+          item.style.backgroundColor = adjustColorBrightness(config.primary_color || defaultConfig.primary_color, 85);
+        }
+        
+        const fileInfo = document.createElement('div');
+        fileInfo.className = 'flex items-center flex-1 overflow-hidden';
+        fileInfo.onclick = () => displayDocument(index);
+        
+        const icon = document.createElement('div');
+        icon.innerHTML = `
+          <svg class="h-5 w-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+          </svg>
+        `;
+        icon.style.color = config.primary_color || defaultConfig.primary_color;
+        
+        const fileName = document.createElement('span');
+        fileName.textContent = doc.name;
+        fileName.className = 'truncate';
+        fileName.style.fontSize = `${baseSize * 0.875}px`;
+        fileName.style.color = config.text_color || defaultConfig.text_color;
+        fileName.style.fontFamily = fontStack;
+        
+        fileInfo.appendChild(icon);
+        fileInfo.appendChild(fileName);
+        
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'ml-2 text-red-500 hover:text-red-700 p-1 rounded transition-colors flex-shrink-0';
+        deleteBtn.innerHTML = `
+          <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+          </svg>
+        `;
+        deleteBtn.onclick = (e) => {
+          e.stopPropagation();
+          removeDocument(index);
+        };
+        
+        item.appendChild(fileInfo);
+        item.appendChild(deleteBtn);
+        fileList.appendChild(item);
+      });
+    }
+
+    function displayDocument(index) {
+      currentDocId = index;
+      const doc = documents[index];
+      
+      // Close sidebar on mobile when a document is selected
+      if (window.innerWidth < 1024) {
+        closeSidebar();
+      }
+      
+      document.getElementById('emptyState').style.display = 'none';
+      document.getElementById('documentContent').classList.remove('hidden');
+      
+      const baseSize = config.font_size || defaultConfig.font_size;
+      const customFont = config.font_family || defaultConfig.font_family;
+      const fontStack = `${customFont}, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`;
+      
+      const docTitle = document.getElementById('documentTitle');
+      docTitle.textContent = doc.name;
+      docTitle.style.fontSize = `${baseSize * 2}px`;
+      docTitle.style.color = config.text_color || defaultConfig.text_color;
+      docTitle.style.fontFamily = fontStack;
+      
+      const content = document.getElementById('markdownContent');
+      content.innerHTML = marked.parse(doc.content);
+      content.style.fontSize = `${baseSize}px`;
+      content.style.fontFamily = fontStack;
+      content.style.color = config.text_color || defaultConfig.text_color;
+      
+      // Style the rendered markdown
+      content.querySelectorAll('h1, h2, h3, h4, h5, h6').forEach(heading => {
+        heading.style.color = config.text_color || defaultConfig.text_color;
+        heading.style.fontFamily = fontStack;
+      });
+      
+      content.querySelectorAll('p, li, td, th').forEach(text => {
+        text.style.color = config.text_color || defaultConfig.text_color;
+        text.style.fontFamily = fontStack;
+      });
+      
+      content.querySelectorAll('a').forEach(link => {
+        link.style.color = config.primary_color || defaultConfig.primary_color;
+        link.setAttribute('target', '_blank');
+        link.setAttribute('rel', 'noopener noreferrer');
+      });
+      
+      content.querySelectorAll('code').forEach(code => {
+        code.style.backgroundColor = adjustColorBrightness(config.sidebar_color || defaultConfig.sidebar_color, -5);
+      });
+      
+      renderFileList();
+    }
+
+    function closeDocumentView() {
+      currentDocId = null;
+      document.getElementById('documentContent').classList.add('hidden');
+      document.getElementById('emptyState').style.display = 'flex';
+      renderFileList();
+    }
+
+    function handleFiles(files) {
+      const fileArray = Array.from(files);
+      
+      fileArray.forEach(file => {
+        if (file.type === 'text/markdown' || file.name.endsWith('.md') || file.name.endsWith('.markdown') || file.type === 'text/plain') {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            documents.push({
+              id: Date.now() + Math.random(),
+              name: file.name,
+              content: e.target.result
+            });
+            renderFileList();
+          };
+          reader.readAsText(file);
+        }
+      });
+    }
+
+    function removeDocument(index) {
+      if (currentDocId === index) {
+        closeDocumentView();
+      } else if (currentDocId > index) {
+        currentDocId--;
+      }
+      documents.splice(index, 1);
+      renderFileList();
+    }
+
+    function clearAll() {
+      documents = [];
+      closeDocumentView();
+      renderFileList();
+    }
+
+    // Event listeners
+    document.getElementById('mobileMenuBtn').addEventListener('click', toggleSidebar);
+    document.getElementById('closeSidebarBtn').addEventListener('click', closeSidebar);
+    document.getElementById('overlay').addEventListener('click', closeSidebar);
+    
+    document.getElementById('fileInput').addEventListener('change', (e) => {
+      handleFiles(e.target.files);
+    });
+
+    document.getElementById('clearButton').addEventListener('click', clearAll);
+    document.getElementById('closeDocument').addEventListener('click', closeDocumentView);
+
+    // Drag and drop
+    const dropZone = document.getElementById('dropZone');
+    
+    dropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropZone.style.borderColor = config.primary_color || defaultConfig.primary_color;
+      dropZone.style.backgroundColor = adjustColorBrightness(config.primary_color || defaultConfig.primary_color, 90);
+    });
+
+    dropZone.addEventListener('dragleave', () => {
+      dropZone.style.borderColor = '#cbd5e1';
+      dropZone.style.backgroundColor = '#f8fafc';
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.style.borderColor = '#cbd5e1';
+      dropZone.style.backgroundColor = '#f8fafc';
+      handleFiles(e.dataTransfer.files);
+    });
+
+    dropZone.addEventListener('click', () => {
+      document.getElementById('fileInput').click();
+    });
+
+    if (window.elementSdk) {
+      window.elementSdk.init({
+        defaultConfig,
+        onConfigChange,
+        mapToCapabilities: (config) => ({
+          recolorables: [
+            {
+              get: () => config.background_color || defaultConfig.background_color,
+              set: (value) => {
+                config.background_color = value;
+                window.elementSdk.setConfig({ background_color: value });
+              }
+            },
+            {
+              get: () => config.sidebar_color || defaultConfig.sidebar_color,
+              set: (value) => {
+                config.sidebar_color = value;
+                window.elementSdk.setConfig({ sidebar_color: value });
+              }
+            },
+            {
+              get: () => config.text_color || defaultConfig.text_color,
+              set: (value) => {
+                config.text_color = value;
+                window.elementSdk.setConfig({ text_color: value });
+              }
+            },
+            {
+              get: () => config.primary_color || defaultConfig.primary_color,
+              set: (value) => {
+                config.primary_color = value;
+                window.elementSdk.setConfig({ primary_color: value });
+              }
+            },
+            {
+              get: () => config.accent_color || defaultConfig.accent_color,
+              set: (value) => {
+                config.accent_color = value;
+                window.elementSdk.setConfig({ accent_color: value });
+              }
+            }
+          ],
+          borderables: [],
+          fontEditable: {
+            get: () => config.font_family || defaultConfig.font_family,
+            set: (value) => {
+              config.font_family = value;
+              window.elementSdk.setConfig({ font_family: value });
+            }
+          },
+          fontSizeable: {
+            get: () => config.font_size || defaultConfig.font_size,
+            set: (value) => {
+              config.font_size = value;
+              window.elementSdk.setConfig({ font_size: value });
+            }
+          }
+        }),
+        mapToEditPanelValues: (config) => new Map([
+          ["main_title", config.main_title || defaultConfig.main_title],
+          ["subtitle", config.subtitle || defaultConfig.subtitle],
+          ["clear_button_text", config.clear_button_text || defaultConfig.clear_button_text]
+        ])
+      });
+    }
+  </script>
+ </body>
+</html>
