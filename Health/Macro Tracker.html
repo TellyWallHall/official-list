@@ -1,0 +1,4106 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+  <title>MacroTracker</title>
+  <link rel="stylesheet" href="styles.css">
+  <!-- Lucide Icons for a clean, modern look -->
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+    :root {
+      /* Core Colors */
+      --bg-app: #0B0D10;
+      --bg-surface: #13161C;
+      --bg-surface-elevated: #1A1E26;
+      --bg-surface-hover: #222730;
+
+      /* Accent Colors */
+      --accent-primary: #00E09E;
+      /* Mint Green - Success/Primary actions */
+      --accent-primary-dim: rgba(0, 224, 158, 0.15);
+      --accent-secondary: #3B82F6;
+      /* Blue - Links/Secondary info */
+      --accent-warning: #F59E0B;
+      /* Orange - Carbs */
+      --accent-danger: #EF4444;
+      /* Red - Delete/Fat limit */
+      --accent-protein: #8B5CF6;
+      /* Purple - Protein */
+      --accent-carbs: #F59E0B;
+      /* Orange - Carbs */
+      --accent-fat: #EC4899;
+      /* Pink - Fat */
+
+      /* Typography */
+      --text-primary: #F3F4F6;
+      --text-secondary: #9CA3AF;
+      --text-tertiary: #6B7280;
+      --text-disabled: #4B5563;
+
+      /* Spacing & Layout */
+      --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+      --nav-height: 70px;
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      --radius-xl: 24px;
+      --radius-full: 9999px;
+
+      /* Transitions */
+      --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+      --transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+      --transition-slow: 350ms cubic-bezier(0.4, 0, 0.2, 1);
+
+      /* Shadows */
+      --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.1);
+      --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.25);
+      --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.4);
+      --shadow-glow-primary: 0 0 20px rgba(0, 224, 158, 0.2);
+    }
+
+    /* === RESET & BASE === */
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html {
+      font-size: 16px;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+      background-color: #000000;
+      color: var(--text-primary);
+      display: flex;
+      justify-content: center;
+      min-height: 100vh;
+      min-height: 100dvh;
+      overflow-x: hidden;
+    }
+
+    input,
+    textarea,
+    select,
+    button {
+      font-family: inherit;
+      outline: none;
+      border: none;
+      background: none;
+      color: inherit;
+    }
+
+    a {
+      text-decoration: none;
+      color: var(--accent-secondary);
+    }
+
+    ul,
+    ol {
+      list-style: none;
+    }
+
+    /* === APP SHELL === */
+    .app-container {
+      position: relative;
+      width: 100%;
+      max-width: 430px;
+      height: 100vh;
+      height: 100dvh;
+      background-color: var(--bg-app);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      box-shadow: 0 0 50px rgba(0, 0, 0, 0.5);
+    }
+
+    .main-content {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 24px 20px;
+      padding-bottom: calc(var(--nav-height) + var(--safe-area-bottom) + 24px);
+      scroll-behavior: smooth;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .main-content::-webkit-scrollbar {
+      display: none;
+    }
+
+    /* === BOTTOM NAVIGATION === */
+    .bottom-nav {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: calc(var(--nav-height) + var(--safe-area-bottom));
+      padding-bottom: var(--safe-area-bottom);
+      background: rgba(19, 22, 28, 0.85);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      z-index: 100;
+    }
+
+    .nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      padding: 8px 12px;
+      border-radius: var(--radius-md);
+      transition: var(--transition-fast);
+      color: var(--text-tertiary);
+      cursor: pointer;
+      position: relative;
+    }
+
+    .nav-item.active {
+      color: var(--accent-primary);
+    }
+
+    .nav-item.active::before {
+      content: '';
+      position: absolute;
+      top: -1px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 20px;
+      height: 3px;
+      background: var(--accent-primary);
+      border-radius: 0 0 4px 4px;
+    }
+
+    .nav-icon {
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .nav-label {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    /* === FLOATING ACTION BUTTON (FAB) === */
+    .fab {
+      position: absolute;
+      bottom: calc(var(--nav-height) + var(--safe-area-bottom) + 16px);
+      right: 20px;
+      width: 56px;
+      height: 56px;
+      background: var(--accent-primary);
+      color: var(--bg-app);
+      border-radius: var(--radius-full);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      font-weight: 300;
+      box-shadow: var(--shadow-lg), var(--shadow-glow-primary);
+      cursor: pointer;
+      transition: var(--transition-fast);
+      z-index: 90;
+    }
+
+    .fab:active {
+      transform: scale(0.92);
+      box-shadow: var(--shadow-md);
+    }
+
+    /* === PAGE HEADERS === */
+    .page-header {
+      margin-bottom: 24px;
+    }
+
+    .page-title {
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      color: var(--text-primary);
+    }
+
+    .page-subtitle {
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-top: 4px;
+      font-weight: 500;
+    }
+
+    /* === DATE SELECTOR === */
+    .date-selector {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--bg-surface);
+      border-radius: var(--radius-md);
+      padding: 8px 16px;
+      margin-bottom: 24px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .date-arrow {
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-secondary);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: var(--transition-fast);
+    }
+
+    .date-arrow:active {
+      background: var(--bg-surface-hover);
+    }
+
+    .date-display {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .date-display.today {
+      color: var(--accent-primary);
+    }
+
+    /* === CARDS === */
+    .card {
+      background: var(--bg-surface);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      margin-bottom: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      transition: var(--transition-normal);
+    }
+
+    .card-elevated {
+      background: var(--bg-surface-elevated);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .card-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .card-action {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--accent-primary);
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: var(--radius-sm);
+    }
+
+    .card-action:active {
+      background: var(--accent-primary-dim);
+    }
+
+    /* === MACRO RINGS (SVG) === */
+    .macro-rings-container {
+      position: relative;
+      width: 180px;
+      height: 180px;
+      margin: 0 auto 20px;
+    }
+
+    .macro-ring {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    .macro-ring svg {
+      width: 100%;
+      height: 100%;
+      transform: rotate(-90deg);
+    }
+
+    .ring-bg {
+      fill: none;
+      stroke: rgba(255, 255, 255, 0.05);
+    }
+
+    .ring-progress {
+      fill: none;
+      stroke-linecap: round;
+      transition: stroke-dashoffset 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .ring-center {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+    }
+
+    .ring-value {
+      font-size: 32px;
+      font-weight: 800;
+      color: var(--text-primary);
+      line-height: 1;
+    }
+
+    .ring-label {
+      font-size: 11px;
+      color: var(--text-tertiary);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-top: 4px;
+    }
+
+    /* === MACRO STATS ROW === */
+    .macro-stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+
+    .macro-stat {
+      background: var(--bg-app);
+      padding: 12px 8px;
+      border-radius: var(--radius-md);
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .macro-stat-value {
+      font-size: 18px;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .macro-stat-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-tertiary);
+      text-transform: uppercase;
+    }
+
+    .macro-stat-progress {
+      width: 100%;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 2px;
+      margin-top: 6px;
+      overflow: hidden;
+    }
+
+    .macro-stat-bar {
+      height: 100%;
+      border-radius: 2px;
+      transition: width 0.6s ease;
+    }
+
+    /* Color Modifiers */
+    .text-protein {
+      color: var(--accent-protein);
+    }
+
+    .text-carbs {
+      color: var(--accent-carbs);
+    }
+
+    .text-fat {
+      color: var(--accent-fat);
+    }
+
+    .bg-protein {
+      background: var(--accent-protein);
+    }
+
+    .bg-carbs {
+      background: var(--accent-carbs);
+    }
+
+    .bg-fat {
+      background: var(--accent-fat);
+    }
+
+    /* === TIMELINE / LOG LIST === */
+    .section-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .timeline-item {
+      display: flex;
+      gap: 12px;
+      padding: 12px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      position: relative;
+    }
+
+    .timeline-item:last-child {
+      border-bottom: none;
+    }
+
+    .timeline-line {
+      position: absolute;
+      left: 15px;
+      top: 36px;
+      bottom: -12px;
+      width: 2px;
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .timeline-item:last-child .timeline-line {
+      display: none;
+    }
+
+    .timeline-dot {
+      width: 32px;
+      height: 32px;
+      border-radius: var(--radius-full);
+      background: var(--bg-surface-elevated);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      flex-shrink: 0;
+      z-index: 1;
+      border: 2px solid var(--bg-app);
+    }
+
+    .timeline-content {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .timeline-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 8px;
+    }
+
+    .timeline-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .timeline-cal {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--accent-primary);
+      white-space: nowrap;
+    }
+
+    .timeline-meta {
+      font-size: 12px;
+      color: var(--text-tertiary);
+      margin-top: 4px;
+      display: flex;
+      gap: 8px;
+    }
+
+    .timeline-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    /* === FOOD / RECIPE ITEMS === */
+    .search-container {
+      position: relative;
+      margin-bottom: 20px;
+    }
+
+    .search-input {
+      width: 100%;
+      height: 48px;
+      background: var(--bg-surface);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: var(--radius-lg);
+      padding: 0 16px 0 44px;
+      font-size: 15px;
+      color: var(--text-primary);
+      transition: var(--transition-fast);
+    }
+
+    .search-input::placeholder {
+      color: var(--text-disabled);
+    }
+
+    .search-input:focus {
+      border-color: var(--accent-primary);
+      background: var(--bg-surface-elevated);
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-tertiary);
+      width: 20px;
+      height: 20px;
+    }
+
+    .food-card {
+      background: var(--bg-surface);
+      border-radius: var(--radius-md);
+      padding: 14px;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border: 1px solid transparent;
+      transition: var(--transition-fast);
+      cursor: pointer;
+    }
+
+    .food-card:active {
+      border-color: var(--accent-primary);
+      background: var(--bg-surface-elevated);
+    }
+
+    .food-info {
+      flex: 1;
+      min-width: 0;
+      margin-right: 12px;
+    }
+
+    .food-name {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .food-brand {
+      font-size: 12px;
+      color: var(--text-tertiary);
+      margin-top: 2px;
+    }
+
+    .food-macros {
+      display: flex;
+      gap: 10px;
+      margin-top: 6px;
+    }
+
+    .macro-dot {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+
+    .macro-dot::before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+    }
+
+    .macro-dot.p::before {
+      background: var(--accent-protein);
+    }
+
+    .macro-dot.c::before {
+      background: var(--accent-carbs);
+    }
+
+    .macro-dot.f::before {
+      background: var(--accent-fat);
+    }
+
+    .food-cal {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-primary);
+      white-space: nowrap;
+    }
+
+    .food-cal span {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-tertiary);
+    }
+
+    /* === BOTTOM SHEET === */
+    .bottom-sheet-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.6);
+      z-index: 200;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity var(--transition-normal);
+    }
+
+    .bottom-sheet-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .bottom-sheet {
+      position: fixed;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%) translateY(100%);
+      width: 100%;
+      max-width: 430px;
+      max-height: 90vh;
+      background: var(--bg-surface-elevated);
+      border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+      z-index: 201;
+      transition: transform var(--transition-slow);
+      display: flex;
+      flex-direction: column;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .bottom-sheet.active {
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .sheet-handle {
+      width: 36px;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 2px;
+      margin: 12px auto;
+    }
+
+    .sheet-header {
+      padding: 0 20px 16px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .sheet-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .sheet-close {
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-tertiary);
+      border-radius: var(--radius-full);
+      cursor: pointer;
+      font-size: 20px;
+    }
+
+    .sheet-close:active {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .sheet-body {
+      padding: 20px;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    /* === FORM CONTROLS === */
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+    }
+
+    .form-input {
+      width: 100%;
+      height: 48px;
+      background: var(--bg-app);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: var(--radius-md);
+      padding: 0 14px;
+      font-size: 15px;
+      color: var(--text-primary);
+      transition: var(--transition-fast);
+    }
+
+    .form-input:focus {
+      border-color: var(--accent-primary);
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+
+    .form-row-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+
+    .form-select {
+      width: 100%;
+      height: 48px;
+      background: var(--bg-app);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: var(--radius-md);
+      padding: 0 14px;
+      font-size: 15px;
+      color: var(--text-primary);
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239CA3AF' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 14px center;
+    }
+
+    .form-select:focus {
+      border-color: var(--accent-primary);
+    }
+
+    .btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 48px;
+      border-radius: var(--radius-md);
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition-fast);
+      padding: 0 16px;
+    }
+
+    .btn:active {
+      transform: scale(0.97);
+    }
+
+    .btn-primary {
+      background: var(--accent-primary);
+      color: var(--bg-app);
+      width: 100%;
+    }
+
+    .btn-primary:active {
+      background: #00c78a;
+    }
+
+    .btn-secondary {
+      background: var(--bg-surface-hover);
+      color: var(--text-primary);
+      width: 100%;
+    }
+
+    .btn-danger {
+      background: rgba(239, 68, 68, 0.15);
+      color: var(--accent-danger);
+      width: 100%;
+    }
+
+    .btn-sm {
+      height: 36px;
+      font-size: 13px;
+      padding: 0 12px;
+      border-radius: var(--radius-sm);
+    }
+
+    .btn-icon {
+      width: 36px;
+      height: 36px;
+      padding: 0;
+      border-radius: var(--radius-full);
+      background: var(--bg-surface-hover);
+      color: var(--text-secondary);
+    }
+
+    /* === BADGES / CHIPS === */
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 10px;
+      border-radius: var(--radius-full);
+      font-size: 11px;
+      font-weight: 600;
+      background: var(--accent-primary-dim);
+      color: var(--accent-primary);
+    }
+
+    /* === WEIGHT CHART AREA === */
+    .chart-container {
+      width: 100%;
+      height: 120px;
+      position: relative;
+      margin: 12px 0;
+    }
+
+    /* === EMPTY STATES === */
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+    }
+
+    .empty-icon {
+      font-size: 40px;
+      margin-bottom: 12px;
+      opacity: 0.5;
+    }
+
+    .empty-text {
+      font-size: 14px;
+      color: var(--text-tertiary);
+      font-weight: 500;
+    }
+
+    /* === UTILITIES === */
+    .flex {
+      display: flex;
+    }
+
+    .flex-col {
+      flex-direction: column;
+    }
+
+    .items-center {
+      align-items: center;
+    }
+
+    .justify-between {
+      justify-content: space-between;
+    }
+
+    .gap-2 {
+      gap: 8px;
+    }
+
+    .gap-3 {
+      gap: 12px;
+    }
+
+    .gap-4 {
+      gap: 16px;
+    }
+
+    .mt-2 {
+      margin-top: 8px;
+    }
+
+    .mt-4 {
+      margin-top: 16px;
+    }
+
+    .mb-2 {
+      margin-bottom: 8px;
+    }
+
+    .mb-4 {
+      margin-bottom: 16px;
+    }
+
+    .text-center {
+      text-align: center;
+    }
+
+    .w-full {
+      width: 100%;
+    }
+
+    .truncate {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+  </style>
+</head>
+
+<body>
+
+  <div class="app-container">
+
+    <!-- === MAIN SCROLLABLE AREA === -->
+    <main class="main-content" id="mainContent">
+
+      <!-- VIEW: DASHBOARD -->
+      <section id="view-dashboard" class="view active">
+        <div class="page-header">
+          <div class="page-title">Dashboard</div>
+          <div class="page-subtitle">Track your daily progress</div>
+        </div>
+
+        <!-- Date Selector -->
+        <div class="date-selector">
+          <button type="button" class="date-arrow" id="btn-prev-day">
+            <i data-lucide="chevron-left" style="width:20px;height:20px;"></i>
+          </button>
+          <div class="date-display today" id="date-display">Today, Jun 15</div>
+          <button type="button" class="date-arrow" id="btn-next-day">
+            <i data-lucide="chevron-right" style="width:20px;height:20px;"></i>
+          </button>
+        </div>
+
+        <!-- Main Macro Card -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Daily Macros</div>
+            <button type="button" class="card-action" id="btn-open-goals">Edit Goals</button>
+          </div>
+
+          <!-- Calorie Ring -->
+          <div class="macro-rings-container">
+            <div class="macro-ring">
+              <svg viewBox="0 0 100 100">
+                <circle class="ring-bg" cx="50" cy="50" r="40" stroke-width="8"></circle>
+                <circle class="ring-progress" id="ring-calories" cx="50" cy="50" r="40" stroke-width="8" stroke="var(--accent-primary)" stroke-dasharray="251.2" stroke-dashoffset="251.2"></circle>
+              </svg>
+            </div>
+            <div class="ring-center">
+              <div class="ring-value" id="val-calories">0</div>
+              <div class="ring-label">kcal left</div>
+            </div>
+          </div>
+
+          <!-- Macro Stats Row -->
+          <div class="macro-stats">
+            <div class="macro-stat">
+              <div class="macro-stat-value text-protein" id="val-protein">0g</div>
+              <div class="macro-stat-label">Protein</div>
+              <div class="macro-stat-progress">
+                <div class="macro-stat-bar bg-protein" id="bar-protein" style="width: 0%"></div>
+              </div>
+            </div>
+            <div class="macro-stat">
+              <div class="macro-stat-value text-carbs" id="val-carbs">0g</div>
+              <div class="macro-stat-label">Carbs</div>
+              <div class="macro-stat-progress">
+                <div class="macro-stat-bar bg-carbs" id="bar-carbs" style="width: 0%"></div>
+              </div>
+            </div>
+            <div class="macro-stat">
+              <div class="macro-stat-value text-fat" id="val-fat">0g</div>
+              <div class="macro-stat-label">Fat</div>
+              <div class="macro-stat-progress">
+                <div class="macro-stat-bar bg-fat" id="bar-fat" style="width: 0%"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="flex gap-3 mb-4">
+          <button type="button" class="btn btn-secondary flex-1" id="btn-open-calc" style="gap: 8px;">
+            <i data-lucide="calculator" style="width:16px;height:16px;"></i> Calc Macros
+          </button>
+          <button type="button" class="btn btn-secondary flex-1" style="gap: 8px;" id="btn-export">
+            <i data-lucide="download" style="width:16px;height:16px;"></i> Export
+          </button>
+        </div>
+
+        <!-- Today's Log Timeline -->
+        <div class="section-title">
+          <i data-lucide="list" style="width:18px;height:18px;color:var(--accent-primary)"></i>
+          Today's Log
+        </div>
+
+        <div id="timeline-container">
+          <!-- Populated by JS -->
+          <div class="empty-state" id="empty-log">
+            <div class="empty-icon">🍽️</div>
+            <div class="empty-text">No meals logged yet.<br>Tap + to start tracking!</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW: WEIGHT -->
+      <section id="view-weight" class="view" style="display: none;">
+        <div class="page-header">
+          <div class="page-title">Weight</div>
+          <div class="page-subtitle">Track your body composition</div>
+        </div>
+
+        <!-- Weight Stats -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Progress</div>
+            <button type="button" class="card-action" id="btn-open-weight-goals">Set Goals</button>
+          </div>
+          <div class="form-row mb-4">
+            <div class="macro-stat">
+              <div class="macro-stat-value" style="color: var(--accent-secondary)" id="weight-current">--</div>
+              <div class="macro-stat-label">Current (lbs)</div>
+            </div>
+            <div class="macro-stat">
+              <div class="macro-stat-value" style="color: var(--accent-primary)" id="weight-goal">--</div>
+              <div class="macro-stat-label">Goal (lbs)</div>
+            </div>
+          </div>
+          <div class="macro-stat" style="background: transparent; padding: 0;">
+            <div class="macro-stat-label" id="weight-diff-label">0 lbs to go</div>
+            <div class="macro-stat-progress" style="height: 8px; border-radius: 4px;">
+              <div class="macro-stat-bar" id="weight-progress-bar" style="width: 0%; background: var(--accent-primary); border-radius: 4px;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Chart -->
+        <div class="card">
+          <div class="card-title mb-4">Trend</div>
+          <div class="chart-container" id="weight-chart-container">
+            <!-- SVG chart injected by JS -->
+            <div class="empty-state" id="empty-chart">
+              <div class="empty-text">Log at least 2 weights to see a trend</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Log Weight -->
+        <div class="card">
+          <div class="card-title mb-4">Log Weight</div>
+          <div class="form-row">
+            <div class="form-group" style="margin-bottom: 0;">
+              <input type="number" class="form-input" id="input-weight-val" placeholder="Weight (lbs)" step="0.1">
+            </div>
+            <button type="button" class="btn btn-primary" id="btn-log-weight">Log</button>
+          </div>
+        </div>
+
+        <!-- Converter -->
+        <div class="card">
+          <div class="card-title mb-4">Unit Converter</div>
+          <div class="form-row">
+            <input type="number" class="form-input" id="input-kg" placeholder="kg" step="0.1">
+            <div class="flex items-center justify-center">
+              <i data-lucide="arrow-left-right" style="width:20px; color:var(--text-tertiary)"></i>
+            </div>
+            <input type="number" class="form-input" id="input-lbs" placeholder="lbs" step="0.1">
+          </div>
+        </div>
+
+        <!-- History -->
+        <div class="section-title mt-4">
+          <i data-lucide="history" style="width:18px;height:18px;color:var(--accent-secondary)"></i>
+          History
+        </div>
+        <div id="weight-history-container">
+          <!-- Populated by JS -->
+        </div>
+      </section>
+
+      <!-- VIEW: HYPO -->
+      <section id="view-hypo" class="view" style="display: none;">
+        <div class="page-header">
+          <div class="page-title">Hypo Log</div>
+          <div class="page-subtitle">Track hypoglycemia episodes</div>
+        </div>
+
+        <!-- Log Episode -->
+        <div class="card">
+          <div class="card-title mb-4">New Episode</div>
+          <div class="form-group">
+            <label class="form-label">When did it happen?</label>
+            <input type="datetime-local" class="form-input" id="input-hypo-dt">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Location</label>
+            <input type="text" class="form-input" id="input-hypo-loc" placeholder="e.g. Gym, Work, Home">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Notes</label>
+            <textarea class="form-input" id="input-hypo-notes" rows="3" placeholder="How did you feel? What helped?" style="height: auto; padding: 12px 14px; resize: none;"></textarea>
+          </div>
+          <button type="button" class="btn btn-danger w-full" id="btn-log-hypo" style="background: rgba(239, 68, 68, 0.15); color: var(--accent-danger);">Log Episode</button>
+        </div>
+
+        <!-- History -->
+        <div class="section-title mt-4">
+          <i data-lucide="activity" style="width:18px;height:18px;color:var(--accent-danger)"></i>
+          History
+        </div>
+        <div id="hypo-history-container">
+          <!-- Populated by JS -->
+        </div>
+      </section>
+
+      <!-- VIEW: FOODS -->
+      <section id="view-foods" class="view" style="display: none;">
+        <div class="page-header">
+          <div class="page-title">Foods</div>
+          <div class="page-subtitle">Browse your food database</div>
+        </div>
+
+        <div class="search-container">
+          <i data-lucide="search" class="search-icon"></i>
+          <input type="text" class="search-input" id="input-food-search" placeholder="Search foods, brands...">
+        </div>
+
+        <div id="food-list-container">
+          <!-- Populated by JS -->
+        </div>
+      </section>
+
+      <!-- VIEW: RECIPES -->
+      <section id="view-recipes" class="view" style="display: none;">
+        <div class="page-header">
+          <div class="page-title">Recipes</div>
+          <div class="page-subtitle">Meal ideas & blueprints</div>
+        </div>
+
+        <div class="search-container">
+          <i data-lucide="search" class="search-icon"></i>
+          <input type="text" class="search-input" id="input-recipe-search" placeholder="Search recipes...">
+        </div>
+
+        <div id="recipe-list-container">
+          <!-- Populated by JS -->
+        </div>
+      </section>
+
+    </main>
+
+    <!-- === FLOATING ACTION BUTTON === -->
+    <button type="button" class="fab" id="fab-add" aria-label="Add Meal">+</button>
+
+    <!-- === BOTTOM NAVIGATION === -->
+    <nav class="bottom-nav">
+      <button type="button" class="nav-item active" data-view="dashboard">
+        <div class="nav-icon"><i data-lucide="layout-grid"></i></div>
+        <div class="nav-label">Home</div>
+      </button>
+      <button type="button" class="nav-item" data-view="weight">
+        <div class="nav-icon"><i data-lucide="trending-up"></i></div>
+        <div class="nav-label">Weight</div>
+      </button>
+      <button type="button" class="nav-item" data-view="hypo">
+        <div class="nav-icon"><i data-lucide="heart-pulse"></i></div>
+        <div class="nav-label">Hypo</div>
+      </button>
+      <button type="button" class="nav-item" data-view="foods">
+        <div class="nav-icon"><i data-lucide="apple"></i></div>
+        <div class="nav-label">Foods</div>
+      </button>
+      <button type="button" class="nav-item" data-view="recipes">
+        <div class="nav-icon"><i data-lucide="book-open"></i></div>
+        <div class="nav-label">Recipes</div>
+      </button>
+    </nav>
+
+    <!-- === BOTTOM SHEETS === -->
+
+    <!-- Sheet: Add Meal -->
+    <div class="bottom-sheet-overlay" id="overlay-add-meal"></div>
+    <div class="bottom-sheet" id="sheet-add-meal">
+      <div class="sheet-handle"></div>
+      <div class="sheet-header">
+        <div class="sheet-title">Log Meal</div>
+        <button type="button" class="sheet-close" data-close="sheet-add-meal">×</button>
+      </div>
+      <div class="sheet-body">
+        <div class="form-group">
+          <input type="text" class="form-input" id="meal-name" placeholder="Meal name (e.g. Chicken & Rice)">
+        </div>
+        <div class="form-group">
+          <select class="form-select" id="meal-type">
+            <option value="Breakfast">Breakfast</option>
+            <option value="Lunch">Lunch</option>
+            <option value="Dinner">Dinner</option>
+            <option value="Snack" selected>Snack</option>
+          </select>
+        </div>
+        <div class="form-row-3 mb-4">
+          <input type="number" class="form-input" id="meal-cal" placeholder="Calories">
+          <input type="number" class="form-input" id="meal-protein" placeholder="Protein (g)">
+          <input type="number" class="form-input" id="meal-carbs" placeholder="Carbs (g)">
+        </div>
+        <div class="form-row mb-4">
+          <input type="number" class="form-input" id="meal-fat" placeholder="Fat (g)">
+          <input type="number" class="form-input" id="meal-qty" placeholder="Servings" value="1" min="0.1" step="0.1">
+        </div>
+        <button type="button" class="btn btn-primary w-full" id="btn-save-meal">Save to Log</button>
+      </div>
+    </div>
+
+    <!-- Sheet: Food Detail -->
+    <div class="bottom-sheet-overlay" id="overlay-food-detail"></div>
+    <div class="bottom-sheet" id="sheet-food-detail">
+      <div class="sheet-handle"></div>
+      <div class="sheet-header">
+        <div class="sheet-title" id="food-detail-title">Food Name</div>
+        <button type="button" class="sheet-close" data-close="sheet-food-detail">×</button>
+      </div>
+      <div class="sheet-body">
+        <div class="mb-4">
+          <div class="text-center" style="font-size: 14px; color: var(--text-secondary);" id="food-detail-brand">Brand / Serving</div>
+          <div class="text-center mt-2" style="font-size: 28px; font-weight: 800;" id="food-detail-cal">0 kcal</div>
+        </div>
+        <div class="macro-stats mb-4">
+          <div class="macro-stat">
+            <div class="macro-stat-value text-protein" id="food-detail-p">0g</div>
+            <div class="macro-stat-label">Protein</div>
+          </div>
+          <div class="macro-stat">
+            <div class="macro-stat-value text-carbs" id="food-detail-c">0g</div>
+            <div class="macro-stat-label">Carbs</div>
+          </div>
+          <div class="macro-stat">
+            <div class="macro-stat-value text-fat" id="food-detail-f">0g</div>
+            <div class="macro-stat-label">Fat</div>
+          </div>
+        </div>
+        <div class="form-row mb-4">
+          <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label">Servings</label>
+            <input type="number" class="form-input" id="food-detail-qty" value="1" min="0.1" step="0.1">
+          </div>
+          <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label">Meal</label>
+            <select class="form-select" id="food-detail-mealtype">
+              <option value="Breakfast">Breakfast</option>
+              <option value="Lunch">Lunch</option>
+              <option value="Dinner">Dinner</option>
+              <option value="Snack" selected>Snack</option>
+            </select>
+          </div>
+        </div>
+        <button type="button" class="btn btn-primary w-full" id="btn-add-food-to-log">Add to Log</button>
+      </div>
+    </div>
+
+    <!-- Sheet: Recipe Detail -->
+    <div class="bottom-sheet-overlay" id="overlay-recipe-detail"></div>
+    <div class="bottom-sheet" id="sheet-recipe-detail">
+      <div class="sheet-handle"></div>
+      <div class="sheet-header">
+        <div class="sheet-title" id="recipe-detail-title">Recipe Name</div>
+        <button type="button" class="sheet-close" data-close="sheet-recipe-detail">×</button>
+      </div>
+      <div class="sheet-body">
+        <div class="mb-2">
+          <div class="text-center" style="font-size: 14px; color: var(--text-secondary);" id="recipe-detail-serves">Serves 1</div>
+          <div class="text-center mt-2" style="font-size: 28px; font-weight: 800;" id="recipe-detail-cal">0 kcal</div>
+        </div>
+        <div class="macro-stats mb-4">
+          <div class="macro-stat">
+            <div class="macro-stat-value text-protein" id="recipe-detail-p">0g</div>
+            <div class="macro-stat-label">Protein</div>
+          </div>
+          <div class="macro-stat">
+            <div class="macro-stat-value text-carbs" id="recipe-detail-c">0g</div>
+            <div class="macro-stat-label">Carbs</div>
+          </div>
+          <div class="macro-stat">
+            <div class="macro-stat-value text-fat" id="recipe-detail-f">0g</div>
+            <div class="macro-stat-label">Fat</div>
+          </div>
+        </div>
+
+        <div class="card-title mt-4">Description</div>
+        <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 16px;" id="recipe-detail-desc">Description here.</p>
+
+        <div class="card-title">Ingredients</div>
+        <ul style="font-size: 14px; color: var(--text-secondary); margin-bottom: 16px; padding-left: 20px; list-style: disc;" id="recipe-detail-ingredients"></ul>
+
+        <div class="card-title">Instructions</div>
+        <ol style="font-size: 14px; color: var(--text-secondary); margin-bottom: 16px; padding-left: 20px;" id="recipe-detail-instructions"></ol>
+
+        <div class="form-row mb-4">
+          <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label">Servings</label>
+            <input type="number" class="form-input" id="recipe-detail-qty" value="1" min="0.1" step="0.1">
+          </div>
+          <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label">Meal</label>
+            <select class="form-select" id="recipe-detail-mealtype">
+              <option value="Breakfast">Breakfast</option>
+              <option value="Lunch">Lunch</option>
+              <option value="Dinner">Dinner</option>
+              <option value="Snack">Snack</option>
+            </select>
+          </div>
+        </div>
+        <button type="button" class="btn btn-primary w-full" id="btn-add-recipe-to-log">Add to Log</button>
+      </div>
+    </div>
+
+    <!-- Sheet: Macro Calculator -->
+    <div class="bottom-sheet-overlay" id="overlay-calc"></div>
+    <div class="bottom-sheet" id="sheet-calc">
+      <div class="sheet-handle"></div>
+      <div class="sheet-header">
+        <div class="sheet-title">Macro Calculator</div>
+        <button type="button" class="sheet-close" data-close="sheet-calc">×</button>
+      </div>
+      <div class="sheet-body">
+        <div class="form-row mb-2">
+          <div class="form-group"><label class="form-label">Weight (lbs)</label><input type="number" class="form-input" id="calc-weight" placeholder="190"></div>
+          <div class="form-group"><label class="form-label">Height (in)</label><input type="number" class="form-input" id="calc-height" placeholder="72"></div>
+        </div>
+        <div class="form-row-3 mb-2">
+          <div class="form-group"><label class="form-label">Age</label><input type="number" class="form-input" id="calc-age" placeholder="19"></div>
+          <div class="form-group"><label class="form-label">Gender</label>
+            <select class="form-select" id="calc-gender">
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+            </select>
+          </div>
+          <div class="form-group"><label class="form-label">Activity</label>
+            <select class="form-select" id="calc-activity">
+              <option value="1.2">Sedentary</option>
+              <option value="1.375">Light</option>
+              <option value="1.55" selected>Moderate</option>
+              <option value="1.725">Active</option>
+              <option value="1.9">Very</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Goal</label>
+          <select class="form-select" id="calc-goal">
+            <option value="250">Bulk (+250 cal)</option>
+            <option value="0">Maintain</option>
+            <option value="-500">Cut (-500 cal)</option>
+          </select>
+        </div>
+        <button type="button" class="btn btn-secondary w-full mb-4" id="btn-calc-macros">Calculate</button>
+
+        <div id="calc-results" style="display: none;">
+          <div class="card-title">Recommended Daily Intake</div>
+          <div class="macro-stats mb-4">
+            <div class="macro-stat">
+              <div class="macro-stat-value" id="calc-res-cal" style="color:var(--accent-primary)">0</div>
+              <div class="macro-stat-label">Calories</div>
+            </div>
+            <div class="macro-stat">
+              <div class="macro-stat-value text-protein" id="calc-res-p">0g</div>
+              <div class="macro-stat-label">Protein</div>
+            </div>
+            <div class="macro-stat">
+              <div class="macro-stat-value text-carbs" id="calc-res-c">0g</div>
+              <div class="macro-stat-label">Carbs</div>
+            </div>
+          </div>
+          <div class="flex justify-center mb-4">
+            <div class="macro-stat" style="width: 33%;">
+              <div class="macro-stat-value text-fat" id="calc-res-f">0g</div>
+              <div class="macro-stat-label">Fat</div>
+            </div>
+          </div>
+          <button type="button" class="btn btn-primary w-full" id="btn-apply-calc">Use These As My Goal</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sheet: Set Goals -->
+    <div class="bottom-sheet-overlay" id="overlay-goals"></div>
+    <div class="bottom-sheet" id="sheet-goals">
+      <div class="sheet-handle"></div>
+      <div class="sheet-header">
+        <div class="sheet-title">Daily Goals</div>
+        <button type="button" class="sheet-close" data-close="sheet-goals">×</button>
+      </div>
+      <div class="sheet-body">
+        <div class="form-group">
+          <label class="form-label">Calories</label>
+          <input type="number" class="form-input" id="goal-cal" placeholder="2400">
+        </div>
+        <div class="form-row-3">
+          <div class="form-group"><label class="form-label">Protein (g)</label><input type="number" class="form-input" id="goal-protein" placeholder="180"></div>
+          <div class="form-group"><label class="form-label">Carbs (g)</label><input type="number" class="form-input" id="goal-carbs" placeholder="250"></div>
+          <div class="form-group"><label class="form-label">Fat (g)</label><input type="number" class="form-input" id="goal-fat" placeholder="80"></div>
+        </div>
+        <button type="button" class="btn btn-primary w-full mt-2" id="btn-save-goals">Save Goals</button>
+      </div>
+    </div>
+
+    <!-- Sheet: Hypo Recovery -->
+    <div class="bottom-sheet-overlay" id="overlay-recovery"></div>
+    <div class="bottom-sheet" id="sheet-recovery">
+      <div class="sheet-handle"></div>
+      <div class="sheet-header">
+        <div class="sheet-title">Mark Recovery</div>
+        <button type="button" class="sheet-close" data-close="sheet-recovery">×</button>
+      </div>
+      <div class="sheet-body">
+        <div class="form-group">
+          <label class="form-label">When did you feel better?</label>
+          <input type="datetime-local" class="form-input" id="input-recovery-dt">
+        </div>
+        <button type="button" class="btn btn-primary w-full" id="btn-save-recovery">Save Recovery Time</button>
+      </div>
+    </div>
+
+    <!-- Sheet: Set Weight Goals -->
+    <div class="bottom-sheet-overlay" id="overlay-weight-goals"></div>
+    <div class="bottom-sheet" id="sheet-weight-goals">
+      <div class="sheet-handle"></div>
+      <div class="sheet-header">
+        <div class="sheet-title">Weight Goals</div>
+        <button type="button" class="sheet-close" data-close="sheet-weight-goals">×</button>
+      </div>
+      <div class="sheet-body">
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Current Weight</label><input type="number" class="form-input" id="w-goal-current" step="0.1"></div>
+          <div class="form-group"><label class="form-label">Goal Weight</label><input type="number" class="form-input" id="w-goal-target" step="0.1"></div>
+        </div>
+        <button type="button" class="btn btn-primary w-full mt-2" id="btn-save-weight-goals">Save</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Init Icons after DOM loads -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      if (window.lucide) lucide.createIcons();
+    });
+
+  </script>
+  <script>
+    // =========================================================
+    // DATA DATABASES (From original request)
+    // =========================================================
+    const FOOD_DB = [
+      // MEALS - Fast Food - Taco Bell Combos
+      {
+        name: "2 Chicken Chalupas Supreme Combo",
+        brand: "Taco Bell",
+        serving: "2 chalupas + drink + fries",
+        cal: 1050,
+        protein: 36,
+        carbs: 122,
+        fat: 48,
+        category: "MEALS"
+      },
+      {
+        name: "3 Doritos Locos Tacos Combo",
+        brand: "Taco Bell",
+        serving: "3 tacos + drink + fries",
+        cal: 980,
+        protein: 29,
+        carbs: 118,
+        fat: 45,
+        category: "MEALS"
+      },
+      {
+        name: "5 Layer Burrito Combo",
+        brand: "Taco Bell",
+        serving: "burrito + drink + fries",
+        cal: 1040,
+        protein: 25,
+        carbs: 143,
+        fat: 42,
+        category: "MEALS"
+      },
+      {
+        name: "Bean Burrito",
+        brand: "Taco Bell",
+        serving: "1 burrito",
+        cal: 350,
+        protein: 13,
+        carbs: 54,
+        fat: 9,
+        category: "MEALS"
+      },
+      {
+        name: "Burrito Supreme Combo",
+        brand: "Taco Bell",
+        serving: "burrito + drink + fries",
+        cal: 1060,
+        protein: 28,
+        carbs: 141,
+        fat: 44,
+        category: "MEALS"
+      },
+      {
+        name: "Cheesy Gordita Crunch Combo",
+        brand: "Taco Bell",
+        serving: "gordita + drink + fries",
+        cal: 1020,
+        protein: 31,
+        carbs: 124,
+        fat: 47,
+        category: "MEALS"
+      },
+      {
+        name: "Chicken Quesadilla",
+        brand: "Taco Bell",
+        serving: "1 quesadilla",
+        cal: 510,
+        protein: 27,
+        carbs: 39,
+        fat: 27,
+        category: "MEALS"
+      },
+      {
+        name: "Chicken Quesadilla Combo",
+        brand: "Taco Bell",
+        serving: "quesadilla + drink + fries",
+        cal: 1110,
+        protein: 33,
+        carbs: 135,
+        fat: 51,
+        category: "MEALS"
+      },
+      {
+        name: "Crunchwrap Supreme",
+        brand: "Taco Bell",
+        serving: "1 crunchwrap",
+        cal: 540,
+        protein: 16,
+        carbs: 71,
+        fat: 21,
+        category: "MEALS"
+      },
+      {
+        name: "Crunchwrap Supreme Combo",
+        brand: "Taco Bell",
+        serving: "crunchwrap + drink + fries",
+        cal: 1140,
+        protein: 22,
+        carbs: 167,
+        fat: 45,
+        category: "MEALS"
+      },
+      {
+        name: "Nachos BellGrande",
+        brand: "Taco Bell",
+        serving: "1 order",
+        cal: 740,
+        protein: 19,
+        carbs: 82,
+        fat: 38,
+        category: "MEALS"
+      },
+      {
+        name: "Nachos BellGrande Combo",
+        brand: "Taco Bell",
+        serving: "nachos + drink",
+        cal: 960,
+        protein: 19,
+        carbs: 128,
+        fat: 38,
+        category: "MEALS"
+      },
+      {
+        name: "Soft Taco",
+        brand: "Beef - Taco Bell",
+        serving: "1 taco",
+        cal: 180,
+        protein: 9,
+        carbs: 18,
+        fat: 9,
+        category: "MEALS"
+      },
+      {
+        name: "Soft Taco Supreme",
+        brand: "Taco Bell",
+        serving: "1 taco",
+        cal: 210,
+        protein: 9,
+        carbs: 20,
+        fat: 10,
+        category: "MEALS"
+      },
+      // MEALS - Other Fast Food
+      {
+        name: "10 Piece Chicken McNuggets",
+        brand: "McDonalds",
+        serving: "10 pieces",
+        cal: 410,
+        protein: 22,
+        carbs: 26,
+        fat: 25,
+        category: "MEALS"
+      },
+      {
+        name: "6 Piece Chicken McNuggets",
+        brand: "McDonalds",
+        serving: "6 pieces",
+        cal: 250,
+        protein: 14,
+        carbs: 15,
+        fat: 15,
+        category: "MEALS"
+      },
+      {
+        name: "4 Piece Chicken McNuggets",
+        brand: "McDonalds",
+        serving: "4 pieces",
+        cal: 170,
+        protein: 9,
+        carbs: 10,
+        fat: 10,
+        category: "MEALS"
+      },
+      {
+        name: "Big Mac",
+        brand: "McDonalds",
+        serving: "1 burger",
+        cal: 550,
+        protein: 25,
+        carbs: 45,
+        fat: 30,
+        category: "MEALS"
+      },
+      {
+        name: "Cheeseburger",
+        brand: "Dick's Drive-In",
+        serving: "1 burger",
+        cal: 440,
+        protein: 20,
+        carbs: 35,
+        fat: 24,
+        category: "MEALS"
+      },
+      {
+        name: "Chicken Burrito",
+        brand: "Chipotle",
+        serving: "1 burrito",
+        cal: 885,
+        protein: 50,
+        carbs: 100,
+        fat: 35,
+        category: "MEALS"
+      },
+      {
+        name: "Chicken Sandwich",
+        brand: "Chick-fil-A",
+        serving: "1 sandwich",
+        cal: 440,
+        protein: 28,
+        carbs: 41,
+        fat: 19,
+        category: "MEALS"
+      },
+      {
+        name: "Classic Roast Beef",
+        brand: "Arby's",
+        serving: "1 sandwich",
+        cal: 360,
+        protein: 23,
+        carbs: 37,
+        fat: 14,
+        category: "MEALS"
+      },
+      {
+        name: "Dave's Single",
+        brand: "Wendy's",
+        serving: "1 burger",
+        cal: 570,
+        protein: 32,
+        carbs: 40,
+        fat: 33,
+        category: "MEALS"
+      },
+      {
+        name: "Deluxe Cheeseburger",
+        brand: "Dick's Drive-In",
+        serving: "1 burger",
+        cal: 510,
+        protein: 22,
+        carbs: 38,
+        fat: 29,
+        category: "MEALS"
+      },
+      {
+        name: "Double-Double",
+        brand: "In-N-Out",
+        serving: "1 burger",
+        cal: 670,
+        protein: 37,
+        carbs: 39,
+        fat: 41,
+        category: "MEALS"
+      },
+      {
+        name: "Egg McMuffin",
+        brand: "McDonalds",
+        serving: "1 sandwich",
+        cal: 310,
+        protein: 17,
+        carbs: 30,
+        fat: 13,
+        category: "MEALS"
+      },
+      {
+        name: "Footlong Cold Cut Combo",
+        brand: "Subway",
+        serving: "1 sub",
+        cal: 760,
+        protein: 38,
+        carbs: 92,
+        fat: 28,
+        category: "MEALS"
+      },
+      {
+        name: "Footlong Turkey Breast",
+        brand: "Subway",
+        serving: "1 sub",
+        cal: 560,
+        protein: 36,
+        carbs: 92,
+        fat: 8,
+        category: "MEALS"
+      },
+      {
+        name: "Grilled Chicken Sandwich",
+        brand: "Chick-fil-A",
+        serving: "1 sandwich",
+        cal: 390,
+        protein: 28,
+        carbs: 44,
+        fat: 12,
+        category: "MEALS"
+      },
+      {
+        name: "Hamburger",
+        brand: "Dick's Drive-In",
+        serving: "1 burger",
+        cal: 400,
+        protein: 19,
+        carbs: 35,
+        fat: 20,
+        category: "MEALS"
+      },
+      {
+        name: "Hot Dog",
+        brand: "Costco",
+        serving: "1 hot dog + bun",
+        cal: 570,
+        protein: 24,
+        carbs: 45,
+        fat: 32,
+        category: "MEALS"
+      },
+      {
+        name: "Original Recipe Chicken Breast",
+        brand: "KFC",
+        serving: "1 piece",
+        cal: 390,
+        protein: 39,
+        carbs: 11,
+        fat: 21,
+        category: "MEALS"
+      },
+      {
+        name: "Pepperoni Pizza Slice",
+        brand: "Costco",
+        serving: "1 slice",
+        cal: 710,
+        protein: 34,
+        carbs: 70,
+        fat: 32,
+        category: "MEALS"
+      },
+      {
+        name: "Quarter Pounder with Cheese",
+        brand: "McDonalds",
+        serving: "1 burger",
+        cal: 520,
+        protein: 30,
+        carbs: 42,
+        fat: 26,
+        category: "MEALS"
+      },
+      {
+        name: "Sausage Burrito",
+        brand: "McDonalds",
+        serving: "1 burrito",
+        cal: 310,
+        protein: 13,
+        carbs: 25,
+        fat: 17,
+        category: "MEALS"
+      },
+      {
+        name: "Special",
+        brand: "Dick's Drive-In",
+        serving: "1 burger",
+        cal: 480,
+        protein: 21,
+        carbs: 37,
+        fat: 27,
+        category: "MEALS"
+      },
+      {
+        name: "Spicy Chicken Sandwich",
+        brand: "Chick-fil-A",
+        serving: "1 sandwich",
+        cal: 490,
+        protein: 29,
+        carbs: 41,
+        fat: 25,
+        category: "MEALS"
+      },
+      {
+        name: "Whopper",
+        brand: "Burger King",
+        serving: "1 burger",
+        cal: 660,
+        protein: 28,
+        carbs: 49,
+        fat: 40,
+        category: "MEALS"
+      },
+      {
+        name: "Whopper Jr",
+        brand: "Burger King",
+        serving: "1 burger",
+        cal: 310,
+        protein: 13,
+        carbs: 27,
+        fat: 18,
+        category: "MEALS"
+      },
+      // MEALS - Grocery/Cooked
+      {
+        name: "Bison Patties",
+        brand: "85/15",
+        serving: "4oz",
+        cal: 200,
+        protein: 22,
+        carbs: 0,
+        fat: 12,
+        category: "MEALS"
+      },
+      {
+        name: "Chicken Breast",
+        brand: "Grilled",
+        serving: "4oz",
+        cal: 180,
+        protein: 35,
+        carbs: 0,
+        fat: 4,
+        category: "MEALS"
+      },
+      {
+        name: "Chicken Thigh",
+        brand: "Boneless Skinless",
+        serving: "4oz",
+        cal: 210,
+        protein: 26,
+        carbs: 0,
+        fat: 12,
+        category: "MEALS"
+      },
+      {
+        name: "Chili 5-10oz Ripper",
+        brand: "Generic",
+        serving: "10oz",
+        cal: 320,
+        protein: 24,
+        carbs: 30,
+        fat: 12,
+        category: "MEALS"
+      },
+      {
+        name: "Ground Beef 93/7",
+        brand: "Generic",
+        serving: "4oz",
+        cal: 170,
+        protein: 24,
+        carbs: 0,
+        fat: 8,
+        category: "MEALS"
+      },
+      {
+        name: "Ground Turkey 93/7",
+        brand: "Generic",
+        serving: "4oz",
+        cal: 170,
+        protein: 22,
+        carbs: 0,
+        fat: 9,
+        category: "MEALS"
+      },
+      {
+        name: "Pulled Pork Sandwich",
+        brand: "BBQ",
+        serving: "1 sandwich",
+        cal: 450,
+        protein: 28,
+        carbs: 45,
+        fat: 18,
+        category: "MEALS"
+      },
+      {
+        name: "Rotisserie Chicken",
+        brand: "Costco Breast",
+        serving: "3oz",
+        cal: 140,
+        protein: 26,
+        carbs: 0,
+        fat: 3,
+        category: "MEALS"
+      },
+      {
+        name: "Rotisserie Chicken",
+        brand: "Costco Dark Meat",
+        serving: "3oz",
+        cal: 180,
+        protein: 20,
+        carbs: 0,
+        fat: 11,
+        category: "MEALS"
+      },
+      {
+        name: "Salmon Fillet",
+        brand: "Atlantic",
+        serving: "4oz",
+        cal: 230,
+        protein: 25,
+        carbs: 0,
+        fat: 14,
+        category: "MEALS"
+      },
+      {
+        name: "Shrimp",
+        brand: "Cooked",
+        serving: "3oz",
+        cal: 85,
+        protein: 18,
+        carbs: 0,
+        fat: 1,
+        category: "MEALS"
+      },
+      {
+        name: "Steak",
+        brand: "Sirloin",
+        serving: "4oz",
+        cal: 240,
+        protein: 32,
+        carbs: 0,
+        fat: 12,
+        category: "MEALS"
+      },
+      {
+        name: "Stir Fry",
+        brand: "Chicken + Veg",
+        serving: "1 cup",
+        cal: 180,
+        protein: 15,
+        carbs: 15,
+        fat: 7,
+        category: "MEALS"
+      },
+      {
+        name: "Tilapia",
+        brand: "Baked",
+        serving: "4oz",
+        cal: 110,
+        protein: 23,
+        carbs: 0,
+        fat: 2,
+        category: "MEALS"
+      },
+      {
+        name: "Tri-Tip Steak",
+        brand: "Grilled",
+        serving: "4oz",
+        cal: 260,
+        protein: 30,
+        carbs: 0,
+        fat: 16,
+        category: "MEALS"
+      },
+      {
+        name: "Turkey Breast",
+        brand: "Deli Sliced",
+        serving: "4oz",
+        cal: 120,
+        protein: 24,
+        carbs: 2,
+        fat: 2,
+        category: "MEALS"
+      },
+      // SNACKS - Kirkland/Costco
+      {
+        name: "Bowl of Chips",
+        brand: "Kirkland Tortilla Chips",
+        serving: "2oz / 15 chips",
+        cal: 280,
+        protein: 4,
+        carbs: 32,
+        fat: 16,
+        category: "SNACKS"
+      },
+      {
+        name: "Cheese",
+        brand: "Cheddar Block",
+        serving: "1oz",
+        cal: 110,
+        protein: 7,
+        carbs: 0,
+        fat: 9,
+        category: "SNACKS"
+      },
+      {
+        name: "Cheese",
+        brand: "Mozzarella Part Skim",
+        serving: "1oz",
+        cal: 80,
+        protein: 7,
+        carbs: 1,
+        fat: 6,
+        category: "SNACKS"
+      },
+      {
+        name: "Cheese",
+        brand: "String Cheese",
+        serving: "1 stick",
+        cal: 80,
+        protein: 7,
+        carbs: 1,
+        fat: 6,
+        category: "SNACKS"
+      },
+      {
+        name: "Vanilla Kirkland Ice Cream Fruit Milkshake",
+        brand: "Homemade",
+        serving: "16oz",
+        cal: 580,
+        protein: 15,
+        carbs: 72,
+        fat: 26,
+        category: "SNACKS"
+      },
+      {
+        name: "Kirkland Cookies",
+        brand: "Chocolate Chip",
+        serving: "1 cookie",
+        cal: 220,
+        protein: 3,
+        carbs: 30,
+        fat: 11,
+        category: "SNACKS"
+      },
+      {
+        name: "Kirkland Popcorn",
+        brand: "Buttered",
+        serving: "3 cups",
+        cal: 180,
+        protein: 3,
+        carbs: 18,
+        fat: 12,
+        category: "SNACKS"
+      },
+      {
+        name: "Kirkland Mixed Nuts",
+        brand: "Roasted Salted",
+        serving: "1oz",
+        cal: 170,
+        protein: 5,
+        carbs: 6,
+        fat: 15,
+        category: "SNACKS"
+      },
+      {
+        name: "Kirkland Protein Bar",
+        brand: "Cookie Dough",
+        serving: "1 bar",
+        cal: 190,
+        protein: 21,
+        carbs: 22,
+        fat: 7,
+        category: "SNACKS"
+      },
+      {
+        name: "Kirkland Trail Mix",
+        brand: "Sweet & Salty",
+        serving: "1/3 cup",
+        cal: 200,
+        protein: 5,
+        carbs: 22,
+        fat: 11,
+        category: "SNACKS"
+      },
+      // SNACKS - Walmart Candy Aisle
+      {
+        name: "Reese's Peanut Butter Cups",
+        brand: "Reese's",
+        serving: "2 cups",
+        cal: 220,
+        protein: 5,
+        carbs: 24,
+        fat: 13,
+        category: "SNACKS"
+      },
+      {
+        name: "M&M's",
+        brand: "Milk Chocolate",
+        serving: "1.69oz pack",
+        cal: 240,
+        protein: 2,
+        carbs: 34,
+        fat: 10,
+        category: "SNACKS"
+      },
+      {
+        name: "M&M's",
+        brand: "Peanut",
+        serving: "1.74oz pack",
+        cal: 250,
+        protein: 5,
+        carbs: 30,
+        fat: 13,
+        category: "SNACKS"
+      },
+      {
+        name: "Snickers Bar",
+        brand: "Snickers",
+        serving: "1 bar 1.86oz",
+        cal: 250,
+        protein: 4,
+        carbs: 33,
+        fat: 12,
+        category: "SNACKS"
+      },
+      {
+        name: "Twix",
+        brand: "Caramel Cookie",
+        serving: "2 bars 1.79oz",
+        cal: 250,
+        protein: 3,
+        carbs: 34,
+        fat: 12,
+        category: "SNACKS"
+      },
+      {
+        name: "Kit Kat",
+        brand: "Milk Chocolate",
+        serving: "4 fingers 1.5oz",
+        cal: 210,
+        protein: 3,
+        carbs: 27,
+        fat: 11,
+        category: "SNACKS"
+      },
+      {
+        name: "Skittles",
+        brand: "Original",
+        serving: "2oz pack",
+        cal: 250,
+        protein: 0,
+        carbs: 56,
+        fat: 2,
+        category: "SNACKS"
+      },
+      {
+        name: "Starburst",
+        brand: "Original",
+        serving: "8 pieces",
+        cal: 160,
+        protein: 0,
+        carbs: 34,
+        fat: 3,
+        category: "SNACKS"
+      },
+      {
+        name: "Sour Patch Kids",
+        brand: "Original",
+        serving: "16 pieces",
+        cal: 150,
+        protein: 0,
+        carbs: 38,
+        fat: 0,
+        category: "SNACKS"
+      },
+      {
+        name: "Swedish Fish",
+        brand: "Original",
+        serving: "5 pieces",
+        cal: 110,
+        protein: 0,
+        carbs: 27,
+        fat: 0,
+        category: "SNACKS"
+      },
+      {
+        name: "Hershey's Bar",
+        brand: "Milk Chocolate",
+        serving: "1 bar 1.55oz",
+        cal: 220,
+        protein: 3,
+        carbs: 25,
+        fat: 13,
+        category: "SNACKS"
+      },
+      {
+        name: "Hershey's",
+        brand: "Cookies 'n' Creme",
+        serving: "1 bar 1.55oz",
+        cal: 220,
+        protein: 3,
+        carbs: 26,
+        fat: 12,
+        category: "SNACKS"
+      },
+      {
+        name: "Milky Way",
+        brand: "Original",
+        serving: "1 bar 1.84oz",
+        cal: 240,
+        protein: 2,
+        carbs: 41,
+        fat: 9,
+        category: "SNACKS"
+      },
+      {
+        name: "3 Musketeers",
+        brand: "Original",
+        serving: "1 bar 1.92oz",
+        cal: 240,
+        protein: 2,
+        carbs: 46,
+        fat: 7,
+        category: "SNACKS"
+      },
+      {
+        name: "Butterfinger",
+        brand: "Original",
+        serving: "1 bar 1.9oz",
+        cal: 270,
+        protein: 3,
+        carbs: 43,
+        fat: 11,
+        category: "SNACKS"
+      },
+      {
+        name: "PayDay",
+        brand: "Peanut Caramel",
+        serving: "1 bar 1.85oz",
+        cal: 240,
+        protein: 7,
+        carbs: 26,
+        fat: 13,
+        category: "SNACKS"
+      },
+      {
+        name: "Baby Ruth",
+        brand: "Original",
+        serving: "1 bar 1.9oz",
+        cal: 275,
+        protein: 5,
+        carbs: 33,
+        fat: 14,
+        category: "SNACKS"
+      },
+      {
+        name: "Almond Joy",
+        brand: "Coconut Almond",
+        serving: "2 bars 1.61oz",
+        cal: 220,
+        protein: 2,
+        carbs: 26,
+        fat: 13,
+        category: "SNACKS"
+      },
+      {
+        name: "Mounds",
+        brand: "Dark Chocolate Coconut",
+        serving: "2 bars 1.61oz",
+        cal: 230,
+        protein: 2,
+        carbs: 28,
+        fat: 13,
+        category: "SNACKS"
+      },
+      {
+        name: "Gummy Bears",
+        brand: "Haribo",
+        serving: "17 pieces",
+        cal: 140,
+        protein: 2,
+        carbs: 32,
+        fat: 0,
+        category: "SNACKS"
+      },
+      {
+        name: "Gummy Worms",
+        brand: "Trolli Sour Brite",
+        serving: "10 pieces",
+        cal: 150,
+        protein: 1,
+        carbs: 36,
+        fat: 0,
+        category: "SNACKS"
+      },
+      {
+        name: "Jolly Rancher",
+        brand: "Hard Candy",
+        serving: "3 pieces",
+        cal: 70,
+        protein: 0,
+        carbs: 17,
+        fat: 0,
+        category: "SNACKS"
+      },
+      {
+        name: "Twizzlers",
+        brand: "Strawberry",
+        serving: "4 pieces",
+        cal: 160,
+        protein: 1,
+        carbs: 38,
+        fat: 0,
+        category: "SNACKS"
+      },
+      {
+        name: "Airheads",
+        brand: "Assorted",
+        serving: "1 bar 0.55oz",
+        cal: 60,
+        protein: 0,
+        carbs: 14,
+        fat: 1,
+        category: "SNACKS"
+      },
+      {
+        name: "Nerds",
+        brand: "Rainbow",
+        serving: "1 box 1.65oz",
+        cal: 250,
+        protein: 0,
+        carbs: 60,
+        fat: 0,
+        category: "SNACKS"
+      },
+      {
+        name: "Pop Rocks",
+        brand: "Strawberry",
+        serving: "1 pack",
+        cal: 30,
+        protein: 0,
+        carbs: 8,
+        fat: 0,
+        category: "SNACKS"
+      },
+      {
+        name: "Ring Pop",
+        brand: "Assorted",
+        serving: "1 pop",
+        cal: 50,
+        protein: 0,
+        carbs: 13,
+        fat: 0,
+        category: "SNACKS"
+      },
+      // SNACKS - General
+      {
+        name: "7 Layer Bean Dip",
+        brand: "Generic",
+        serving: "1/4 cup",
+        cal: 180,
+        protein: 6,
+        carbs: 18,
+        fat: 9,
+        category: "SNACKS"
+      },
+      {
+        name: "A&W Root Beer",
+        brand: "Regular",
+        serving: "12oz can",
+        cal: 170,
+        protein: 0,
+        carbs: 46,
+        fat: 0,
+        category: "SNACKS"
+      },
+      {
+        name: "Apple",
+        brand: "Medium",
+        serving: "1 apple",
+        cal: 95,
+        protein: 0,
+        carbs: 25,
+        fat: 0,
+        category: "SNACKS"
+      },
+      {
+        name: "Bagel",
+        brand: "Plain",
+        serving: "1 bagel",
+        cal: 270,
+        protein: 11,
+        carbs: 55,
+        fat: 1,
+        category: "SNACKS"
+      },
+      {
+        name: "Banana",
+        brand: "Medium",
+        serving: "1 banana",
+        cal: 105,
+        protein: 1,
+        carbs: 27,
+        fat: 0,
+        category: "SNACKS"
+      },
+      {
+        name: "Beef Jerky",
+        brand: "Jack Link's Teriyaki",
+        serving: "1oz",
+        cal: 80,
+        protein: 9,
+        carbs: 3,
+        fat: 1,
+        category: "SNACKS"
+      },
+      {
+        name: "Beef Sticks",
+        brand: "Chomps",
+        serving: "1 stick",
+        cal: 100,
+        protein: 9,
+        carbs: 0,
+        fat: 7,
+        category: "SNACKS"
+      },
+      {
+        name: "Biscuit",
+        brand: "Buttermilk",
+        serving: "1 biscuit",
+        cal: 210,
+        protein: 3,
+        carbs: 27,
+        fat: 10,
+        category: "SNACKS"
+      },
+      {
+        name: "Bread",
+        brand: "White",
+        serving: "2 slices",
+        cal: 160,
+        protein: 6,
+        carbs: 30,
+        fat: 2,
+        category: "SNACKS"
+      },
+      {
+        name: "Broccoli",
+        brand: "Steamed",
+        serving: "1 cup",
+        cal: 55,
+        protein: 4,
+        carbs: 11,
+        fat: 0,
+        category: "SNACKS"
+      },
+      {
+        name: "Brownie",
+        brand: "Fudge - Costco",
+        serving: "1 brownie",
+        cal: 410,
+        protein: 5,
+        carbs: 59,
+        fat: 18,
+        category: "SNACKS"
+      },
+      {
+        name: "Built Bar",
+        brand: "Cookie Dough",
+        serving: "1 bar",
+        cal: 180,
+        protein: 17,
+        carbs: 18,
+        fat: 4,
+        category: "SNACKS"
+      },
+      {
+        name: "Cane Energy",
+        brand: "Monster",
+        serving: "16oz",
+        cal: 210,
+        protein: 0,
+        carbs: 54,
+        fat: 0,
+        category: "SNACKS"
+      },
+      {
+        name: "Cheese Pizza",
+        brand: "Large",
+        serving: "1 slice",
+        cal: 280,
+        protein: 12,
+        carbs: 36,
+        fat: 10,
+        category: "SNACKS"
+      },
+      {
+        name: "Chips",
+        brand: "Kettle Cooked",
+        serving: "1oz",
+        cal: 150,
+        protein: 2,
+        carbs: 15,
+        fat: 9,
+        category: "SNACKS"
+      },
+      {
+        name: "Chocolate Muffin",
+        brand: "Costco",
+        serving: "1 muffin",
+        cal: 690,
+        protein: 10,
+        carbs: 83,
+        fat: 35,
+        category: "SNACKS"
+      },
+      {
+        name: "Cottage Cheese",
+        brand: "Lowfat",
+        serving: "1/2 cup",
+        cal: 90,
+        protein: 13,
+        carbs: 5,
+        fat: 2,
+        category: "SNACKS"
+      },
+      {
+        name: "Cream Cheese",
+        brand: "Regular",
+        serving: "2 tbsp",
+        cal: 100,
+        protein: 2,
+        carbs: 2,
+        fat: 10,
+        category: "SNACKS"
+      },
+      {
+        name: "Dick's Fries",
+        brand: "Dick's Drive-In",
+        serving: "Regular",
+        cal: 480,
+        protein: 6,
+        carbs: 60,
+        fat: 24,
+        category: "SNACKS"
+      },
+      {
+        name: "Dick's Milkshake",
+        brand: "Dick's Drive-In Chocolate",
+        serving: "16oz",
+        cal: 670,
+        protein: 16,
+        carbs: 96,
+        fat: 24,
+        category: "SNACKS"
+      },
+      {
+        name: "Donut",
+        brand: "Glazed",
+        serving: "1 donut",
+        cal: 190,
+        protein: 2,
+        carbs: 22,
+        fat: 11,
+        category: "SNACKS"
+      },
+      {
+        name: "Egg Whites",
+        brand: "Carton",
+        serving: "1/2 cup",
+        cal: 60,
+        protein: 12,
+        carbs: 0,
+        fat: 0,
+        category: "SNACKS"
+      },
+      {
+        name: "Eggs",
+        brand: "Large",
+        serving: "1 egg",
+        cal: 70,
+        protein: 6,
+        carbs: 0,
+        fat: 5,
+        category: "SNACKS"
+      },
+      {
+        name: "Gatorade",
+        brand: "Fruit Punch",
+        serving: "20oz",
+        cal: 140,
+        protein: 0,
+        carbs: 36,
+        fat: 0,
+        category: "SNACKS"
+      },
+      {
+        name: "Greek Yogurt",
+        brand: "Oikos Triple Zero",
+        serving: "5.3oz",
+        cal: 100,
+        protein: 15,
+        carbs: 7,
+        fat: 0,
+        category: "SNACKS"
+      },
+      {
+        name: "Greek Yogurt",
+        brand: "Plain Nonfat",
+        serving: "1 cup",
+        cal: 130,
+        protein: 23,
+        carbs: 9,
+        fat: 0,
+        category: "SNACKS"
+      },
+      {
+        name: "Hot Cheetos",
+        brand: "Flamin Hot",
+        serving: "1oz",
+        cal: 170,
+        protein: 2,
+        carbs: 15,
+        fat: 11,
+        category: "SNACKS"
+      },
+      {
+        name: "Hummus",
+        brand: "Classic",
+        serving: "2 tbsp",
+        cal: 70,
+        protein: 2,
+        carbs: 4,
+        fat: 5,
+        category: "SNACKS"
+      },
+      {
+        name: "Ice Cream",
+        brand: "Vanilla",
+        serving: "1/2 cup",
+        cal: 140,
+        protein: 2,
+        carbs: 16,
+        fat: 7,
+        category: "SNACKS"
+      },
+      {
+        name: "Instant Ramen",
+        brand: "Maruchan",
+        serving: "1 package",
+        cal: 380,
+        protein: 8,
+        carbs: 52,
+        fat: 14,
+        category: "SNACKS"
+      },
+      {
+        name: "Kodiak Cakes",
+        brand: "Buttermilk",
+        serving: "1/2 cup dry",
+        cal: 190,
+        protein: 14,
+        carbs: 30,
+        fat: 2,
+        category: "SNACKS"
+      },
+      {
+        name: "Milk",
+        brand: "2%",
+        serving: "1 cup",
+        cal: 120,
+        protein: 8,
+        carbs: 12,
+        fat: 5,
+        category: "SNACKS"
+      },
+      {
+        name: "Milkshake",
+        brand: "Vanilla",
+        serving: "16oz",
+        cal: 550,
+        protein: 13,
+        carbs: 80,
+        fat: 20,
+        category: "SNACKS"
+      },
+      {
+        name: "Olive Oil",
+        brand: "Extra Virgin",
+        serving: "1 tbsp",
+        cal: 120,
+        protein: 0,
+        carbs: 0,
+        fat: 14,
+        category: "SNACKS"
+      },
+      {
+        name: "Peanut Butter",
+        brand: "Creamy",
+        serving: "2 tbsp",
+        cal: 190,
+        protein: 8,
+        carbs: 7,
+        fat: 16,
+        category: "SNACKS"
+      },
+      {
+        name: "Protein Bar",
+        brand: "Quest Chocolate Chip",
+        serving: "1 bar",
+        cal: 190,
+        protein: 21,
+        carbs: 21,
+        fat: 8,
+        category: "SNACKS"
+      },
+      {
+        name: "Protein Powder",
+        brand: "Whey",
+        serving: "1 scoop",
+        cal: 120,
+        protein: 24,
+        carbs: 3,
+        fat: 1,
+        category: "SNACKS"
+      },
+      {
+        name: "Rice Krispie Treat",
+        brand: "Generic",
+        serving: "1 treat",
+        cal: 90,
+        protein: 1,
+        carbs: 17,
+        fat: 2,
+        category: "SNACKS"
+      },
+      {
+        name: "Seltzer Water",
+        brand: "Generic",
+        serving: "12oz",
+        cal: 0,
+        protein: 0,
+        carbs: 0,
+        fat: 0,
+        category: "SNACKS"
+      },
+      {
+        name: "Sprite",
+        brand: "Regular",
+        serving: "12oz",
+        cal: 140,
+        protein: 0,
+        carbs: 38,
+        fat: 0,
+        category: "SNACKS"
+      },
+      {
+        name: "Sweet Potato",
+        brand: "Baked",
+        serving: "Medium",
+        cal: 115,
+        protein: 2,
+        carbs: 27,
+        fat: 0,
+        category: "SNACKS"
+      },
+      {
+        name: "Tortilla",
+        brand: "Flour Large",
+        serving: "1 tortilla",
+        cal: 210,
+        protein: 6,
+        carbs: 36,
+        fat: 5,
+        category: "SNACKS"
+      },
+      {
+        name: "Turkey Bacon",
+        brand: "Generic",
+        serving: "2 slices",
+        cal: 60,
+        protein: 4,
+        carbs: 0,
+        fat: 4,
+        category: "SNACKS"
+      },
+      {
+        name: "Water",
+        brand: "Bottled",
+        serving: "16oz",
+        cal: 0,
+        protein: 0,
+        carbs: 0,
+        fat: 0,
+        category: "SNACKS"
+      },
+      {
+        name: "Whole Milk",
+        brand: "Generic",
+        serving: "1 cup",
+        cal: 150,
+        protein: 8,
+        carbs: 12,
+        fat: 8,
+        category: "SNACKS"
+      },
+      {
+        name: "Yogurt",
+        brand: "Regular Fruit",
+        serving: "6oz",
+        cal: 150,
+        protein: 5,
+        carbs: 30,
+        fat: 2,
+        category: "SNACKS"
+      }
+    ].sort((a, b) => a.name.localeCompare(b.name));
+
+    const RECIPES_DB = [
+      // BREAKFAST
+      {
+        name: "Basic Pancakes",
+        serves: "4 servings / 2 pancakes each",
+        cal: 210,
+        protein: 6,
+        carbs: 28,
+        fat: 8,
+        desc: "Standard pancakes. Serve with syrup, jam, peanut butter.",
+        category: "BREAKFAST",
+        ingredients: ["1 cup flour", "2 tsp baking powder", "1 tbsp sugar", "1 egg", "1 cup milk", "2 tbsp oil"],
+        instructions: ["Mix dry ingredients", "Whisk in egg, milk, oil until just combined", "Cook on griddle 2-3 min per side"]
+      },
+      {
+        name: "Egg White Breakfast Muffins",
+        serves: "6 muffins / 2 per serving",
+        cal: 170,
+        protein: 24,
+        carbs: 6,
+        fat: 6,
+        desc: "Low cal high protein grab-and-go breakfast.",
+        category: "BREAKFAST",
+        ingredients: ["2 cups egg whites", "1 cup spinach", "1/2 cup diced bell pepper", "1/4 cup shredded cheese", "Salt, pepper"],
+        instructions: ["Preheat oven 350F, spray muffin tin", "Whisk egg whites with salt/pepper", "Add veggies and cheese", "Pour into 6 cups, bake 20 min"]
+      },
+      {
+        name: "High Protein Breakfast Burrito",
+        serves: "1 burrito",
+        cal: 485,
+        protein: 42,
+        carbs: 38,
+        fat: 18,
+        desc: "Freezer friendly meal prep burrito.",
+        category: "BREAKFAST",
+        ingredients: ["1 large tortilla", "3 egg whites + 1 whole egg", "2oz turkey sausage", "1/4 cup black beans", "2 tbsp cheese"],
+        instructions: ["Scramble eggs and sausage", "Warm tortilla, add eggs, sausage, beans, cheese", "Roll tight, wrap in foil", "Freeze or eat fresh, reheat 2 min"]
+      },
+      {
+        name: "Hootenanny Pancakes",
+        serves: "6 servings",
+        cal: 280,
+        protein: 8,
+        carbs: 32,
+        fat: 14,
+        desc: "Dutch baby / German pancake. Puffy oven pancake for 3-5, 20-30 min.",
+        category: "BREAKFAST",
+        ingredients: ["6 eggs", "1 cup milk", "1 cup flour", "1/4 cup butter", "2 tbsp sugar"],
+        instructions: ["Preheat oven to 425F with 10in cast iron inside", "Blend eggs, milk, flour, sugar 30 sec", "Melt butter in hot pan, pour batter in", "Bake 20 min until puffy and golden"]
+      },
+      {
+        name: "Overnight Oats",
+        serves: "1 serving",
+        cal: 350,
+        protein: 20,
+        carbs: 48,
+        fat: 9,
+        desc: "No-cook breakfast. Prep night before.",
+        category: "BREAKFAST",
+        ingredients: ["1/2 cup oats", "1 scoop protein powder", "1 tbsp chia seeds", "3/4 cup milk", "1/2 cup berries"],
+        instructions: ["Mix oats, protein, chia in jar", "Stir in milk", "Top with berries", "Refrigerate overnight"]
+      },
+      {
+        name: "Protein Pancakes",
+        serves: "1 serving / 3 pancakes",
+        cal: 380,
+        protein: 35,
+        carbs: 42,
+        fat: 8,
+        desc: "High protein breakfast. Perfect post-workout.",
+        category: "BREAKFAST",
+        ingredients: ["1 scoop protein powder", "1/2 cup oats", "1 egg", "1/2 banana", "1/4 cup milk"],
+        instructions: ["Blend all ingredients smooth", "Cook 3 medium pancakes on medium heat", "Top with fruit or syrup"]
+      },
+      {
+        name: "Protein Shake - The Bulker",
+        serves: "2 glasses / 1 per serving",
+        cal: 440,
+        protein: 25,
+        carbs: 44,
+        fat: 19,
+        desc: "Makes 2 glasses — 440 cal each. Add solids first, then milk to 3-cup line.",
+        category: "BREAKFAST",
+        ingredients: ["1 scoop whey protein", "1 banana", "2 tbsp peanut butter", "1 cup oats", "Milk to 3-cup line"],
+        instructions: ["Add protein, banana, PB, oats to blender", "Fill with milk to 3-cup line", "Blend 45 seconds", "Split into 2 glasses"]
+      },
+      {
+        name: "Breakfast Scramble Meal Prep",
+        serves: "5 servings",
+        cal: 385,
+        protein: 32,
+        carbs: 22,
+        fat: 18,
+        desc: "Make ahead breakfast. Reheats in 90 seconds.",
+        category: "BREAKFAST",
+        ingredients: ["10 eggs", "1 lb turkey sausage", "2 cups diced potatoes", "1 cup shredded cheese", "1 bell pepper"],
+        instructions: ["Brown sausage and potatoes", "Scramble eggs, mix all together", "Portion into 5 containers", "Microwave 90 sec to reheat"]
+      },
+      {
+        name: "Cottage Cheese Protein Bowl",
+        serves: "1 bowl",
+        cal: 285,
+        protein: 34,
+        carbs: 24,
+        fat: 6,
+        desc: "Sweet or savory. Takes 2 minutes.",
+        category: "BREAKFAST",
+        ingredients: ["1 cup lowfat cottage cheese", "1 scoop protein powder", "1/2 cup berries", "1 tbsp honey", "1 tbsp almonds"],
+        instructions: ["Mix cottage cheese and protein powder", "Top with berries, honey, almonds", "Eat cold"]
+      },
+      {
+        name: "Blueberry Protein Muffins",
+        serves: "12 muffins",
+        cal: 165,
+        protein: 9,
+        carbs: 24,
+        fat: 4,
+        desc: "Meal prep breakfast. Freezes great.",
+        category: "BREAKFAST",
+        ingredients: ["2 cups oats blended", "2 scoops vanilla protein", "1 cup Greek yogurt", "2 eggs", "1/2 cup honey", "1.5 cups blueberries", "1 tsp baking powder"],
+        instructions: ["Preheat 350F, line muffin tin", "Mix all wet ingredients", "Fold in dry + blueberries", "Bake 18-20 min"]
+      },
+      // MEALS
+      {
+        name: "7 Layer Bean Dip",
+        serves: "12 servings",
+        cal: 180,
+        protein: 6,
+        carbs: 18,
+        fat: 9,
+        desc: "Classic layered dip. Serve with tortilla chips.",
+        category: "MEAL",
+        ingredients: ["1 can refried beans", "1 cup sour cream", "1 cup guacamole", "1 cup salsa", "1 cup shredded cheese", "1/2 cup sliced olives", "1/2 cup diced tomatoes"],
+        instructions: ["Spread refried beans in dish", "Layer sour cream, guac, salsa, cheese, olives, tomatoes", "Chill 1 hour before serving"]
+      },
+      {
+        name: "Chicken Burrito Bowl Meal Prep",
+        serves: "4 servings",
+        cal: 520,
+        protein: 48,
+        carbs: 58,
+        fat: 12,
+        desc: "Chipotle-style bowl for meal prep. Makes 4.",
+        category: "MEAL",
+        ingredients: ["2 lbs chicken breast", "2 cups cooked rice", "2 cans black beans", "1 cup corn", "1 cup salsa", "1/2 cup cheese"],
+        instructions: ["Grill/season chicken, dice", "Cook rice", "Portion into 4 containers: rice, beans, chicken, corn", "Top with salsa and cheese when reheating"]
+      },
+      {
+        name: "Chicken Enchiladas",
+        serves: "6 servings / 2 enchiladas each",
+        cal: 420,
+        protein: 32,
+        carbs: 38,
+        fat: 16,
+        desc: "Creamy sour cream + green chile chicken enchiladas. Oven 45 min.",
+        category: "MEAL",
+        ingredients: ["3 cups shredded chicken", "12 corn tortillas", "1 can green enchilada sauce", "1 cup sour cream", "2 cups shredded cheese"],
+        instructions: ["Mix chicken with 1/2 cup sauce and 1/2 cup sour cream", "Roll in tortillas, place in 9x13 pan", "Top with remaining sauce and cheese", "Bake 350F for 25 min covered, 10 min uncovered"]
+      },
+      {
+        name: "Ground Turkey Sweet Potato Skillet",
+        serves: "4 servings",
+        cal: 410,
+        protein: 38,
+        carbs: 32,
+        fat: 15,
+        desc: "One-pan high protein dinner. Great for cutting.",
+        category: "MEAL",
+        ingredients: ["1.5 lbs 93/7 ground turkey", "2 large sweet potatoes diced", "1 onion", "1 bell pepper", "2 cups spinach", "Taco seasoning"],
+        instructions: ["Brown turkey with seasoning", "Add diced sweet potato, onion, pepper", "Cover and cook 15 min until potatoes soft", "Stir in spinach until wilted"]
+      },
+      {
+        name: "Hawaiian Haystacks",
+        serves: "5 servings",
+        cal: 520,
+        protein: 35,
+        carbs: 58,
+        fat: 16,
+        desc: "Creamy chicken over rice with toppings bar.",
+        category: "MEAL",
+        ingredients: ["2 lbs chicken breast", "1 can cream of chicken", "1 cup sour cream", "Rice for serving", "Toppings: chow mein, pineapple, cheese, olives, tomato, green onion"],
+        instructions: ["Cook and shred chicken", "Mix with cream of chicken and sour cream, heat", "Serve over rice with toppings bar"]
+      },
+      {
+        name: "Shredded Chicken Burrito",
+        serves: "1 burrito",
+        cal: 585,
+        protein: 32.5,
+        carbs: 60.5,
+        fat: 23,
+        desc: "505 style with 1.5oz chicken",
+        category: "MEAL",
+        ingredients: ["1 large flour tortilla", "1/4 cup cooked white rice", "1.5oz Shredded Chicken Mix", "1/4 cup black or pinto beans", "2 tbsp shredded cheese", "1 tbsp sour cream", "Diced tomato + onion"],
+        instructions: ["Warm tortilla 15 sec", "Layer rice, beans, chicken mix, veggies, cheese, sour cream", "Roll burrito: fold sides, then roll tight", "Toast seam-side down 1 min if you want it crispy"]
+      },
+      {
+        name: "Shredded Chicken Mix",
+        serves: "16 servings / 1.5oz each",
+        cal: 98,
+        protein: 17.5,
+        carbs: 1.5,
+        fat: 1,
+        desc: "Batch cook for burritos/tacos. Makes ~24oz total.",
+        category: "MEAL",
+        ingredients: ["2 lbs boneless chicken breast", "3 cups 505 Green Chile Medium - Costco"],
+        instructions: ["Add chicken and 505 sauce to Instant Pot", "Pressure cook 30 min, natural release 10 min", "Shred with forks and mix back into sauce", "Portion into 1.5oz servings ~16 total"]
+      },
+      {
+        name: "Shredded Chicken Taco",
+        serves: "1 taco",
+        cal: 245,
+        protein: 20.5,
+        carbs: 20.5,
+        fat: 11,
+        desc: "505 style with 1.5oz chicken",
+        category: "MEAL",
+        ingredients: ["1 6in corn tortilla", "2 tbsp cooked white rice", "1.5oz Shredded Chicken Mix", "2 tbsp beans", "1 tbsp shredded cheese", "1/2 tbsp sour cream", "Diced tomato + onion"],
+        instructions: ["Warm tortilla on pan 30 sec per side", "Layer rice, beans, chicken mix, veggies, cheese, sour cream", "Eat immediately"]
+      },
+      {
+        name: "Stroganoff",
+        serves: "5 servings",
+        cal: 485,
+        protein: 28,
+        carbs: 42,
+        fat: 24,
+        desc: "Beef stroganoff with sour cream and mushroom soup over rice.",
+        category: "MEAL",
+        ingredients: ["1.5 lbs ground beef", "1 can cream of mushroom", "1 cup sour cream", "1 onion diced", "8oz mushrooms", "Rice for serving"],
+        instructions: ["Brown beef and onions", "Add mushrooms, cook 5 min", "Stir in soup and sour cream", "Simmer 10 min, serve over rice"]
+      },
+      {
+        name: "Tacos - Ground Beef",
+        serves: "4 servings / 2 tacos each",
+        cal: 340,
+        protein: 22,
+        carbs: 26,
+        fat: 19,
+        desc: "Basic ground beef tacos. Use for Doritos Salad too.",
+        category: "MEAL",
+        ingredients: ["1 lb ground beef", "1 packet taco seasoning", "8 corn tortillas", "Toppings: lettuce, tomato, cheese, sour cream"],
+        instructions: ["Brown beef, drain", "Add seasoning + 2/3 cup water, simmer 5 min", "Warm tortillas", "Assemble with toppings"]
+      },
+      {
+        name: "Tuna Melt",
+        serves: "1 sandwich",
+        cal: 420,
+        protein: 38,
+        carbs: 28,
+        fat: 19,
+        desc: "High protein tuna melt. Broiled until bubbly.",
+        category: "MEAL",
+        ingredients: ["1 can tuna", "2 tbsp mayo", "1 tbsp Greek yogurt", "2 slices bread", "2 slices cheese", "Tomato slices"],
+        instructions: ["Mix tuna, mayo, yogurt", "Spread on bread, top with tomato and cheese", "Broil 3-4 min until cheese bubbles"]
+      },
+      {
+        name: "Tuna Pasta Salad",
+        serves: "3 servings",
+        cal: 420,
+        protein: 32,
+        carbs: 48,
+        fat: 11,
+        desc: "Cold high-protein lunch. Meal prep friendly.",
+        category: "MEAL",
+        ingredients: ["8oz pasta", "2 cans tuna", "1/2 cup Greek yogurt", "1/4 cup mayo", "1 cup peas", "1/2 cup diced celery", "Lemon juice, dill"],
+        instructions: ["Cook pasta, cool", "Mix tuna, yogurt, mayo, lemon, dill", "Combine with pasta, peas, celery", "Chill 2 hours"]
+      },
+      {
+        name: "Beef & Broccoli Stir Fry",
+        serves: "4 servings",
+        cal: 365,
+        protein: 34,
+        carbs: 28,
+        fat: 14,
+        desc: "Classic takeout style. Serve over rice.",
+        category: "MEAL",
+        ingredients: ["1.5 lbs flank steak sliced", "4 cups broccoli florets", "1/4 cup soy sauce", "2 tbsp brown sugar", "1 tbsp cornstarch", "Garlic, ginger"],
+        instructions: ["Marinate beef in soy, sugar, cornstarch 15 min", "Stir fry beef 3 min, remove", "Stir fry broccoli 4 min", "Return beef, toss, serve over rice"]
+      },
+      {
+        name: "Cajun Chicken Pasta",
+        serves: "5 servings",
+        cal: 510,
+        protein: 42,
+        carbs: 52,
+        fat: 16,
+        desc: "Creamy cajun pasta. High protein comfort food.",
+        category: "MEAL",
+        ingredients: ["1.5 lbs chicken breast", "12oz penne pasta", "1 cup heavy cream", "1/2 cup parmesan", "Cajun seasoning", "Bell peppers"],
+        instructions: ["Cook pasta", "Season and cook chicken, slice", "Sauté peppers", "Add cream, parm, cajun seasoning", "Toss with pasta and chicken"]
+      },
+      {
+        name: "Slow Cooker Pulled Pork",
+        serves: "8 servings",
+        cal: 385,
+        protein: 36,
+        carbs: 18,
+        fat: 18,
+        desc: "Set and forget. Makes sandwiches or bowls.",
+        category: "MEAL",
+        ingredients: ["3 lb pork shoulder", "1 cup BBQ sauce", "1/2 cup apple cider vinegar", "1 onion sliced", "Brown sugar, paprika, garlic powder"],
+        instructions: ["Rub pork with spices", "Add onion to slow cooker, place pork on top", "Mix BBQ + vinegar, pour over", "Cook low 8 hours", "Shred and mix with juices"]
+      },
+      {
+        name: "Turkey Chili",
+        serves: "6 servings",
+        cal: 340,
+        protein: 32,
+        carbs: 38,
+        fat: 8,
+        desc: "High protein, low fat chili. Freezes great.",
+        category: "MEAL",
+        ingredients: ["2 lbs 93/7 ground turkey", "2 cans kidney beans", "1 can diced tomatoes", "1 can tomato sauce", "1 onion", "Chili powder, cumin, garlic"],
+        instructions: ["Brown turkey and onion", "Add all cans and spices", "Simmer 45 min", "Serve with Greek yogurt instead of sour cream"]
+      },
+      {
+        name: "Lemon Garlic Salmon",
+        serves: "4 servings",
+        cal: 310,
+        protein: 34,
+        carbs: 4,
+        fat: 18,
+        desc: "Quick baked salmon. Ready in 20 min.",
+        category: "MEAL",
+        ingredients: ["4 salmon fillets 6oz each", "2 lemons", "4 cloves garlic minced", "2 tbsp olive oil", "Fresh dill", "Salt, pepper"],
+        instructions: ["Preheat 400F", "Place salmon on sheet", "Mix oil, garlic, lemon juice, pour over", "Top with lemon slices and dill", "Bake 12-15 min"]
+      },
+      // DESSERTS
+      {
+        name: "Greek Yogurt Bark",
+        serves: "8 pieces",
+        cal: 95,
+        protein: 8,
+        carbs: 10,
+        fat: 3,
+        desc: "Frozen high protein snack. Meal prep 8 servings.",
+        category: "DESSERT",
+        ingredients: ["2 cups Greek yogurt", "2 tbsp honey", "1/2 cup berries", "2 tbsp mini chocolate chips"],
+        instructions: ["Mix yogurt and honey", "Spread on parchment-lined pan", "Sprinkle berries and chips", "Freeze 3 hours, break into pieces"]
+      },
+      {
+        name: "Janelle's No Bake Cookies",
+        serves: "24 cookies / 1 cookie per serving",
+        cal: 110,
+        protein: 2,
+        carbs: 15,
+        fat: 5,
+        desc: "Classic peanut butter chocolate no-bakes. Fridge set.",
+        category: "DESSERT",
+        ingredients: ["2 cups sugar", "1/2 cup milk", "1/2 cup butter", "1/4 cup cocoa", "1/2 cup peanut butter", "3 cups oats", "1 tsp vanilla"],
+        instructions: ["Boil sugar, milk, butter, cocoa 1 min", "Remove from heat, stir in PB and vanilla", "Mix in oats", "Drop by spoonfuls, chill 30 min"]
+      },
+      {
+        name: "Mom's Ice Cream",
+        serves: "12 servings",
+        cal: 195,
+        protein: 4,
+        carbs: 26,
+        fat: 9,
+        desc: "Classic homemade vanilla ice cream. Rich and creamy.",
+        category: "DESSERT",
+        ingredients: ["2 cups heavy cream", "1 cup whole milk", "3/4 cup sugar", "1 tbsp vanilla", "Pinch salt"],
+        instructions: ["Whisk all ingredients until sugar dissolves", "Churn in ice cream maker 20 min", "Freeze 2 hours to firm"]
+      },
+      {
+        name: "Protein Mug Cake",
+        serves: "1 mug",
+        cal: 285,
+        protein: 30,
+        carbs: 28,
+        fat: 7,
+        desc: "60-second microwave protein dessert.",
+        category: "DESSERT",
+        ingredients: ["1 scoop protein powder", "1 tbsp cocoa powder", "1/4 tsp baking powder", "1 tbsp sweetener", "3 tbsp milk", "1 tbsp applesauce"],
+        instructions: ["Mix all dry in mug", "Stir in milk and applesauce", "Microwave 60 seconds", "Let cool 1 min"]
+      },
+      {
+        name: "Whole Wheat Zucchini Bread",
+        serves: "12 slices",
+        cal: 185,
+        protein: 4,
+        carbs: 28,
+        fat: 7,
+        desc: "Moist whole wheat bread with zucchini. Great for meal prep.",
+        category: "DESSERT",
+        ingredients: ["1.5 cups whole wheat flour", "1 tsp baking soda", "1/2 tsp baking powder", "1 tsp cinnamon", "2 eggs", "1/2 cup oil", "3/4 cup sugar", "1.5 cups shredded zucchini"],
+        instructions: ["Mix dry ingredients", "Whisk eggs, oil, sugar", "Combine, fold in zucchini", "Bake in loaf pan 350F 50-60 min"]
+      },
+      {
+        name: "3 Layer Strawberry Jello Pretzel Dessert",
+        serves: "12 servings",
+        cal: 280,
+        protein: 3,
+        carbs: 42,
+        fat: 11,
+        desc: "Sweet/salty layered dessert with pretzel crust, cream cheese, and jello.",
+        category: "DESSERT",
+        ingredients: ["2 cups crushed pretzels", "3/4 cup butter melted", "3 tbsp sugar", "8oz cream cheese", "1 cup sugar", "8oz cool whip", "2 boxes strawberry jello", "2 cups boiling water", "4 cups sliced strawberries"],
+        instructions: ["Press pretzel/butter/sugar crust in 9x13, bake 350F 10 min, cool", "Beat cream cheese, sugar, fold in cool whip, spread on crust", "Dissolve jello in boiling water, cool, add strawberries", "Pour over cream layer, chill 4 hours"]
+      },
+      {
+        name: "Protein Cheesecake Cups",
+        serves: "6 cups",
+        cal: 165,
+        protein: 18,
+        carbs: 12,
+        fat: 5,
+        desc: "No-bake mini cheesecakes. High protein dessert.",
+        category: "DESSERT",
+        ingredients: ["1 cup Greek yogurt", "4oz cream cheese", "1 scoop vanilla protein", "2 tbsp honey", "6 tbsp graham crumbs", "Berries for top"],
+        instructions: ["Mix yogurt, cream cheese, protein, honey smooth", "Press 1 tbsp crumbs in each cup", "Spoon filling on top", "Chill 2 hours, top with berries"]
+      },
+      {
+        name: "Chocolate Peanut Butter Protein Balls",
+        serves: "16 balls",
+        cal: 120,
+        protein: 6,
+        carbs: 14,
+        fat: 5,
+        desc: "No-bake energy bites. Meal prep snacks.",
+        category: "DESSERT",
+        ingredients: ["1 cup oats", "1/2 cup peanut butter", "1/3 cup honey", "1/4 cup chocolate chips", "1 scoop chocolate protein", "1 tbsp chia seeds"],
+        instructions: ["Mix all ingredients", "Roll into 16 balls", "Chill 30 min", "Store in fridge"]
+      },
+      {
+        name: "Banana Bread Protein Bars",
+        serves: "12 bars",
+        cal: 185,
+        protein: 11,
+        carbs: 26,
+        fat: 5,
+        desc: "Baked protein bars. Taste like banana bread.",
+        category: "DESSERT",
+        ingredients: ["3 ripe bananas mashed", "2 cups oats", "2 scoops vanilla protein", "2 eggs", "1/4 cup honey", "1 tsp cinnamon", "1 tsp baking powder"],
+        instructions: ["Preheat 350F, line 8x8 pan", "Mix all ingredients", "Bake 20-25 min", "Cool and cut into 12 bars"]
+      }
+    ].sort((a, b) => a.name.localeCompare(b.name));
+
+    // =========================================================
+    // STATE MANAGEMENT
+    // =========================================================
+    let currentDate = new Date();
+    let GOALS = JSON.parse(localStorage.getItem('macroGoals') || '{"cal":2400,"protein":180,"carbs":250,"fat":80}');
+    let LOG = JSON.parse(localStorage.getItem('mealLog') || '{}');
+    let CALC_INPUTS = JSON.parse(localStorage.getItem('calcInputs') || '{"weight":190,"height":72,"age":19,"gender":"male","activity":1.55,"goal":0}');
+    let WEIGHT_DATA = JSON.parse(localStorage.getItem('weightData') || '{"current":190,"goal":180,"history":[]}');
+    let HYPO_LOG = JSON.parse(localStorage.getItem('hypoLog') || '[]');
+
+    let activeFoodItem = null;
+    let activeRecipeItem = null;
+    let activeHypoId = null;
+
+    const save = (key, data) => localStorage.setItem(key, JSON.stringify(data));
+
+    // =========================================================
+    // UTILITY FUNCTIONS
+    // =========================================================
+    const getDateKey = (d) => {
+      const yr = d.getFullYear();
+      const mo = String(d.getMonth() + 1).padStart(2, '0');
+      const da = String(d.getDate()).padStart(2, '0');
+      return `${yr}-${mo}-${da}`;
+    };
+
+    const formatShortDate = (d) => {
+      const today = new Date();
+      const key = getDateKey(d);
+      if (key === getDateKey(today)) return 'Today';
+      const yesterday = new Date(today);
+      yesterday.setDate(today.getDate() - 1);
+      if (key === getDateKey(yesterday)) return 'Yesterday';
+      return d.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric'
+      });
+    };
+
+    const formatDateTime = (dtStr) => {
+      const d = new Date(dtStr);
+      return d.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit'
+      });
+    };
+
+    const formatTimeOnly = (dtStr) => {
+      const d = new Date(dtStr);
+      return d.toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit'
+      });
+    };
+
+    const calcDuration = (start, end) => {
+      const diff = Math.abs(new Date(end) - new Date(start));
+      const mins = Math.floor(diff / 60000);
+      const hrs = Math.floor(mins / 60);
+      const m = mins % 60;
+      return hrs > 0 ? `${hrs}h ${m}m` : `${m}m`;
+    };
+
+    const getMealEmoji = (type) => {
+      switch (type?.toLowerCase()) {
+        case 'breakfast':
+          return '🍳';
+        case 'lunch':
+          return '🥗';
+        case 'dinner':
+          return '🍽️';
+        case 'snack':
+          return '🍎';
+        default:
+          return '🍽️';
+      }
+    };
+
+    const getLocalNow = () => {
+      const d = new Date();
+      d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+      return d.toISOString().slice(0, 16);
+    };
+
+    // =========================================================
+    // DOM ELEMENTS
+    // =========================================================
+    const $ = (id) => document.getElementById(id);
+
+    // =========================================================
+    // NAVIGATION & SHEETS
+    // =========================================================
+    const switchView = (viewName) => {
+      document.querySelectorAll('.view').forEach(v => v.style.display = 'none');
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+
+      const targetView = $(`view-${viewName}`);
+      const targetNav = document.querySelector(`.nav-item[data-view="${viewName}"]`);
+
+      if (targetView) targetView.style.display = 'block';
+      if (targetNav) targetNav.classList.add('active');
+
+      $('mainContent').scrollTop = 0;
+
+      // Refresh views on switch
+      if (viewName === 'weight') renderWeight();
+      if (viewName === 'hypo') renderHypo();
+      if (viewName === 'foods') renderFoods();
+      if (viewName === 'recipes') renderRecipes();
+      if (viewName === 'dashboard') renderDashboard();
+    };
+
+    const openSheet = (sheetId) => {
+      $(sheetId).classList.add('active');
+      $(sheetId.replace('sheet-', 'overlay-')).classList.add('active');
+    };
+
+    const closeSheet = (sheetId) => {
+      $(sheetId).classList.remove('active');
+      $(sheetId.replace('sheet-', 'overlay-')).classList.remove('active');
+    };
+
+    // =========================================================
+    // DASHBOARD LOGIC
+    // =========================================================
+    const changeDate = (delta) => {
+      currentDate.setDate(currentDate.getDate() + delta);
+      renderDashboard();
+    };
+
+    const getTodayLog = () => LOG[getDateKey(currentDate)] || [];
+
+    const getDailyTotals = () => {
+      return getTodayLog().reduce((acc, m) => ({
+        cal: acc.cal + m.cal,
+        protein: acc.protein + m.protein,
+        carbs: acc.carbs + m.carbs,
+        fat: acc.fat + m.fat
+      }), {
+        cal: 0,
+        protein: 0,
+        carbs: 0,
+        fat: 0
+      });
+    };
+
+    const renderDashboard = () => {
+      // Date
+      const dateText = formatShortDate(currentDate);
+      $('date-display').textContent = dateText;
+      $('date-display').className = dateText === 'Today' ? 'date-display today' : 'date-display';
+
+      const totals = getDailyTotals();
+
+      // Calorie Ring
+      const calLeft = Math.max(0, GOALS.cal - totals.cal);
+      const calPct = Math.min(1, totals.cal / GOALS.cal);
+      const circumference = 2 * Math.PI * 40; // 251.2
+      $('ring-calories').style.strokeDashoffset = circumference - (calPct * circumference);
+      $('val-calories').textContent = calLeft;
+
+      // Macro Stats
+      const pPct = GOALS.protein > 0 ? Math.min(100, (totals.protein / GOALS.protein) * 100) : 0;
+      const cPct = GOALS.carbs > 0 ? Math.min(100, (totals.carbs / GOALS.carbs) * 100) : 0;
+      const fPct = GOALS.fat > 0 ? Math.min(100, (totals.fat / GOALS.fat) * 100) : 0;
+
+      $('val-protein').textContent = `${Math.round(totals.protein)}g`;
+      $('val-carbs').textContent = `${Math.round(totals.carbs)}g`;
+      $('val-fat').textContent = `${Math.round(totals.fat)}g`;
+
+      $('bar-protein').style.width = `${pPct}%`;
+      $('bar-carbs').style.width = `${cPct}%`;
+      $('bar-fat').style.width = `${fPct}%`;
+
+      // Timeline
+      const meals = getTodayLog();
+      const container = $('timeline-container');
+
+      if (meals.length === 0) {
+        container.innerHTML = `<div class="empty-state" id="empty-log"><div class="empty-icon">🍽️</div><div class="empty-text">No meals logged yet.<br>Tap + to start tracking!</div></div>`;
+      } else {
+        container.innerHTML = meals.map((m, i) => `
+        <div class="timeline-item">
+          <div class="timeline-line"></div>
+          <div class="timeline-dot">${getMealEmoji(m.type)}</div>
+          <div class="timeline-content">
+            <div class="timeline-header">
+              <div class="timeline-title">${m.name}</div>
+              <div class="timeline-cal">${Math.round(m.cal)}</div>
+            </div>
+            <div class="timeline-meta">
+              <span class="macro-dot p">${Math.round(m.protein)}p</span>
+              <span class="macro-dot c">${Math.round(m.carbs)}c</span>
+              <span class="macro-dot f">${Math.round(m.fat)}f</span>
+              <span style="color:var(--text-disabled)">${m.time || ''}</span>
+            </div>
+            <div class="timeline-actions">
+              <button type="button" class="btn btn-sm btn-danger" onclick="removeMeal(${i})" style="background:rgba(239,68,68,0.1); color:var(--accent-danger);">Remove</button>
+            </div>
+          </div>
+        </div>
+      `).join('');
+      }
+    };
+
+    const removeMeal = (index) => {
+      const key = getDateKey(currentDate);
+      if (LOG[key]) {
+        LOG[key].splice(index, 1);
+        save('mealLog', LOG);
+        renderDashboard();
+      }
+    };
+
+    const addMealToLog = (name, cal, protein, carbs, fat, type, qty = 1) => {
+      const q = parseFloat(qty) || 1;
+      const key = getDateKey(currentDate);
+      if (!LOG[key]) LOG[key] = [];
+
+      LOG[key].push({
+        name: q === 1 ? name : `${name} x${q}`,
+        cal: Math.round(cal * q),
+        protein: Math.round(protein * q),
+        carbs: Math.round(carbs * q),
+        fat: Math.round(fat * q),
+        type: type || 'Snack',
+        time: new Date().toLocaleTimeString('en-US', {
+          hour: 'numeric',
+          minute: '2-digit'
+        })
+      });
+
+      save('mealLog', LOG);
+      renderDashboard();
+      switchView('dashboard');
+    };
+
+    // =========================================================
+    // FOODS LOGIC
+    // =========================================================
+    const renderFoods = () => {
+      const search = $('input-food-search').value.toLowerCase();
+      const filtered = FOOD_DB.filter(f =>
+        f.name.toLowerCase().includes(search) ||
+        f.brand.toLowerCase().includes(search) ||
+        f.serving.toLowerCase().includes(search)
+      );
+
+      const grouped = {};
+      filtered.forEach(f => {
+        if (!grouped[f.category]) grouped[f.category] = [];
+        grouped[f.category].push(f);
+      });
+
+      const container = $('food-list-container');
+      const categories = ['MEALS', 'SNACKS'];
+
+      container.innerHTML = categories.map(cat => {
+        if (!grouped[cat] || !grouped[cat].length) return '';
+        return `
+        <div class="section-title" style="font-size:14px; color:var(--text-tertiary); margin-top:16px; margin-bottom:8px;">${cat}</div>
+        ${grouped[cat].map((f, i) => `
+          <div class="food-card" onclick='openFoodDetail(${JSON.stringify(f).replace(/'/g, "&#39;")})'>
+            <div class="food-info">
+              <div class="food-name">${f.name}</div>
+              <div class="food-brand">${f.brand} • ${f.serving}</div>
+              <div class="food-macros">
+                <span class="macro-dot p">${f.protein}p</span>
+                <span class="macro-dot c">${f.carbs}c</span>
+                <span class="macro-dot f">${f.fat}f</span>
+              </div>
+            </div>
+            <div class="food-cal">${f.cal} <span>kcal</span></div>
+          </div>
+        `).join('')}
+      `;
+      }).join('');
+    };
+
+    const openFoodDetail = (food) => {
+      activeFoodItem = food;
+      $('food-detail-title').textContent = food.name;
+      $('food-detail-brand').textContent = `${food.brand} • ${food.serving}`;
+      $('food-detail-cal').textContent = `${food.cal} kcal`;
+      $('food-detail-p').textContent = `${food.protein}g`;
+      $('food-detail-c').textContent = `${food.carbs}g`;
+      $('food-detail-f').textContent = `${food.fat}g`;
+      $('food-detail-qty').value = 1;
+      openSheet('sheet-food-detail');
+    };
+
+    // =========================================================
+    // RECIPES LOGIC
+    // =========================================================
+    const renderRecipes = () => {
+      const search = $('input-recipe-search').value.toLowerCase();
+      const filtered = RECIPES_DB.filter(r => r.name.toLowerCase().includes(search));
+
+      const grouped = {};
+      filtered.forEach(r => {
+        if (!grouped[r.category]) grouped[r.category] = [];
+        grouped[r.category].push(r);
+      });
+
+      const container = $('recipe-list-container');
+      const categories = ['BREAKFAST', 'MEAL', 'DESSERT'];
+
+      container.innerHTML = categories.map(cat => {
+        if (!grouped[cat] || !grouped[cat].length) return '';
+        return `
+        <div class="section-title" style="font-size:14px; color:var(--text-tertiary); margin-top:16px; margin-bottom:8px;">${cat}</div>
+        ${grouped[cat].map(r => `
+          <div class="food-card" onclick='openRecipeDetail(${JSON.stringify(r).replace(/'/g, "&#39;")})'>
+            <div class="food-info">
+              <div class="food-name">${r.name}</div>
+              <div class="food-brand">${r.serves}</div>
+              <div class="food-macros">
+                <span class="macro-dot p">${r.protein}p</span>
+                <span class="macro-dot c">${r.carbs}c</span>
+                <span class="macro-dot f">${r.fat}f</span>
+              </div>
+            </div>
+            <div class="food-cal">${r.cal} <span>kcal</span></div>
+          </div>
+        `).join('')}
+      `;
+      }).join('');
+    };
+
+    const openRecipeDetail = (recipe) => {
+      activeRecipeItem = recipe;
+      $('recipe-detail-title').textContent = recipe.name;
+      $('recipe-detail-serves').textContent = recipe.serves;
+      $('recipe-detail-cal').textContent = `${recipe.cal} kcal`;
+      $('recipe-detail-p').textContent = `${recipe.protein}g`;
+      $('recipe-detail-c').textContent = `${recipe.carbs}g`;
+      $('recipe-detail-f').textContent = `${recipe.fat}g`;
+      $('recipe-detail-desc').textContent = recipe.desc;
+      $('recipe-detail-qty').value = 1;
+
+      $('recipe-detail-ingredients').innerHTML = recipe.ingredients.map(i => `<li style="margin-bottom:4px;">${i}</li>`).join('');
+      $('recipe-detail-instructions').innerHTML = recipe.instructions.map(i => `<li style="margin-bottom:4px;">${i}</li>`).join('');
+
+      openSheet('sheet-recipe-detail');
+    };
+
+    // =========================================================
+    // WEIGHT LOGIC
+    // =========================================================
+    const renderWeight = () => {
+      $('w-goal-current').value = WEIGHT_DATA.current;
+      $('w-goal-target').value = WEIGHT_DATA.goal;
+
+      $('weight-current').textContent = WEIGHT_DATA.current.toFixed(1);
+      $('weight-goal').textContent = WEIGHT_DATA.goal.toFixed(1);
+
+      const diff = Math.abs(WEIGHT_DATA.current - WEIGHT_DATA.goal);
+      const startWeight = WEIGHT_DATA.history.length > 0 ? WEIGHT_DATA.history[0].weight : WEIGHT_DATA.current;
+      const totalToLose = Math.abs(startWeight - WEIGHT_DATA.goal);
+
+      const progress = totalToLose > 0 ? Math.min(100, (Math.abs(startWeight - WEIGHT_DATA.current) / totalToLose) * 100) : 0;
+
+      $('weight-diff-label').textContent = `${diff.toFixed(1)} lbs to go`;
+      $('weight-progress-bar').style.width = `${progress}%`;
+
+      renderWeightChart();
+      renderWeightHistory();
+    };
+
+    const renderWeightChart = () => {
+      const history = WEIGHT_DATA.history.slice(-14);
+      const container = $('weight-chart-container');
+
+      if (history.length < 2) {
+        container.innerHTML = `<div class="empty-state" id="empty-chart"><div class="empty-text">Log at least 2 weights to see a trend</div></div>`;
+        return;
+      }
+
+      const weights = history.map(h => h.weight);
+      const min = Math.min(...weights);
+      const max = Math.max(...weights);
+      const range = max - min || 10;
+      const pad = range * 0.15;
+      const cMin = min - pad;
+      const cMax = max + pad;
+      const cRange = cMax - cMin;
+
+      const w = 100,
+        h = 40;
+      const stepX = w / (weights.length - 1);
+
+      let pathD = '';
+      const points = weights.map((wt, i) => {
+        const x = i * stepX;
+        const y = h - ((wt - cMin) / cRange * h);
+        pathD += (i === 0 ? `M ${x} ${y}` : ` L ${x} ${y}`);
+        return {
+          x,
+          y
+        };
+      });
+
+      const areaPath = pathD + ` L ${w} ${h} L 0 ${h} Z`;
+
+      container.innerHTML = `
+      <svg width="100%" height="100%" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="wGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" style="stop-color:var(--accent-primary);stop-opacity:0.2" />
+            <stop offset="100%" style="stop-color:var(--accent-primary);stop-opacity:0" />
+          </linearGradient>
+        </defs>
+        <path d="${areaPath}" fill="url(#wGrad)" />
+        <path d="${pathD}" fill="none" stroke="var(--accent-primary)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+        ${points.map(p => `<circle cx="${p.x}" cy="${p.y}" r="1.5" fill="var(--accent-primary)" />`).join('')}
+      </svg>
+    `;
+    };
+
+    const renderWeightHistory = () => {
+      const history = [...WEIGHT_DATA.history].reverse();
+      const container = $('weight-history-container');
+
+      if (history.length === 0) {
+        container.innerHTML = `<div class="empty-state"><div class="empty-text">No weights logged yet</div></div>`;
+        return;
+      }
+
+      container.innerHTML = history.map((h, i) => {
+        const origIdx = WEIGHT_DATA.history.length - 1 - i;
+        return `
+        <div class="timeline-item">
+          <div class="timeline-line"></div>
+          <div class="timeline-dot">⚖️</div>
+          <div class="timeline-content">
+            <div class="timeline-header">
+              <div class="timeline-title">${h.weight.toFixed(1)} lbs</div>
+              <button type="button" class="btn btn-sm btn-icon" onclick="deleteWeight(${origIdx})" style="color:var(--accent-danger);">
+                <i data-lucide="trash-2" style="width:14px;height:14px;"></i>
+              </button>
+            </div>
+            <div class="timeline-meta">
+              <span>${formatDateTime(h.date)}</span>
+              <span class="chip">${h.freq || 'daily'}</span>
+            </div>
+          </div>
+        </div>
+      `;
+      }).join('');
+
+      // Re-init lucide icons for newly added elements
+      if (window.lucide) lucide.createIcons();
+    };
+
+    const deleteWeight = (index) => {
+      WEIGHT_DATA.history.splice(index, 1);
+      if (WEIGHT_DATA.history.length > 0) {
+        WEIGHT_DATA.current = WEIGHT_DATA.history[WEIGHT_DATA.history.length - 1].weight;
+      }
+      save('weightData', WEIGHT_DATA);
+      renderWeight();
+    };
+
+    // =========================================================
+    // HYPO LOGIC
+    // =========================================================
+    const renderHypo = () => {
+      $('input-hypo-dt').value = getLocalNow();
+      const container = $('hypo-history-container');
+
+      if (HYPO_LOG.length === 0) {
+        container.innerHTML = `<div class="empty-state"><div class="empty-icon">🩸</div><div class="empty-text">No episodes logged</div></div>`;
+        return;
+      }
+
+      container.innerHTML = HYPO_LOG.map(h => `
+      <div class="card" style="border-left: 4px solid var(--accent-danger); padding: 14px; margin-bottom: 12px;">
+        <div class="flex justify-between items-center mb-2">
+          <div style="font-weight:700; color:var(--text-primary);">${formatDateTime(h.dateTime)}</div>
+          <button type="button" class="btn btn-sm btn-icon" onclick="deleteHypo(${h.id})" style="color:var(--accent-danger);">
+            <i data-lucide="trash-2" style="width:14px;height:14px;"></i>
+          </button>
+        </div>
+        <div style="font-size:14px; color:var(--text-secondary);">📍 ${h.location}</div>
+        ${h.notes && h.notes !== 'No notes' ? `<div style="font-size:13px; color:var(--text-tertiary); margin-top:6px; font-style:italic;">"${h.notes}"</div>` : ''}
+        ${h.recoveredAt ? 
+          `<div style="font-size:13px; color:var(--accent-primary); margin-top:8px; font-weight:600;">✓ Recovered: ${formatTimeOnly(h.recoveredAt)} (${calcDuration(h.dateTime, h.recoveredAt)})</div>` : 
+          `<button type="button" class="btn btn-sm mt-2" style="background:var(--accent-primary-dim); color:var(--accent-primary);" onclick="openRecoveryModal(${h.id})">Mark Recovered</button>`
+        }
+      </div>
+    `).join('');
+
+      if (window.lucide) lucide.createIcons();
+    };
+
+    const deleteHypo = (id) => {
+      HYPO_LOG = HYPO_LOG.filter(h => h.id !== id);
+      save('hypoLog', HYPO_LOG);
+      renderHypo();
+    };
+
+    const openRecoveryModal = (id) => {
+      activeHypoId = id;
+      $('input-recovery-dt').value = getLocalNow();
+      openSheet('sheet-recovery');
+    };
+
+    // =========================================================
+    // MACRO CALCULATOR
+    // =========================================================
+    const calcMacros = () => {
+      const w = parseFloat($('calc-weight').value) || 190;
+      const h = parseFloat($('calc-height').value) || 72;
+      const a = parseFloat($('calc-age').value) || 19;
+      const g = $('calc-gender').value;
+      const act = parseFloat($('calc-activity').value);
+      const goal = parseFloat($('calc-goal').value);
+
+      CALC_INPUTS = {
+        weight: w,
+        height: h,
+        age: a,
+        gender: g,
+        activity: act,
+        goal: goal
+      };
+      save('calcInputs', CALC_INPUTS);
+
+      let bmr = g === 'male' ?
+        10 * (w * 0.453592) + 6.25 * (h * 2.54) - 5 * a + 5 :
+        10 * (w * 0.453592) + 6.25 * (h * 2.54) - 5 * a - 161;
+
+      const tdee = bmr * act;
+      const cal = Math.round(tdee + goal);
+      const pro = Math.round(w * 1.0);
+      const fat = Math.round(w * 0.5);
+      const carb = Math.round((cal - pro * 4 - fat * 9) / 4);
+
+      $('calc-res-cal').textContent = cal;
+      $('calc-res-p').textContent = `${pro}g`;
+      $('calc-res-c').textContent = `${carb}g`;
+      $('calc-res-f').textContent = `${fat}g`;
+
+      $('calc-results').style.display = 'block';
+    };
+
+    // =========================================================
+    // EXPORT
+    // =========================================================
+    const exportData = () => {
+      const data = {
+        goals: GOALS,
+        log: LOG,
+        calcInputs: CALC_INPUTS,
+        weightData: WEIGHT_DATA,
+        hypoLog: HYPO_LOG,
+        exported: new Date().toISOString()
+      };
+      const blob = new Blob([JSON.stringify(data, null, 2)], {
+        type: 'application/json'
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `macro-tracker-${getDateKey(new Date())}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    };
+
+    // =========================================================
+    // EVENT LISTENERS
+    // =========================================================
+    document.addEventListener('DOMContentLoaded', () => {
+      // Init Icons
+      if (window.lucide) lucide.createIcons();
+
+      // Navigation
+      document.querySelectorAll('.nav-item').forEach(btn => {
+        btn.addEventListener('click', () => switchView(btn.dataset.view));
+      });
+
+      // FAB
+      $('fab-add').addEventListener('click', () => {
+        $('meal-name').value = '';
+        $('meal-cal').value = '';
+        $('meal-protein').value = '';
+        $('meal-carbs').value = '';
+        $('meal-fat').value = '';
+        $('meal-qty').value = 1;
+        $('meal-type').value = 'Snack';
+        openSheet('sheet-add-meal');
+      });
+
+      // Close Sheets generic
+      document.querySelectorAll('.sheet-close').forEach(btn => {
+        btn.addEventListener('click', () => closeSheet(btn.dataset.close));
+      });
+      document.querySelectorAll('.bottom-sheet-overlay').forEach(overlay => {
+        overlay.addEventListener('click', () => {
+          const sheetId = overlay.id.replace('overlay-', 'sheet-');
+          closeSheet(sheetId);
+        });
+      });
+
+      // Dashboard
+      $('btn-prev-day').addEventListener('click', () => changeDate(-1));
+      $('btn-next-day').addEventListener('click', () => changeDate(1));
+      $('btn-open-goals').addEventListener('click', () => {
+        $('goal-cal').value = GOALS.cal;
+        $('goal-protein').value = GOALS.protein;
+        $('goal-carbs').value = GOALS.carbs;
+        $('goal-fat').value = GOALS.fat;
+        openSheet('sheet-goals');
+      });
+      $('btn-save-goals').addEventListener('click', () => {
+        GOALS = {
+          cal: parseInt($('goal-cal').value) || 2000,
+          protein: parseInt($('goal-protein').value) || 150,
+          carbs: parseInt($('goal-carbs').value) || 200,
+          fat: parseInt($('goal-fat').value) || 60
+        };
+        save('macroGoals', GOALS);
+        closeSheet('sheet-goals');
+        renderDashboard();
+      });
+      $('btn-open-calc').addEventListener('click', () => {
+        $('calc-weight').value = CALC_INPUTS.weight;
+        $('calc-height').value = CALC_INPUTS.height;
+        $('calc-age').value = CALC_INPUTS.age;
+        $('calc-gender').value = CALC_INPUTS.gender;
+        $('calc-activity').value = CALC_INPUTS.activity;
+        $('calc-goal').value = CALC_INPUTS.goal;
+        $('calc-results').style.display = 'none';
+        openSheet('sheet-calc');
+      });
+      $('btn-calc-macros').addEventListener('click', calcMacros);
+      $('btn-apply-calc').addEventListener('click', () => {
+        GOALS = {
+          cal: parseInt($('calc-res-cal').textContent) || 2000,
+          protein: parseInt($('calc-res-p').textContent) || 150,
+          carbs: parseInt($('calc-res-c').textContent) || 200,
+          fat: parseInt($('calc-res-f').textContent) || 60
+        };
+        save('macroGoals', GOALS);
+        closeSheet('sheet-calc');
+        renderDashboard();
+      });
+      $('btn-export').addEventListener('click', exportData);
+
+      // Add Meal Save
+      $('btn-save-meal').addEventListener('click', () => {
+        const name = $('meal-name').value.trim() || 'Unnamed Meal';
+        const cal = parseFloat($('meal-cal').value) || 0;
+        const pro = parseFloat($('meal-protein').value) || 0;
+        const carb = parseFloat($('meal-carbs').value) || 0;
+        const fat = parseFloat($('meal-fat').value) || 0;
+        const type = $('meal-type').value;
+        const qty = parseFloat($('meal-qty').value) || 1;
+
+        if (cal === 0 && pro === 0 && carb === 0 && fat === 0) return alert('Enter at least one macro value');
+
+        addMealToLog(name, cal, pro, carb, fat, type, qty);
+        closeSheet('sheet-add-meal');
+      });
+
+      // Foods
+      $('input-food-search').addEventListener('input', renderFoods);
+      $('btn-add-food-to-log').addEventListener('click', () => {
+        if (!activeFoodItem) return;
+        const qty = parseFloat($('food-detail-qty').value) || 1;
+        const type = $('food-detail-mealtype').value;
+        addMealToLog(activeFoodItem.name, activeFoodItem.cal, activeFoodItem.protein, activeFoodItem.carbs, activeFoodItem.fat, type, qty);
+        closeSheet('sheet-food-detail');
+      });
+
+      // Recipes
+      $('input-recipe-search').addEventListener('input', renderRecipes);
+      $('btn-add-recipe-to-log').addEventListener('click', () => {
+        if (!activeRecipeItem) return;
+        const qty = parseFloat($('recipe-detail-qty').value) || 1;
+        const type = $('recipe-detail-mealtype').value;
+        addMealToLog(activeRecipeItem.name, activeRecipeItem.cal, activeRecipeItem.protein, activeRecipeItem.carbs, activeRecipeItem.fat, type, qty);
+        closeSheet('sheet-recipe-detail');
+      });
+
+      // Weight
+      $('btn-log-weight').addEventListener('click', () => {
+        const w = parseFloat($('input-weight-val').value);
+        if (!w) return alert('Enter a weight');
+        WEIGHT_DATA.history.push({
+          weight: w,
+          date: new Date().toISOString(),
+          freq: 'daily'
+        });
+        WEIGHT_DATA.current = w;
+        save('weightData', WEIGHT_DATA);
+        $('input-weight-val').value = '';
+        renderWeight();
+      });
+
+      $('input-kg').addEventListener('input', (e) => {
+        const kg = parseFloat(e.target.value);
+        if (!isNaN(kg)) $('input-lbs').value = (kg * 2.20462).toFixed(1);
+      });
+      $('input-lbs').addEventListener('input', (e) => {
+        const lbs = parseFloat(e.target.value);
+        if (!isNaN(lbs)) $('input-kg').value = (lbs / 2.20462).toFixed(1);
+      });
+
+      $('btn-open-weight-goals').addEventListener('click', () => {
+        $('w-goal-current').value = WEIGHT_DATA.current;
+        $('w-goal-target').value = WEIGHT_DATA.goal;
+        openSheet('sheet-weight-goals');
+      });
+      $('btn-save-weight-goals').addEventListener('click', () => {
+        WEIGHT_DATA.current = parseFloat($('w-goal-current').value) || WEIGHT_DATA.current;
+        WEIGHT_DATA.goal = parseFloat($('w-goal-target').value) || WEIGHT_DATA.goal;
+        save('weightData', WEIGHT_DATA);
+        closeSheet('sheet-weight-goals');
+        renderWeight();
+      });
+
+      // Hypo
+      $('btn-log-hypo').addEventListener('click', () => {
+        const dt = $('input-hypo-dt').value;
+        if (!dt) return alert('Enter date and time');
+        HYPO_LOG.unshift({
+          dateTime: dt,
+          location: $('input-hypo-loc').value || 'Not specified',
+          notes: $('input-hypo-notes').value || 'No notes',
+          recoveredAt: null,
+          id: Date.now()
+        });
+        save('hypoLog', HYPO_LOG);
+        $('input-hypo-loc').value = '';
+        $('input-hypo-notes').value = '';
+        renderHypo();
+      });
+
+      $('btn-save-recovery').addEventListener('click', () => {
+        const time = $('input-recovery-dt').value;
+        if (!time) return alert('Enter recovery time');
+        const hypo = HYPO_LOG.find(h => h.id === activeHypoId);
+        if (hypo) {
+          hypo.recoveredAt = time;
+          save('hypoLog', HYPO_LOG);
+        }
+        closeSheet('sheet-recovery');
+        renderHypo();
+      });
+
+      // Initial Render
+      renderDashboard();
+      renderFoods();
+      renderRecipes();
+    });
+
+  </script>
+</body>
+
+</html>
