@@ -1,0 +1,444 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>URL Decoder - Extract Target URLs</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .glow {
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .pulse-success {
+            animation: pulseSuccess 0.6s ease-in-out;
+        }
+        
+        @keyframes pulseSuccess {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+    </style>
+</head>
+<body class="bg-gray-900 min-h-screen text-white">
+    <div class="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 p-4 sm:p-6">
+        <div class="max-w-4xl mx-auto">
+            <!-- Header -->
+            <div class="text-center mb-8">
+                <div class="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-2xl mb-4 glow">
+                    <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.102m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path>
+                    </svg>
+                </div>
+                <h1 class="text-3xl sm:text-4xl font-bold text-white mb-2">URL Decoder</h1>
+                <p class="text-gray-400 text-sm sm:text-base">Extract target URLs from redirect links instantly</p>
+            </div>
+
+            <!-- Main Input Section -->
+            <div class="glass-effect rounded-2xl p-6 sm:p-8 mb-6">
+                <label for="urlInput" class="block text-lg font-medium text-gray-200 mb-4">
+                    Paste your redirect URL
+                </label>
+                <div class="relative">
+                    <textarea 
+                        id="urlInput" 
+                        placeholder="https://l.facebook.com/l.php?u=https%3A%2F%2Fforms.gle%2Fi2V3m7DXDvN4x59R9&h=..."
+                        class="w-full h-32 p-4 bg-gray-800 border border-gray-700 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none resize-none text-gray-100 placeholder-gray-500 transition-all duration-200"
+                    ></textarea>
+                    <button 
+                        id="clearInputBtn"
+                        onclick="clearInput()" 
+                        class="absolute top-3 right-3 text-gray-500 hover:text-gray-300 transition-colors duration-200 opacity-0"
+                    >
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+                
+                <div class="flex flex-col sm:flex-row gap-3 mt-4">
+                    <button 
+                        onclick="extractURL()" 
+                        class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
+                    >
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                        </svg>
+                        Extract URL
+                    </button>
+                    <button 
+                        onclick="pasteAndExtract()" 
+                        class="bg-gray-700 hover:bg-gray-600 text-white font-medium py-3 px-6 rounded-xl transition-all duration-200 flex items-center justify-center gap-2"
+                    >
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                        </svg>
+                        Paste & Extract
+                    </button>
+                </div>
+            </div>
+
+            <!-- Success Result Section -->
+            <div id="resultSection" class="glass-effect rounded-2xl p-6 sm:p-8 mb-6 hidden fade-in">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="w-8 h-8 bg-green-600 rounded-full flex items-center justify-center">
+                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                    </div>
+                    <h2 class="text-xl font-semibold text-green-400">Target URL Extracted</h2>
+                </div>
+                
+                <div class="bg-gray-800 border border-gray-700 rounded-xl p-4 mb-4">
+                    <p id="extractedURL" class="text-gray-100 break-all font-mono text-sm leading-relaxed"></p>
+                </div>
+                
+                <div class="flex flex-wrap gap-3">
+                    <button 
+                        id="copyBtn"
+                        onclick="copyToClipboard()" 
+                        class="bg-green-600 hover:bg-green-700 text-white font-medium py-2.5 px-4 rounded-lg transition-all duration-200 flex items-center gap-2"
+                    >
+                        <svg id="copyIcon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                        </svg>
+                        <span id="copyText">Copy URL</span>
+                    </button>
+                    <button 
+                        onclick="openURL()" 
+                        class="bg-purple-600 hover:bg-purple-700 text-white font-medium py-2.5 px-4 rounded-lg transition-all duration-200 flex items-center gap-2"
+                    >
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+                        </svg>
+                        Open URL
+                    </button>
+                    <button 
+                        onclick="validateURL()" 
+                        class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 px-4 rounded-lg transition-all duration-200 flex items-center gap-2"
+                    >
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        Validate
+                    </button>
+                </div>
+            </div>
+
+            <!-- Error Section -->
+            <div id="errorSection" class="glass-effect rounded-2xl p-6 sm:p-8 mb-6 hidden fade-in">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="w-8 h-8 bg-red-600 rounded-full flex items-center justify-center">
+                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </div>
+                    <h2 class="text-xl font-semibold text-red-400">Unable to Extract URL</h2>
+                </div>
+                <div class="bg-red-900/20 border border-red-800 rounded-xl p-4">
+                    <p id="errorMessage" class="text-red-300"></p>
+                </div>
+            </div>
+
+            <!-- URL Validation Result -->
+            <div id="validationSection" class="glass-effect rounded-2xl p-6 sm:p-8 mb-6 hidden fade-in">
+                <div class="flex items-center gap-3 mb-4">
+                    <div id="validationIcon" class="w-8 h-8 rounded-full flex items-center justify-center">
+                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </div>
+                    <h2 id="validationTitle" class="text-xl font-semibold">URL Validation</h2>
+                </div>
+                <div id="validationContent" class="space-y-3"></div>
+            </div>
+
+            <!-- Info Section -->
+            <div class="glass-effect rounded-2xl p-6 sm:p-8">
+                <h2 class="text-xl font-semibold text-gray-200 mb-4 flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    Supported Formats
+                </h2>
+                <div class="grid sm:grid-cols-2 gap-4 text-sm text-gray-400">
+                    <div class="space-y-2">
+                        <div class="flex items-center gap-2">
+                            <div class="w-2 h-2 bg-blue-500 rounded-full"></div>
+                            <span>Facebook redirect links</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <div class="w-2 h-2 bg-green-500 rounded-full"></div>
+                            <span>Google redirect URLs</span>
+                        </div>
+                    </div>
+                    <div class="space-y-2">
+                        <div class="flex items-center gap-2">
+                            <div class="w-2 h-2 bg-purple-500 rounded-full"></div>
+                            <span>URL shortener redirects</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <div class="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                            <span>Custom redirect parameters</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let extractedURLValue = '';
+
+        // Show/hide clear button based on input
+        document.getElementById('urlInput').addEventListener('input', function() {
+            const clearBtn = document.getElementById('clearInputBtn');
+            if (this.value.trim()) {
+                clearBtn.classList.remove('opacity-0');
+                clearBtn.classList.add('opacity-100');
+            } else {
+                clearBtn.classList.remove('opacity-100');
+                clearBtn.classList.add('opacity-0');
+            }
+        });
+
+        function clearInput() {
+            document.getElementById('urlInput').value = '';
+            document.getElementById('clearInputBtn').classList.remove('opacity-100');
+            document.getElementById('clearInputBtn').classList.add('opacity-0');
+            hideAllSections();
+        }
+
+        function hideAllSections() {
+            document.getElementById('resultSection').classList.add('hidden');
+            document.getElementById('errorSection').classList.add('hidden');
+            document.getElementById('validationSection').classList.add('hidden');
+        }
+
+        async function pasteAndExtract() {
+            try {
+                const text = await navigator.clipboard.readText();
+                document.getElementById('urlInput').value = text;
+                document.getElementById('clearInputBtn').classList.remove('opacity-0');
+                document.getElementById('clearInputBtn').classList.add('opacity-100');
+                extractURL();
+            } catch (err) {
+                showError('Unable to access clipboard. Please paste manually and try again.');
+            }
+        }
+
+        function extractURL() {
+            const input = document.getElementById('urlInput').value.trim();
+            
+            hideAllSections();
+            
+            if (!input) {
+                showError('Please enter a URL to decode.');
+                return;
+            }
+
+            try {
+                const url = new URL(input);
+                let targetURL = null;
+
+                // Extended list of common parameter names
+                const urlParams = ['u', 'url', 'q', 'link', 'target', 'redirect', 'goto', 'destination', 'href', 'next'];
+                
+                for (const param of urlParams) {
+                    const value = url.searchParams.get(param);
+                    if (value) {
+                        targetURL = decodeURIComponent(value);
+                        break;
+                    }
+                }
+
+                if (targetURL) {
+                    try {
+                        new URL(targetURL);
+                        extractedURLValue = targetURL;
+                        document.getElementById('extractedURL').textContent = targetURL;
+                        document.getElementById('resultSection').classList.remove('hidden');
+                    } catch (e) {
+                        showError('The extracted text is not a valid URL: ' + targetURL);
+                    }
+                } else {
+                    showError('No target URL found. This might not be a redirect URL or uses an unsupported parameter format.');
+                }
+
+            } catch (error) {
+                showError('Invalid URL format. Please check your input and try again.');
+            }
+        }
+
+        function showError(message) {
+            document.getElementById('errorMessage').textContent = message;
+            document.getElementById('errorSection').classList.remove('hidden');
+        }
+
+        async function copyToClipboard() {
+            const copyBtn = document.getElementById('copyBtn');
+            const copyIcon = document.getElementById('copyIcon');
+            const copyText = document.getElementById('copyText');
+            
+            try {
+                await navigator.clipboard.writeText(extractedURLValue);
+                
+                // Success feedback
+                copyBtn.classList.add('pulse-success');
+                copyBtn.classList.remove('bg-green-600', 'hover:bg-green-700');
+                copyBtn.classList.add('bg-green-700');
+                
+                copyIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>';
+                copyText.textContent = 'Copied!';
+                
+                setTimeout(() => {
+                    copyBtn.classList.remove('pulse-success', 'bg-green-700');
+                    copyBtn.classList.add('bg-green-600', 'hover:bg-green-700');
+                    copyIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>';
+                    copyText.textContent = 'Copy URL';
+                }, 2000);
+                
+            } catch (err) {
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = extractedURLValue;
+                textArea.style.position = 'fixed';
+                textArea.style.left = '-999999px';
+                textArea.style.top = '-999999px';
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                
+                try {
+                    document.execCommand('copy');
+                    copyText.textContent = 'Copied!';
+                    setTimeout(() => {
+                        copyText.textContent = 'Copy URL';
+                    }, 2000);
+                } catch (err) {
+                    showError('Failed to copy to clipboard. Please copy manually.');
+                }
+                
+                document.body.removeChild(textArea);
+            }
+        }
+
+        function openURL() {
+            if (extractedURLValue) {
+                window.open(extractedURLValue, '_blank', 'noopener,noreferrer');
+            }
+        }
+
+        async function validateURL() {
+            if (!extractedURLValue) return;
+            
+            const validationSection = document.getElementById('validationSection');
+            const validationIcon = document.getElementById('validationIcon');
+            const validationTitle = document.getElementById('validationTitle');
+            const validationContent = document.getElementById('validationContent');
+            
+            validationContent.innerHTML = '<div class="text-gray-400">Validating URL...</div>';
+            validationSection.classList.remove('hidden');
+            
+            try {
+                const url = new URL(extractedURLValue);
+                const domain = url.hostname;
+                const protocol = url.protocol;
+                
+                let validationResults = [];
+                
+                // Basic validation
+                validationResults.push({
+                    label: 'Protocol',
+                    value: protocol,
+                    status: protocol === 'https:' ? 'good' : protocol === 'http:' ? 'warning' : 'error'
+                });
+                
+                validationResults.push({
+                    label: 'Domain',
+                    value: domain,
+                    status: 'good'
+                });
+                
+                // Check if it's a known safe domain
+                const safeDomains = ['google.com', 'youtube.com', 'github.com', 'stackoverflow.com', 'wikipedia.org'];
+                const isSafeDomain = safeDomains.some(safeDomain => domain.includes(safeDomain));
+                
+                validationResults.push({
+                    label: 'Domain Safety',
+                    value: isSafeDomain ? 'Known safe domain' : 'Unknown domain - exercise caution',
+                    status: isSafeDomain ? 'good' : 'warning'
+                });
+                
+                // Update UI
+                validationIcon.className = 'w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center';
+                validationTitle.textContent = 'URL Validation Results';
+                validationTitle.className = 'text-xl font-semibold text-blue-400';
+                
+                validationContent.innerHTML = validationResults.map(result => {
+                    const statusColors = {
+                        good: 'text-green-400 bg-green-900/20 border-green-800',
+                        warning: 'text-yellow-400 bg-yellow-900/20 border-yellow-800',
+                        error: 'text-red-400 bg-red-900/20 border-red-800'
+                    };
+                    
+                    return `
+                        <div class="flex justify-between items-center p-3 rounded-lg ${statusColors[result.status]} border">
+                            <span class="font-medium">${result.label}:</span>
+                            <span class="text-sm">${result.value}</span>
+                        </div>
+                    `;
+                }).join('');
+                
+            } catch (error) {
+                validationIcon.className = 'w-8 h-8 bg-red-600 rounded-full flex items-center justify-center';
+                validationTitle.textContent = 'Validation Failed';
+                validationTitle.className = 'text-xl font-semibold text-red-400';
+                validationContent.innerHTML = '<div class="text-red-300">Unable to validate URL structure.</div>';
+            }
+        }
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey || e.metaKey) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    extractURL();
+                } else if (e.key === 'v' && e.shiftKey) {
+                    e.preventDefault();
+                    pasteAndExtract();
+                }
+            }
+        });
+
+        // Auto-extract on paste
+        document.getElementById('urlInput').addEventListener('paste', function() {
+            setTimeout(() => {
+                if (this.value.trim()) {
+                    extractURL();
+                }
+            }, 100);
+        });
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'978092d3066922f8',t:'MTc1NjY4NTcyOS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
