@@ -1,0 +1,681 @@
+<!doctype html>
+<!-- by ImPot8o https://github.com/ImPot8o pot8o.dev -->
+<html lang="en" class="h-full">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Yahtzee Game</title>
+  <style>
+    body {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #1a202c;
+      width: 100%;
+      height: 100%;
+      overflow-auto;
+    }
+
+    .game-container {
+      max-width: 480px;
+      margin: 0 auto;
+      padding: 20px;
+      min-height: 100%;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .game-title {
+      font-size: 48px;
+      font-weight: bold;
+      color: white;
+      text-shadow: 3px 3px 6px rgba(0,0,0,0.3);
+      margin: 0;
+    }
+
+    .rolls-left {
+      color: white;
+      font-size: 18px;
+      margin-top: 10px;
+      font-weight: 600;
+    }
+
+    .dice-container {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      margin: 30px 0;
+      flex-wrap: wrap;
+    }
+
+    .die {
+      width: 60px;
+      height: 60px;
+      background: white;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+      font-weight: bold;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      transition: all 0.3s ease;
+      user-select: none;
+      position: relative;
+    }
+
+    .die:active {
+      transform: scale(0.95);
+    }
+
+    .die.held {
+      background: #fbbf24;
+      box-shadow: 0 4px 16px rgba(251, 191, 36, 0.4);
+    }
+
+    .die.rolling {
+      animation: roll 0.5s ease;
+    }
+
+    @keyframes roll {
+      0%, 100% { transform: rotate(0deg); }
+      25% { transform: rotate(90deg); }
+      50% { transform: rotate(180deg); }
+      75% { transform: rotate(270deg); }
+    }
+
+    .button-container {
+      text-align: center;
+      margin: 20px 0;
+    }
+
+    .roll-button {
+      background: #10b981;
+      color: white;
+      border: none;
+      padding: 16px 48px;
+      border-radius: 12px;
+      font-size: 20px;
+      font-weight: bold;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+      transition: all 0.3s ease;
+    }
+
+    .roll-button:hover {
+      background: #059669;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
+    }
+
+    .roll-button:active {
+      transform: translateY(0);
+    }
+
+    .roll-button:disabled {
+      background: #9ca3af;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    .scorecard {
+      background: white;
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+    }
+
+    .scorecard-title {
+      font-size: 24px;
+      font-weight: bold;
+      margin-bottom: 16px;
+      text-align: center;
+      color: #667eea;
+    }
+
+    .score-section {
+      margin-bottom: 20px;
+    }
+
+    .section-title {
+      font-size: 16px;
+      font-weight: bold;
+      color: #4b5563;
+      margin-bottom: 8px;
+      padding-bottom: 4px;
+      border-bottom: 2px solid #e5e7eb;
+    }
+
+    .score-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px;
+      border-radius: 8px;
+      margin-bottom: 4px;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+
+    .score-row:hover {
+      background: #f3f4f6;
+    }
+
+    .score-row.scored {
+      background: #e5e7eb;
+      cursor: default;
+    }
+
+    .score-row.scored:hover {
+      background: #e5e7eb;
+    }
+
+    .score-label {
+      font-weight: 600;
+      color: #374151;
+    }
+
+    .score-value {
+      font-weight: bold;
+      color: #667eea;
+      min-width: 40px;
+      text-align: right;
+    }
+
+    .score-row.scored .score-value {
+      color: #6b7280;
+    }
+
+    .total-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 12px;
+      background: #667eea;
+      color: white;
+      border-radius: 8px;
+      font-weight: bold;
+      font-size: 18px;
+      margin-top: 12px;
+    }
+
+    .new-game-button {
+      width: 100%;
+      margin-top: 20px;
+      background: #ef4444;
+      color: white;
+      border: none;
+      padding: 14px;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .new-game-button:hover {
+      background: #dc2626;
+    }
+
+    .game-over {
+      background: white;
+      border-radius: 16px;
+      padding: 30px;
+      text-align: center;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+      margin-bottom: 20px;
+    }
+
+    .game-over-title {
+      font-size: 32px;
+      font-weight: bold;
+      color: #667eea;
+      margin-bottom: 16px;
+    }
+
+    .final-score {
+      font-size: 48px;
+      font-weight: bold;
+      color: #10b981;
+      margin: 20px 0;
+    }
+
+    .celebration {
+      animation: celebrate 0.6s ease;
+    }
+
+    @keyframes celebrate {
+      0%, 100% { transform: scale(1); }
+      25% { transform: scale(1.1) rotate(-5deg); }
+      50% { transform: scale(1.15) rotate(5deg); }
+      75% { transform: scale(1.1) rotate(-5deg); }
+    }
+
+    .score-row.highlight {
+      animation: scoreHighlight 0.5s ease;
+    }
+
+    @keyframes scoreHighlight {
+      0%, 100% { background: #f3f4f6; }
+      50% { background: #fef3c7; transform: scale(1.02); }
+    }
+
+    .bonus-notification {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: linear-gradient(135deg, #fbbf24, #f59e0b);
+      color: white;
+      padding: 30px 40px;
+      border-radius: 20px;
+      font-size: 24px;
+      font-weight: bold;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+      z-index: 1000;
+      animation: bonusPop 0.8s ease;
+    }
+
+    @keyframes bonusPop {
+      0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+      50% { transform: translate(-50%, -50%) scale(1.1); }
+      100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+    }
+
+    .instruction-text {
+      color: rgba(255, 255, 255, 0.9);
+      font-size: 14px;
+      text-align: center;
+      margin-top: 8px;
+      font-weight: 500;
+    }
+
+    .dice-shake {
+      animation: shake 0.3s ease;
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-5px); }
+      75% { transform: translateX(5px); }
+    }
+  </style>
+  <style>@view-transition { navigation: auto; }</style>  <script src="https://cdn.tailwindcss.com" type="text/javascript"></script>
+ </head>
+ <body>
+  <div class="game-container">
+   <header class="header">
+    <h1 class="game-title" id="gameTitle">Yahtzee</h1>
+    <div class="rolls-left" id="rollsLeft">
+     Rolls Left: 3
+    </div>
+    <div class="instruction-text" id="instructionText">
+     Tap "Roll Dice" to start!
+    </div>
+   </header>
+   <div id="gameOverMessage" class="game-over" style="display: none;">
+    <div class="game-over-title">
+     Game Over!
+    </div>
+    <div class="final-score" id="finalScore">
+     0
+    </div><button class="new-game-button" onclick="startNewGame()">Play Again</button>
+   </div>
+   <div class="dice-container" id="diceContainer"></div>
+   <div class="button-container"><button class="roll-button" id="rollButton" onclick="rollDice()">Roll Dice</button>
+   </div>
+   <div class="scorecard">
+    <div class="scorecard-title">
+     Scorecard
+    </div>
+    <div class="score-section">
+     <div class="section-title">
+      Upper Section
+     </div>
+     <div id="upperSection"></div>
+     <div class="total-row"><span>Upper Bonus</span> <span id="upperBonus">0</span>
+     </div>
+    </div>
+    <div class="score-section">
+     <div class="section-title">
+      Lower Section
+     </div>
+     <div id="lowerSection"></div>
+    </div>
+    <div class="total-row"><span>Total Score</span> <span id="totalScore">0</span>
+    </div><button class="new-game-button" onclick="startNewGame()">New Game</button>
+   </div>
+  </div>
+  <script>
+localStorage.setItem('pot8o watermark', `${localStorage.getItem('pot8o watermark') || ''} Yahtzee`);
+    const defaultConfig = {
+      game_title: "Yahtzee"
+    };
+
+    let config = {};
+
+    const gameState = {
+      dice: [1, 2, 3, 4, 5],
+      held: [false, false, false, false, false],
+      rollsLeft: 3,
+      scores: {},
+      gameOver: false
+    };
+
+    const scoreCategories = {
+      upper: [
+        { id: 'ones', label: 'Ones', calc: (dice) => dice.filter(d => d === 1).reduce((a, b) => a + b, 0) },
+        { id: 'twos', label: 'Twos', calc: (dice) => dice.filter(d => d === 2).reduce((a, b) => a + b, 0) },
+        { id: 'threes', label: 'Threes', calc: (dice) => dice.filter(d => d === 3).reduce((a, b) => a + b, 0) },
+        { id: 'fours', label: 'Fours', calc: (dice) => dice.filter(d => d === 4).reduce((a, b) => a + b, 0) },
+        { id: 'fives', label: 'Fives', calc: (dice) => dice.filter(d => d === 5).reduce((a, b) => a + b, 0) },
+        { id: 'sixes', label: 'Sixes', calc: (dice) => dice.filter(d => d === 6).reduce((a, b) => a + b, 0) }
+      ],
+      lower: [
+        { id: 'threeOfKind', label: 'Three of a Kind', calc: calcThreeOfKind },
+        { id: 'fourOfKind', label: 'Four of a Kind', calc: calcFourOfKind },
+        { id: 'fullHouse', label: 'Full House', calc: calcFullHouse },
+        { id: 'smallStraight', label: 'Small Straight', calc: calcSmallStraight },
+        { id: 'largeStraight', label: 'Large Straight', calc: calcLargeStraight },
+        { id: 'yahtzee', label: 'Yahtzee', calc: calcYahtzee },
+        { id: 'chance', label: 'Chance', calc: (dice) => dice.reduce((a, b) => a + b, 0) }
+      ]
+    };
+
+    function calcThreeOfKind(dice) {
+      const counts = {};
+      dice.forEach(d => counts[d] = (counts[d] || 0) + 1);
+      return Object.values(counts).some(c => c >= 3) ? dice.reduce((a, b) => a + b, 0) : 0;
+    }
+
+    function calcFourOfKind(dice) {
+      const counts = {};
+      dice.forEach(d => counts[d] = (counts[d] || 0) + 1);
+      return Object.values(counts).some(c => c >= 4) ? dice.reduce((a, b) => a + b, 0) : 0;
+    }
+
+    function calcFullHouse(dice) {
+      const counts = {};
+      dice.forEach(d => counts[d] = (counts[d] || 0) + 1);
+      const values = Object.values(counts).sort();
+      return values.length === 2 && values[0] === 2 && values[1] === 3 ? 25 : 0;
+    }
+
+    function calcSmallStraight(dice) {
+      const unique = [...new Set(dice)].sort();
+      const straights = ['1234', '2345', '3456'];
+      const diceStr = unique.join('');
+      return straights.some(s => diceStr.includes(s)) ? 30 : 0;
+    }
+
+    function calcLargeStraight(dice) {
+      const sorted = [...dice].sort().join('');
+      return sorted === '12345' || sorted === '23456' ? 40 : 0;
+    }
+
+    function calcYahtzee(dice) {
+      return dice.every(d => d === dice[0]) ? 50 : 0;
+    }
+
+    function initializeDice() {
+      const container = document.getElementById('diceContainer');
+      container.innerHTML = '';
+      gameState.dice.forEach((value, index) => {
+        const die = document.createElement('div');
+        die.className = 'die';
+        die.textContent = getDieFace(value);
+        die.onclick = () => toggleHold(index);
+        container.appendChild(die);
+      });
+    }
+
+    function getDieFace(value) {
+      const faces = ['⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
+      return faces[value - 1];
+    }
+
+    function toggleHold(index) {
+      if (gameState.rollsLeft === 3) return;
+      gameState.held[index] = !gameState.held[index];
+      updateDiceDisplay();
+      updateInstructions();
+    }
+
+    function updateDiceDisplay() {
+      const dice = document.querySelectorAll('.die');
+      dice.forEach((die, index) => {
+        die.textContent = getDieFace(gameState.dice[index]);
+        if (gameState.held[index]) {
+          die.classList.add('held');
+        } else {
+          die.classList.remove('held');
+        }
+      });
+    }
+
+    function rollDice() {
+      if (gameState.rollsLeft === 0 || gameState.gameOver) return;
+
+      const dice = document.querySelectorAll('.die');
+      dice.forEach((die, index) => {
+        if (!gameState.held[index]) {
+          die.classList.add('rolling');
+        }
+      });
+
+      setTimeout(() => {
+        gameState.dice = gameState.dice.map((value, index) => 
+          gameState.held[index] ? value : Math.floor(Math.random() * 6) + 1
+        );
+        
+        gameState.rollsLeft--;
+        updateDiceDisplay();
+        updateRollsLeft();
+        updateScorecard();
+
+        dice.forEach(die => die.classList.remove('rolling'));
+      }, 500);
+    }
+
+    function updateRollsLeft() {
+      document.getElementById('rollsLeft').textContent = `Rolls Left: ${gameState.rollsLeft}`;
+      const rollButton = document.getElementById('rollButton');
+      rollButton.disabled = gameState.rollsLeft === 0 || gameState.gameOver;
+      updateInstructions();
+    }
+
+    function updateInstructions() {
+      const instructionEl = document.getElementById('instructionText');
+      if (!instructionEl) return;
+
+      if (gameState.gameOver) {
+        instructionEl.textContent = 'Game complete! Great job!';
+      } else if (gameState.rollsLeft === 3) {
+        instructionEl.textContent = 'Tap "Roll Dice" to start!';
+      } else if (gameState.rollsLeft > 0) {
+        instructionEl.textContent = 'Tap dice to hold, then roll again!';
+      } else {
+        instructionEl.textContent = 'Choose a category to score!';
+      }
+    }
+
+    function initializeScorecard() {
+      const upperSection = document.getElementById('upperSection');
+      const lowerSection = document.getElementById('lowerSection');
+
+      upperSection.innerHTML = '';
+      lowerSection.innerHTML = '';
+
+      scoreCategories.upper.forEach(category => {
+        const row = createScoreRow(category);
+        upperSection.appendChild(row);
+      });
+
+      scoreCategories.lower.forEach(category => {
+        const row = createScoreRow(category);
+        lowerSection.appendChild(row);
+      });
+    }
+
+    function createScoreRow(category) {
+      const row = document.createElement('div');
+      row.className = 'score-row';
+      row.id = `row-${category.id}`;
+      row.innerHTML = `
+        <span class="score-label">${category.label}</span>
+        <span class="score-value" id="score-${category.id}">-</span>
+      `;
+      row.onclick = () => scoreCategory(category);
+      return row;
+    }
+
+    function updateScorecard() {
+      if (gameState.rollsLeft === 3) return;
+
+      [...scoreCategories.upper, ...scoreCategories.lower].forEach(category => {
+        if (gameState.scores[category.id] === undefined) {
+          const potentialScore = category.calc(gameState.dice);
+          document.getElementById(`score-${category.id}`).textContent = potentialScore;
+        }
+      });
+    }
+
+    function scoreCategory(category) {
+      if (gameState.scores[category.id] !== undefined || gameState.rollsLeft === 3 || gameState.gameOver) return;
+
+      const score = category.calc(gameState.dice);
+      gameState.scores[category.id] = score;
+
+      const row = document.getElementById(`row-${category.id}`);
+      row.classList.add('scored', 'highlight');
+      document.getElementById(`score-${category.id}`).textContent = score;
+
+      // Check for bonus achievement
+      const previousUpperScore = scoreCategories.upper
+        .filter(cat => cat.id !== category.id)
+        .reduce((sum, cat) => sum + (gameState.scores[cat.id] || 0), 0);
+      const newUpperScore = previousUpperScore + (scoreCategories.upper.some(cat => cat.id === category.id) ? score : 0);
+      
+      if (previousUpperScore < 63 && newUpperScore >= 63) {
+        showBonusNotification();
+      }
+
+      resetTurn();
+      updateTotals();
+
+      const allScored = [...scoreCategories.upper, ...scoreCategories.lower]
+        .every(cat => gameState.scores[cat.id] !== undefined);
+      
+      if (allScored) {
+        endGame();
+      }
+    }
+
+    function showBonusNotification() {
+      const notification = document.createElement('div');
+      notification.className = 'bonus-notification';
+      notification.textContent = '🎉 Bonus Unlocked! +35 Points';
+      document.body.appendChild(notification);
+
+      setTimeout(() => {
+        notification.remove();
+      }, 2000);
+    }
+
+    function resetTurn() {
+      gameState.rollsLeft = 3;
+      gameState.held = [false, false, false, false, false];
+      updateRollsLeft();
+      updateDiceDisplay();
+
+      [...scoreCategories.upper, ...scoreCategories.lower].forEach(category => {
+        if (gameState.scores[category.id] === undefined) {
+          document.getElementById(`score-${category.id}`).textContent = '-';
+        }
+      });
+    }
+
+    function updateTotals() {
+      const upperScore = scoreCategories.upper.reduce((sum, cat) => 
+        sum + (gameState.scores[cat.id] || 0), 0);
+      
+      const upperBonus = upperScore >= 63 ? 35 : 0;
+      document.getElementById('upperBonus').textContent = upperBonus;
+
+      const lowerScore = scoreCategories.lower.reduce((sum, cat) => 
+        sum + (gameState.scores[cat.id] || 0), 0);
+
+      const total = upperScore + upperBonus + lowerScore;
+      document.getElementById('totalScore').textContent = total;
+    }
+
+    function endGame() {
+      gameState.gameOver = true;
+      const total = parseInt(document.getElementById('totalScore').textContent);
+      document.getElementById('finalScore').textContent = total;
+      
+      const gameOverEl = document.getElementById('gameOverMessage');
+      gameOverEl.style.display = 'block';
+      gameOverEl.classList.add('celebration');
+      
+      updateRollsLeft();
+    }
+
+    function startNewGame() {
+      gameState.dice = [1, 2, 3, 4, 5];
+      gameState.held = [false, false, false, false, false];
+      gameState.rollsLeft = 3;
+      gameState.scores = {};
+      gameState.gameOver = false;
+
+      document.getElementById('gameOverMessage').style.display = 'none';
+      document.getElementById('upperBonus').textContent = '0';
+      document.getElementById('totalScore').textContent = '0';
+
+      initializeScorecard();
+      initializeDice();
+      updateRollsLeft();
+    }
+
+    async function onConfigChange(newConfig) {
+      const titleElement = document.getElementById('gameTitle');
+      if (titleElement) {
+        titleElement.textContent = newConfig.game_title || defaultConfig.game_title;
+      }
+    }
+
+    function mapToCapabilities(config) {
+      return {
+        recolorables: [],
+        borderables: [],
+        fontEditable: undefined,
+        fontSizeable: undefined
+      };
+    }
+
+    function mapToEditPanelValues(config) {
+      return new Map([
+        ["game_title", config.game_title || defaultConfig.game_title]
+      ]);
+    }
+
+    if (window.elementSdk) {
+      window.elementSdk.init({
+        defaultConfig,
+        onConfigChange,
+        mapToCapabilities,
+        mapToEditPanelValues
+      });
+      config = window.elementSdk.config;
+      onConfigChange(config);
+    }
+
+    startNewGame();
+  </script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9abf5dab1636ae77',t:'MTc2NTM5NzIxOS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
