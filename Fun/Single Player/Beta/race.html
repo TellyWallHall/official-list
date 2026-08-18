@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<!-- by ImPot8o https://github.com/ImPot8o pot8o.dev -->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Neon Drift 3D: Race Mode</title>
+<style>
+html,body{margin:0;padding:0;overflow:hidden;background:#000;font-family:Arial,Helvetica,sans-serif;color:#fff}
+#ui{position:absolute;top:0;left:0;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,0.8);transition:opacity 0.5s}
+#ui.hidden{opacity:0;pointer-events:none}
+button{background:#0ff;border:none;padding:15px 30px;margin:10px;font-size:18px;color:#000;border-radius:8px;cursor:pointer;transition:background 0.3s}
+button:hover{background:#0cc}
+#hud{position:absolute;top:10px;left:10px;font-size:18px}
+#score{position:absolute;top:10px;right:10px;font-size:18px}
+#laps{position:absolute;top:40px;right:10px;font-size:18px}
+#touchControls{position:absolute;bottom:20px;left:0;width:100%;display:flex;justify-content:space-between;padding:0 20px;pointer-events:none}
+.touchBtn{width:80px;height:80px;border-radius:50%;background:rgba(255,255,255,0.1);border:2px solid #0ff;pointer-events:auto;touch-action:none}
+#boostBar{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);width:80%;height:10px;background:#222;border:1px solid #0ff;border-radius:5px;overflow:hidden}
+#boostFill{width:0%;height:100%;background:#0ff;transition:width 0.1s}
+#gameOver{position:absolute;top:0;left:0;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,0.9);font-size:24px;opacity:0;pointer-events:none;transition:opacity 0.5s}
+#gameOver.visible{opacity:1;pointer-events:auto}
+</style>
+</head>
+<body>
+<div id="ui">
+<h1>Neon Drift 3D: Race Mode</h1>
+<p>Complete 3 laps through the neon city. Avoid obstacles and earn points by time!</p>
+<button id="startBtn">Start Race</button>
+</div>
+<div id="hud">Speed: <span id="speed">0</span> km/h</div>
+<div id="score">Score: <span id="scoreValue">0</span></div>
+<div id="laps">Lap: <span id="lapCount">1</span>/3</div>
+<div id="boostBar"><div id="boostFill"></div></div>
+<div id="touchControls">
+<div id="leftBtn" class="touchBtn"></div>
+<div id="rightBtn" class="touchBtn"></div>
+</div>
+<div id="gameOver">
+<h2>Race Over</h2>
+<p>Your Score: <span id="finalScore">0</span></p>
+<button id="restartBtn">Restart</button>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+<script>
+localStorage.setItem('pot8o watermark', `${localStorage.getItem('pot8o watermark') || ''} race`);
+let scene,camera,renderer,car,road,clock,speed=0,acceleration=0.005,maxSpeed=8,turnSpeed=0.025,keys={},leftPressed=false,rightPressed=false,boost=0,boosting=false,score=0,gameOver=false,lap=1,lapLength=2000,obstacles=[];
+const ui=document.getElementById('ui');
+const startBtn=document.getElementById('startBtn');
+const restartBtn=document.getElementById('restartBtn');
+const speedDisplay=document.getElementById('speed');
+const scoreDisplay=document.getElementById('scoreValue');
+const finalScore=document.getElementById('finalScore');
+const lapDisplay=document.getElementById('lapCount');
+const leftBtn=document.getElementById('leftBtn');
+const rightBtn=document.getElementById('rightBtn');
+const boostFill=document.getElementById('boostFill');
+const gameOverScreen=document.getElementById('gameOver');
+
+function init(){
+scene=new THREE.Scene();
+scene.fog=new THREE.Fog(0x000000,10,120);
+camera=new THREE.PerspectiveCamera(75,window.innerWidth/window.innerHeight,0.1,1000);
+renderer=new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(window.innerWidth,window.innerHeight);
+document.body.appendChild(renderer.domElement);
+clock=new THREE.Clock();
+
+// Lighting
+const ambient=new THREE.AmbientLight(0x404040);
+scene.add(ambient);
+const dirLight=new THREE.DirectionalLight(0xffffff,1);
+dirLight.position.set(5,10,7.5);
+scene.add(dirLight);
+
+// Car
+const carGeo=new THREE.BoxGeometry(1,0.5,2);
+const carMat=new THREE.MeshStandardMaterial({color:0x00ffff,emissive:0x00ffff,emissiveIntensity:0.5});
+car=new THREE.Mesh(carGeo,carMat);
+car.position.y=0.25;
+scene.add(car);
+
+// Road
+const roadGeo=new THREE.PlaneGeometry(10,lapLength,1,1);
+const roadMat=new THREE.MeshStandardMaterial({color:0x111111});
+road=new THREE.Mesh(roadGeo,roadMat);
+road.rotation.x=-Math.PI/2;
+road.position.z=-lapLength/2;
+scene.add(road);
+
+// Boundaries
+const leftWall=createWall(-5.5);
+const rightWall=createWall(5.5);
+scene.add(leftWall);
+scene.add(rightWall);
+
+// Neon city lights
+for(let i=0;i<200;i++){
+const buildingGeo=new THREE.BoxGeometry(1+Math.random()*3,Math.random()*10+2,1+Math.random()*3);
+const buildingMat=new THREE.MeshStandardMaterial({color:new THREE.Color(`hsl(${Math.random()*360},100%,50%)`),emissive:0x111111});
+const building=new THREE.Mesh(buildingGeo,buildingMat);
+building.position.set((Math.random()-0.5)*20,building.geometry.parameters.height/2,-Math.random()*lapLength);
+scene.add(building);
+}
+
+// Obstacles
+for(let i=0;i<30;i++){
+const obsGeo=new THREE.BoxGeometry(1,1,1);
+const obsMat=new THREE.MeshStandardMaterial({color:0xff0000,emissive:0x550000});
+const obs=new THREE.Mesh(obsGeo,obsMat);
+obs.position.set((Math.random()-0.5)*8,0.5,-Math.random()*lapLength);
+scene.add(obs);
+obstacles.push(obs);
+}
+
+camera.position.set(0,2,5);
+window.addEventListener('resize',onWindowResize);
+document.addEventListener('keydown',e=>keys[e.code]=true);
+document.addEventListener('keyup',e=>keys[e.code]=false);
+
+// Touch controls
+leftBtn.addEventListener('touchstart',()=>leftPressed=true);
+leftBtn.addEventListener('touchend',()=>leftPressed=false);
+rightBtn.addEventListener('touchstart',()=>rightPressed=true);
+rightBtn.addEventListener('touchend',()=>rightPressed=false);
+}
+
+function createWall(x){
+const wallGeo=new THREE.BoxGeometry(0.5,2,lapLength);
+const wallMat=new THREE.MeshStandardMaterial({color:0xff00ff,emissive:0xff00ff,emissiveIntensity:0.3});
+const wall=new THREE.Mesh(wallGeo,wallMat);
+wall.position.set(x,1,-lapLength/2);
+return wall;
+}
+
+function onWindowResize(){
+camera.aspect=window.innerWidth/window.innerHeight;
+camera.updateProjectionMatrix();
+renderer.setSize(window.innerWidth,window.innerHeight);
+}
+
+function animate(){
+if(gameOver)return;
+requestAnimationFrame(animate);
+const delta=clock.getDelta();
+update(delta);
+renderer.render(scene,camera);
+}
+
+function update(delta){
+// Automatic forward motion
+speed=Math.min(speed+acceleration*delta*60,maxSpeed);
+
+// Turning
+if(keys['ArrowLeft']||keys['KeyA']||leftPressed)car.rotation.y+=turnSpeed*delta*60;
+if(keys['ArrowRight']||keys['KeyD']||rightPressed)car.rotation.y-=turnSpeed*delta*60;
+
+// Boost mechanic
+if(keys['Space']&&boost<100){boost+=0.5;boosting=true;}
+else boosting=false;
+if(boosting&&speed<maxSpeed*1.5)speed+=0.1;
+if(!boosting&&boost>0)boost-=0.2;
+boostFill.style.width=boost+"%";
+
+// Move car
+car.position.z-=Math.cos(car.rotation.y)*speed*delta*10;
+car.position.x-=Math.sin(car.rotation.y)*speed*delta*10;
+
+// Boundaries
+if(car.position.x<-4.5||car.position.x>4.5){
+endGame();
+return;
+}
+
+// Collision detection
+for(let obs of obstacles){
+const dx=car.position.x-obs.position.x;
+const dz=car.position.z-obs.position.z;
+const dist=Math.sqrt(dx*dx+dz*dz);
+if(dist<1.2){
+speed=Math.max(speed-0.3,2); // slow down
+}
+}
+
+// Lap system
+if(car.position.z<-lapLength){
+lap++;
+if(lap>3){
+endGame(true);
+return;
+}
+car.position.z=0;
+lapDisplay.textContent=lap;
+}
+
+// Camera follow
+camera.position.lerp(new THREE.Vector3(car.position.x,car.position.y+2,car.position.z+5),0.1);
+camera.lookAt(car.position.x,car.position.y,car.position.z-5);
+
+// Update HUD
+speedDisplay.textContent=Math.round(speed*50);
+score+=delta*100; // time-based scoring
+scoreDisplay.textContent=Math.floor(score);
+}
+
+function endGame(finished=false){
+gameOver=true;
+finalScore.textContent=Math.floor(score);
+gameOverScreen.querySelector("h2").textContent=finished?"Race Complete!":"Crashed!";
+gameOverScreen.classList.add('visible');
+}
+
+startBtn.addEventListener('click',()=>{
+ui.classList.add('hidden');
+init();
+animate();
+});
+
+restartBtn.addEventListener('click',()=>{
+location.reload();
+});
+</script>
+</body>
+</html>
