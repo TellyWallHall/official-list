@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<head>
+<title>Audio</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+body {
+background-color: #B0CFDE;
+margin: 0;
+padding: 10px;
+font-family: Arial, sans-serif;
+position: relative; /* Added for positioning the "?" button */
+}
+
+h1 {
+text-align: center;
+}
+
+#audio-url {
+width: 100%;
+box-sizing: border-box;
+padding: 10px;
+margin-bottom: 10px;
+}
+
+#load-audio-btn {
+width: 100%;
+box-sizing: border-box;
+padding: 10px;
+background-color: #4CAF50;
+color: white;
+border: none;
+cursor: pointer;
+}
+
+#audio-container {
+text-align: center;
+}
+
+.question-button {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 50px;
+  height: 50px;
+  background-color: #3498db;
+  color: #fff;
+  font-size: 24px;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-decoration: none;
+  transition: background-color 0.3s ease-in-out;
+}
+
+.question-button:hover {
+  background-color: #2980b9;
+}
+</style>
+</head>
+<body>
+<h1>A-Access Radio</h1>
+<p>Version: 2.0</p>
+<p>NOTICE: This file only works in Chrome</p>
+<a href="https://docs.google.com/document/d/1WG0Bow0VzRyRXZH90rFAKs-lTqaTJsy6wI_Go6IsmdA/edit?usp=sharing">RADIO STATION LINKS</a>
+<div>
+<input type="text" id="audio-url" placeholder="Enter audio URL"> <button id="load-audio-btn" onclick="loadAudio()">Load Audio</button> </div>
+
+<div id="audio-container"> <audio id="audio" controls> Your browser does not support the audio tag. </audio> </div>
+
+<p>Click the button to modify the link:</p>
+<input type="text" id="originalLink" placeholder="Paste Google Drive Link Here">
+<button onclick="modifyLink()">Modify Link</button>
+<button id="clear-button" class="clear-button" onclick="clearLink()">CLEAR</button>
+<p>Modified Link:</p>
+<p id="modifiedLink"></p>
+
+
+<a href="https://docs.google.com/document/d/19JruYhiLWwrc_Qlwvxh8kFrdOOKEtfqQH4k9Ve01WdY/edit?usp=sharing" class="question-button">?</a>
+
+<script>
+function loadAudio() {
+var audioUrlInput = document.getElementById("audio-url");
+var audioUrl = audioUrlInput.value; var audio = document.getElementById("audio"); audio.innerHTML = "";
+var source = document.createElement("source"); source.src = audioUrl; source.type = "audio/mp3"; audio.appendChild(source); audio.load(); }
+function modifyLink() {
+var originalLink = document.getElementById("originalLink").value;
+var start = originalLink.indexOf("file/d/") + 7;
+var end = originalLink.indexOf("/view?usp"); if (start !== -1 && end !== -1) { var extractedText = originalLink.substring(start, end); var newLink = "https://docs.google.com/uc?export=open&id=" + extractedText; document.getElementById("modifiedLink").textContent = newLink; } else { document.getElementById("modifiedLink").textContent = "Invalid Link"; } }
+function clearLink() {
+document.getElementById("originalLink").value = "";
+}
+</script>
+ </body>
+// Product of A-Access
+  </html>
