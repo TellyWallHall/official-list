@@ -1,0 +1,306 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HTML Fetcher</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            background: #0d1117;
+            color: #c9d1d9;
+            min-height: 100vh;
+            padding: 20px;
+            font-size: 14px;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            font-size: 18px;
+            font-weight: normal;
+            margin-bottom: 20px;
+            color: #58a6ff;
+        }
+        
+        .input-section {
+            margin-bottom: 15px;
+        }
+        
+        input[type="url"] {
+            width: 100%;
+            padding: 8px 12px;
+            background: #21262d;
+            border: 1px solid #30363d;
+            border-radius: 4px;
+            color: #c9d1d9;
+            font-family: inherit;
+            font-size: 14px;
+        }
+        
+        input[type="url"]:focus {
+            outline: none;
+            border-color: #58a6ff;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        button {
+            padding: 6px 12px;
+            background: #21262d;
+            border: 1px solid #30363d;
+            border-radius: 4px;
+            color: #c9d1d9;
+            font-family: inherit;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        button:hover:not(:disabled) {
+            background: #30363d;
+            border-color: #58a6ff;
+        }
+        
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .status {
+            font-size: 12px;
+            margin-bottom: 10px;
+            padding: 4px 0;
+        }
+        
+        .status.error { color: #f85149; }
+        .status.success { color: #3fb950; }
+        .status.info { color: #79c0ff; }
+        
+        .code-container {
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 4px;
+            max-height: 70vh;
+            overflow: auto;
+        }
+        
+        .code-display {
+            padding: 15px;
+            font-size: 12px;
+            line-height: 1.4;
+            white-space: pre-wrap;
+            word-break: break-all;
+            color: #c9d1d9;
+        }
+        
+        .empty-state {
+            padding: 40px;
+            text-align: center;
+            color: #7d8590;
+            font-style: italic;
+        }
+        
+        @media (max-width: 640px) {
+            .controls {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>html fetcher</h1>
+        
+        <div class="input-section">
+            <input type="url" id="urlInput" placeholder="https://example.com" />
+        </div>
+        
+        <div class="controls">
+            <button onclick="fetchHTML()">fetch</button>
+            <button onclick="downloadHTML()" disabled id="downloadBtn">download</button>
+            <button onclick="copyHTML()" disabled id="copyBtn">copy</button>
+            <button onclick="openInNewTab()" disabled id="openBtn">open</button>
+        </div>
+        
+        <div id="status"></div>
+        
+        <div class="code-container">
+            <div id="codeDisplay" class="empty-state">
+                enter a url and click fetch to view html source
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let fetchedHTML = '';
+        let currentURL = '';
+        const CORS_PROXY = 'https://cloudflare-cors-anywhere.imnotfamous01.workers.dev/?';
+
+        function showStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.innerHTML = `<div class="status ${type}">${message}</div>`;
+            
+            if (type === 'success' || type === 'error') {
+                setTimeout(() => {
+                    statusDiv.innerHTML = '';
+                }, 4000);
+            }
+        }
+
+        async function fetchHTML() {
+            const urlInput = document.getElementById('urlInput');
+            const url = urlInput.value.trim();
+            
+            if (!url) {
+                showStatus('enter a url', 'error');
+                return;
+            }
+            
+            if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                showStatus('url must start with http:// or https://', 'error');
+                return;
+            }
+            
+            showStatus('fetching...', 'info');
+            
+            try {
+                const response = await fetch(CORS_PROXY + encodeURIComponent(url));
+                
+                if (!response.ok) {
+                    throw new Error(`${response.status}: ${response.statusText}`);
+                }
+                
+                fetchedHTML = await response.text();
+                currentURL = url;
+                
+                displayHTML(fetchedHTML);
+                enableButtons();
+                showStatus(`fetched ${fetchedHTML.length} characters`, 'success');
+                
+            } catch (error) {
+                showStatus(`error: ${error.message}`, 'error');
+                console.error('fetch error:', error);
+            }
+        }
+
+        function displayHTML(html) {
+            const codeDisplay = document.getElementById('codeDisplay');
+            codeDisplay.className = 'code-display';
+            codeDisplay.textContent = html;
+        }
+
+        function enableButtons() {
+            document.getElementById('downloadBtn').disabled = false;
+            document.getElementById('copyBtn').disabled = false;
+            document.getElementById('openBtn').disabled = false;
+        }
+
+        async function downloadHTML() {
+            if (!fetchedHTML) {
+                showStatus('nothing to download', 'error');
+                return;
+            }
+            
+            try {
+                if ('showSaveFilePicker' in window) {
+                    const fileHandle = await window.showSaveFilePicker({
+                        suggestedName: `${new URL(currentURL).hostname}.html`,
+                        types: [{
+                            description: 'HTML files',
+                            accept: { 'text/html': ['.html'] }
+                        }]
+                    });
+                    
+                    const writable = await fileHandle.createWritable();
+                    await writable.write(fetchedHTML);
+                    await writable.close();
+                    
+                    showStatus('saved', 'success');
+                } else {
+                    const blob = new Blob([fetchedHTML], { type: 'text/html' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `${new URL(currentURL).hostname}.html`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                    
+                    showStatus('downloaded', 'success');
+                }
+            } catch (error) {
+                if (error.name === 'AbortError') {
+                    showStatus('cancelled', 'info');
+                } else {
+                    showStatus(`download error: ${error.message}`, 'error');
+                }
+            }
+        }
+
+        async function copyHTML() {
+            if (!fetchedHTML) {
+                showStatus('nothing to copy', 'error');
+                return;
+            }
+            
+            try {
+                await navigator.clipboard.writeText(fetchedHTML);
+                showStatus('copied to clipboard', 'success');
+            } catch (error) {
+                const textArea = document.createElement('textarea');
+                textArea.value = fetchedHTML;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                
+                showStatus('copied', 'success');
+            }
+        }
+        function openInNewTab() {
+            if (!fetchedHTML) {
+                showStatus('nothing to open', 'error');
+                return;
+            }
+            
+            try {
+                const newWindow = window.open('about:blank', '_blank');
+                if (newWindow) {
+                    newWindow.document.write(fetchedHTML);
+                    newWindow.document.close();
+                    showStatus('opened in new tab', 'success');
+                } else {
+                    showStatus('popup blocked - please allow popups', 'error');
+                }
+            } catch (error) {
+                showStatus(`error opening tab: ${error.message}`, 'error');
+            }
+        }
+
+
+        document.getElementById('urlInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                fetchHTML();
+            }
+        });
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'973b345574ef45f5',t:'MTc1NTk1ODM0Mi4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
+
+
