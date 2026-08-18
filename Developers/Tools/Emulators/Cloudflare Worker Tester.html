@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>CF Worker Emulator</title>
+    <style>
+        :root {
+            --bg: #1e1e1e; --panel: #252526; --border: #3e3e42;
+            --text: #d4d4d4; --accent: #007acc; --accent-hover: #0098ff;
+            --error: #f44747; --success: #6a9955;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        body { background: var(--bg); color: var(--text); height: 100vh; display: flex; flex-direction: column; overflow: hidden; font-size: 14px; }
+        
+        .header { padding: 12px 16px; background: var(--panel); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+        .header h1 { font-size: 16px; font-weight: 600; }
+        
+        .tabs { display: flex; background: var(--panel); border-bottom: 1px solid var(--border); overflow-x: auto; }
+        .tab { padding: 12px 16px; cursor: pointer; border-bottom: 2px solid transparent; color: #888; white-space: nowrap; user-select: none; -webkit-tap-highlight-color: transparent; }
+        .tab.active { color: var(--text); border-bottom-color: var(--accent); }
+        
+        .content { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+        .view { display: none; flex: 1; flex-direction: column; overflow: hidden; padding: 12px; }
+        .view.active { display: flex; }
+        
+        textarea, input, select { background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 4px; padding: 10px; font-family: 'Courier New', Courier, monospace; font-size: 13px; width: 100%; outline: none; resize: none; }
+        textarea:focus, input:focus, select:focus { border-color: var(--accent); }
+        
+        #code-view textarea { flex: 1; }
+        .input-group { margin-bottom: 12px; }
+        .input-group label { display: block; margin-bottom: 6px; font-size: 12px; color: #888; text-transform: uppercase; letter-spacing: 0.5px; }
+        
+        .btn-execute { background: var(--accent); color: white; border: none; border-radius: 4px; padding: 14px; font-size: 16px; font-weight: 600; cursor: pointer; text-align: center; margin-top: auto; transition: background 0.2s; }
+        .btn-execute:active { background: var(--accent-hover); }
+        
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 4px; padding: 10px; flex: 1; overflow: auto; white-space: pre-wrap; word-wrap: break-word; font-family: 'Courier New', Courier, monospace; font-size: 13px; }
+        
+        .status-bar { padding: 8px 16px; background: var(--panel); border-top: 1px solid var(--border); font-size: 12px; display: flex; justify-content: space-between; }
+        .status-ok { color: var(--success); }
+        .status-err { color: var(--error); }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>⚡ CF Worker Emulator</h1>
+    </div>
+
+    <div class="tabs">
+        <div class="tab active" data-tab="code">Code</div>
+        <div class="tab" data-tab="request">Request</div>
+        <div class="tab" data-tab="response">Response</div>
+        <div class="tab" data-tab="logs">Logs</div>
+    </div>
+
+    <div class="content">
+        <!-- Code View -->
+        <div id="code-view" class="view active">
+            <textarea id="worker-code" spellcheck="false"></textarea>
+        </div>
+
+        <!-- Request View -->
+        <div id="request-view" class="view">
+            <div class="input-group">
+                <label>Method & Path</label>
+                <div style="display: flex; gap: 8px;">
+                    <select id="req-method" style="width: 110px;">
+                        <option>GET</option><option>POST</option><option>PUT</option><option>DELETE</option><option>OPTIONS</option>
+                    </select>
+                    <input id="req-path" type="text" value="/https://jsonplaceholder.typicode.com/todos/1">
+                </div>
+            </div>
+            <div class="input-group">
+                <label>Headers (JSON)</label>
+                <textarea id="req-headers" style="height: 100px;">{
+  "Origin": "http://test.local"
+}</textarea>
+            </div>
+            <div class="input-group" style="flex: 1; display: flex; flex-direction: column;">
+                <label>Body (For POST/PUT)</label>
+                <textarea id="req-body" style="flex:1;"></textarea>
+            </div>
+            <button class="btn-execute" onclick="runWorker()">▶ Execute Worker</button>
+        </div>
+
+        <!-- Response View -->
+        <div id="response-view" class="view">
+            <div style="margin-bottom: 10px; font-size: 13px;" id="res-status">Status: --</div>
+            <div style="display: flex; flex-direction: column; flex: 1; gap: 10px; overflow: hidden;">
+                <div style="flex: 1; display: flex; flex-direction: column; overflow: hidden;">
+                    <label style="margin-bottom: 4px; font-size: 11px; color: #888;">HEADERS</label>
+                    <pre id="res-headers" style="flex: 1; font-size: 11px; color: #569cd6;"></pre>
+                </div>
+                <div style="flex: 2; display: flex; flex-direction: column; overflow: hidden;">
+                    <label style="margin-bottom: 4px; font-size: 11px; color: #888;">BODY</label>
+                    <pre id="res-body" style="flex: 1;"></pre>
+                </div>
+            </div>
+        </div>
+
+        <!-- Logs View -->
+        <div id="logs-view" class="view">
+            <pre id="logs-output" style="flex: 1;"></pre>
+        </div>
+    </div>
+
+    <div class="status-bar">
+        <span id="status-text">Ready</span>
+        <span id="status-time">0ms</span>
+    </div>
+
+<script>
+    // Pre-loaded with the first script as an example
+    const defaultCode = ``;
+
+    document.getElementById('worker-code').value = defaultCode;
+
+    // --- UI Logic ---
+    const tabs = document.querySelectorAll('.tab');
+    const views = document.querySelectorAll('.view');
+
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            tabs.forEach(t => t.classList.remove('active'));
+            views.forEach(v => v.classList.remove('active'));
+            tab.classList.add('active');
+            document.getElementById(`${tab.dataset.tab}-view`).classList.add('active');
+        });
+    });
+
+    // --- Emulator Engine ---
+    async function runWorker() {
+        let codeText = document.getElementById('worker-code').value;
+        const method = document.getElementById('req-method').value;
+        const path = document.getElementById('req-path').value;
+        const headersRaw = document.getElementById('req-headers').value;
+        const bodyRaw = document.getElementById('req-body').value;
+        
+        const logsEl = document.getElementById('logs-output');
+        const resBody = document.getElementById('res-body');
+        const resHeaders = document.getElementById('res-headers');
+        const resStatus = document.getElementById('res-status');
+        const statusText = document.getElementById('status-text');
+        const statusTime = document.getElementById('status-time');
+
+        logsEl.innerHTML = '';
+        resBody.textContent = 'Executing...';
+        resHeaders.textContent = '';
+        resStatus.innerHTML = 'Status: --';
+        
+        statusText.textContent = 'Executing...';
+        statusText.className = '';
+        
+        document.querySelector('[data-tab="response"]').click();
+
+        const startTime = performance.now();
+
+        // Mock Console
+        const mockConsole = {
+            log: (...args) => { logsEl.textContent += args.map(a => typeof a === 'object' ? JSON.stringify(a) : a).join(' ') + '\n'; },
+            error: (...args) => { logsEl.textContent += '[ERR] ' + args.map(a => typeof a === 'object' ? JSON.stringify(a) : a).join(' ') + '\n'; },
+            warn: (...args) => { logsEl.textContent += '[WARN] ' + args.map(a => typeof a === 'object' ? JSON.stringify(a) : a).join(' ') + '\n'; }
+        };
+
+        // Temporarily mock Cloudflare Caches API
+        const originalCaches = window.caches;
+        const mockCacheStore = {};
+        const mockCachesDefault = {
+            match: async (req) => mockCacheStore[req.url] || undefined,
+            put: async (req, res) => { mockCacheStore[req.url] = res; }
+        };
+        window.caches = { ...originalCaches, default: mockCachesDefault };
+
+        try {
+            const reqHeadersObj = JSON.parse(headersRaw);
+            
+            const workerBase = 'https://emulated-worker.workers.dev';
+            const fullUrl = new URL(path, workerBase).href;
+
+            const requestInit = {
+                method: method,
+                headers: new Headers(reqHeadersObj)
+            };
+
+            if (bodyRaw && !['GET', 'HEAD'].includes(method)) {
+                requestInit.body = bodyRaw;
+            }
+
+            const mockRequest = new Request(fullUrl, requestInit);
+
+            // *** FIX: Inject Cloudflare-specific headers so workers think they are on the edge ***
+            mockRequest.headers.set('X-Forwarded-Proto', 'https');
+            mockRequest.headers.set('X-Forwarded-For', '127.0.0.1');
+            mockRequest.headers.set('CF-Connecting-IP', '127.0.0.1');
+            mockRequest.headers.set('CF-IPCountry', 'US');
+            mockRequest.headers.set('CF-RAY', 'emulator-fake-ray-id');
+            mockRequest.headers.set('CF-Visitor', '{"scheme":"https"}');
+
+            const mockEnv = {}; 
+            const mockCtx = {
+                waitUntil: (promise) => {},
+                passThroughOnException: () => {}
+            };
+
+            let respondWithPromise = null;
+            let isESModule = false;
+
+            if (codeText.includes('export default')) {
+                isESModule = true;
+                codeText = codeText.replace('export default', 'self.__workerModule =');
+            }
+
+            const mockAddEventListener = (type, handler) => {
+                if (type === 'fetch') {
+                    const event = {
+                        request: mockRequest,
+                        respondWith: (promise) => { respondWithPromise = promise; },
+                        waitUntil: (promise) => {}
+                    };
+                    handler(event);
+                }
+            };
+
+            const workerFunc = new Function('addEventListener', 'console', codeText);
+            workerFunc(mockAddEventListener, mockConsole);
+
+            let response;
+
+            if (isESModule && self.__workerModule && typeof self.__workerModule.fetch === 'function') {
+                response = await self.__workerModule.fetch(mockRequest, mockEnv, mockCtx);
+            } else if (respondWithPromise) {
+                response = await respondWithPromise;
+            } else {
+                throw new Error("Worker script must use 'export default { fetch() {} }' or 'addEventListener(\"fetch\", ...)'");
+            }
+            
+            const outHeaders = {};
+            response.headers.forEach((v, k) => outHeaders[k] = v);
+            resHeaders.textContent = JSON.stringify(outHeaders, null, 2);
+            
+            const contentType = response.headers.get('content-type') || '';
+            let bodyText = '';
+            
+            if (contentType.includes('json')) {
+                try {
+                    const json = await response.json();
+                    bodyText = JSON.stringify(json, null, 2);
+                } catch (e) {
+                    bodyText = await response.text();
+                }
+            } else {
+                bodyText = await response.text();
+            }
+
+            resBody.textContent = bodyText;
+            
+            const statusClass = response.status < 400 ? 'status-ok' : 'status-err';
+            resStatus.innerHTML = `Status: <span class="${statusClass}">${response.status} ${response.statusText || ''}</span>`;
+            statusText.textContent = `Completed`;
+            statusText.className = statusClass;
+
+        } catch (error) {
+            const msg = error.reason || error.message || error.stack || 'Unknown Emulator Error';
+            resBody.textContent = "EMULATOR RUNTIME ERROR:\n\n" + msg;
+            resStatus.innerHTML = `Status: <span class="status-err">Emulator Crash</span>`;
+            statusText.textContent = `Error`;
+            statusText.className = 'status-err';
+            mockConsole.error(msg);
+        } finally {
+            window.caches = originalCaches;
+            if (self.__workerModule) delete self.__workerModule;
+
+            const duration = Math.round(performance.now() - startTime);
+            statusTime.textContent = `${duration}ms`;
+        }
+    }
+</script>
+</body>
+</html>
