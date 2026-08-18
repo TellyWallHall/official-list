@@ -1,0 +1,651 @@
+<!doctype html>
+<!-- by ImPot8o https://github.com/ImPot8o pot8o.dev -->
+<html lang="en" class="h-full">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Classic Spades</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      box-sizing: border-box;
+    }
+    
+    .card {
+      aspect-ratio: 2.5/3.5;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      cursor: pointer;
+      position: relative;
+      border: 2px solid rgba(255,255,255,0.8);
+    }
+    
+    .card:hover {
+      transform: translateY(-12px) scale(1.05);
+      box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+    }
+    
+    .card.selected {
+      transform: translateY(-16px) scale(1.08);
+      box-shadow: 0 12px 24px rgba(59, 130, 246, 0.6);
+      border-color: #3b82f6;
+    }
+    
+    .card-back {
+      background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 50%, #60a5fa 100%);
+      border: 2px solid rgba(255,255,255,0.3);
+    }
+    
+    .suit-spade { color: #000; }
+    .suit-heart { color: #ef4444; }
+    .suit-diamond { color: #ef4444; }
+    .suit-club { color: #000; }
+    
+    .game-table {
+      background: radial-gradient(ellipse at center, #10b981 0%, #059669 70%, #047857 100%);
+      border-radius: 50%;
+      box-shadow: inset 0 0 40px rgba(0,0,0,0.2), 0 4px 20px rgba(0,0,0,0.3);
+      border: 4px solid #065f46;
+    }
+    
+    @keyframes dealCard {
+      from {
+        opacity: 0;
+        transform: translateY(-30px) scale(0.8);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+    
+    .deal-animation {
+      animation: dealCard 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    
+    @keyframes slideToCenter {
+      0% {
+        opacity: 1;
+        transform: scale(1) rotate(0deg);
+      }
+      50% {
+        transform: scale(0.7) rotate(5deg);
+      }
+      100% {
+        opacity: 0;
+        transform: scale(0.2) rotate(10deg);
+      }
+    }
+    
+    .trick-complete {
+      animation: slideToCenter 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    }
+    
+    .unplayable {
+      opacity: 0.4;
+      cursor: not-allowed;
+      filter: grayscale(50%);
+    }
+  </style>
+  <style>@view-transition { navigation: auto; }</style>
+ </head>
+ <body class="h-full">
+  <div id="app" class="h-full w-full flex flex-col overflow-auto"></div>
+  <script>
+localStorage.setItem('pot8o watermark', `${localStorage.getItem('pot8o watermark') || ''} spades`);
+    const defaultConfig = {
+      game_title: "Classic Spades",
+      player_name: "You",
+      score_label: "Score",
+      background_color: "#f0fdf4",
+      table_color: "#10b981",
+      card_color: "#ffffff",
+      text_color: "#1f2937",
+      button_color: "#3b82f6",
+      font_family: "system-ui",
+      font_size: 16
+    };
+
+    let config = { ...defaultConfig };
+
+    // Game state
+    let deck = [];
+    let playerHand = [];
+    let opponentHands = [[], [], []];
+    let currentTrick = [];
+    let scores = [0, 0];
+    let bids = [null, null, null, null];
+    let tricksWon = [0, 0, 0, 0];
+    let currentPlayer = 0;
+    let leadSuit = null;
+    let spadesBroken = false;
+    let gamePhase = 'bidding';
+    let roundNumber = 1;
+
+    const suits = ['♠', '♥', '♦', '♣'];
+    const ranks = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
+    const rankValues = { '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, '10': 10, 'J': 11, 'Q': 12, 'K': 13, 'A': 14 };
+
+    function adjustBrightness(hex, percent) {
+      const num = parseInt(hex.replace('#', ''), 16);
+      const r = Math.max(0, Math.min(255, (num >> 16) + percent));
+      const g = Math.max(0, Math.min(255, ((num >> 8) & 0x00FF) + percent));
+      const b = Math.max(0, Math.min(255, (num & 0x0000FF) + percent));
+      return '#' + ((r << 16) | (g << 8) | b).toString(16).padStart(6, '0');
+    }
+
+    function createDeck() {
+      const newDeck = [];
+      for (let suit of suits) {
+        for (let rank of ranks) {
+          newDeck.push({ suit, rank, value: rankValues[rank] });
+        }
+      }
+      return shuffleDeck(newDeck);
+    }
+
+    function shuffleDeck(deck) {
+      const shuffled = [...deck];
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
+      return shuffled;
+    }
+
+    function dealCards() {
+      deck = createDeck();
+      playerHand = deck.slice(0, 13).sort((a, b) => {
+        const suitOrder = { '♠': 0, '♥': 1, '♦': 2, '♣': 3 };
+        if (suitOrder[a.suit] !== suitOrder[b.suit]) {
+          return suitOrder[a.suit] - suitOrder[b.suit];
+        }
+        return b.value - a.value;
+      });
+      
+      for (let i = 0; i < 3; i++) {
+        opponentHands[i] = deck.slice(13 + i * 13, 13 + (i + 1) * 13).sort((a, b) => {
+          const suitOrder = { '♠': 0, '♥': 1, '♦': 2, '♣': 3 };
+          if (suitOrder[a.suit] !== suitOrder[b.suit]) {
+            return suitOrder[a.suit] - suitOrder[b.suit];
+          }
+          return b.value - a.value;
+        });
+      }
+      
+      currentTrick = [];
+      leadSuit = null;
+      spadesBroken = false;
+      tricksWon = [0, 0, 0, 0];
+      bids = [null, null, null, null];
+      gamePhase = 'bidding';
+      currentPlayer = roundNumber % 4;
+      
+      makeAIBids();
+    }
+
+    function makeAIBids() {
+      for (let i = 1; i < 4; i++) {
+        const hand = opponentHands[i - 1];
+        let bid = 0;
+        const spades = hand.filter(c => c.suit === '♠');
+        const highCards = hand.filter(c => c.value >= 12);
+        
+        bid = Math.floor(spades.length / 3) + Math.floor(highCards.length / 4);
+        bid = Math.max(1, Math.min(bid, 7));
+        bids[i] = bid;
+      }
+    }
+
+    function getSuitClass(suit) {
+      if (suit === '♠') return 'suit-spade';
+      if (suit === '♥') return 'suit-heart';
+      if (suit === '♦') return 'suit-diamond';
+      return 'suit-club';
+    }
+
+    function canPlayCard(card) {
+      if (currentPlayer !== 0) return false;
+      if (gamePhase !== 'playing') return false;
+      if (currentTrick.length === 0) {
+        if (!spadesBroken && card.suit === '♠') {
+          const hasOtherSuits = playerHand.some(c => c.suit !== '♠');
+          return !hasOtherSuits;
+        }
+        return true;
+      }
+      
+      const hasLeadSuit = playerHand.some(c => c.suit === leadSuit);
+      if (hasLeadSuit) {
+        return card.suit === leadSuit;
+      }
+      return true;
+    }
+
+    function playCard(card) {
+      if (!canPlayCard(card)) return;
+      
+      if (currentTrick.length === 0) {
+        leadSuit = card.suit;
+      }
+      
+      if (card.suit === '♠' && currentTrick.length > 0) {
+        spadesBroken = true;
+      }
+      
+      currentTrick.push({ card, player: 0 });
+      playerHand = playerHand.filter(c => c !== card);
+      currentPlayer = 1;
+      
+      render();
+      
+      setTimeout(() => {
+        playAITurns();
+      }, 800);
+    }
+
+    function playAITurns() {
+      if (currentPlayer === 0 || currentTrick.length === 4) {
+        if (currentTrick.length === 4) {
+          finishTrick();
+        }
+        return;
+      }
+      
+      const aiHand = opponentHands[currentPlayer - 1];
+      let cardToPlay;
+      
+      if (currentTrick.length === 0) {
+        const nonSpades = aiHand.filter(c => c.suit !== '♠');
+        if (!spadesBroken && nonSpades.length > 0) {
+          cardToPlay = nonSpades[Math.floor(Math.random() * nonSpades.length)];
+        } else {
+          cardToPlay = aiHand[Math.floor(Math.random() * aiHand.length)];
+        }
+        leadSuit = cardToPlay.suit;
+      } else {
+        const leadSuitCards = aiHand.filter(c => c.suit === leadSuit);
+        if (leadSuitCards.length > 0) {
+          cardToPlay = leadSuitCards[Math.floor(Math.random() * leadSuitCards.length)];
+        } else {
+          cardToPlay = aiHand[Math.floor(Math.random() * aiHand.length)];
+        }
+      }
+      
+      if (cardToPlay.suit === '♠' && currentTrick.length > 0) {
+        spadesBroken = true;
+      }
+      
+      currentTrick.push({ card: cardToPlay, player: currentPlayer });
+      opponentHands[currentPlayer - 1] = opponentHands[currentPlayer - 1].filter(c => c !== cardToPlay);
+      currentPlayer = (currentPlayer + 1) % 4;
+      
+      render();
+      
+      setTimeout(() => {
+        playAITurns();
+      }, 800);
+    }
+
+    function finishTrick() {
+      const winner = determineTrickWinner();
+      tricksWon[winner]++;
+      
+      const trickCards = document.querySelectorAll('.trick-card');
+      trickCards.forEach(card => card.classList.add('trick-complete'));
+      
+      setTimeout(() => {
+        currentTrick = [];
+        leadSuit = null;
+        currentPlayer = winner;
+        
+        if (playerHand.length === 0) {
+          endRound();
+        } else {
+          render();
+          if (currentPlayer !== 0) {
+            setTimeout(() => playAITurns(), 500);
+          }
+        }
+      }, 1000);
+    }
+
+    function determineTrickWinner() {
+      let winningPlay = currentTrick[0];
+      let winner = 0;
+      
+      for (let i = 1; i < currentTrick.length; i++) {
+        const play = currentTrick[i];
+        if (play.card.suit === '♠' && winningPlay.card.suit !== '♠') {
+          winningPlay = play;
+          winner = i;
+        } else if (play.card.suit === winningPlay.card.suit && play.card.value > winningPlay.card.value) {
+          winningPlay = play;
+          winner = i;
+        }
+      }
+      
+      return currentTrick[winner].player;
+    }
+
+    function endRound() {
+      const team1Tricks = tricksWon[0] + tricksWon[2];
+      const team2Tricks = tricksWon[1] + tricksWon[3];
+      const team1Bid = bids[0] + bids[2];
+      const team2Bid = bids[1] + bids[3];
+      
+      if (team1Tricks >= team1Bid) {
+        scores[0] += team1Bid * 10 + (team1Tricks - team1Bid);
+      } else {
+        scores[0] -= team1Bid * 10;
+      }
+      
+      if (team2Tricks >= team2Bid) {
+        scores[1] += team2Bid * 10 + (team2Tricks - team2Bid);
+      } else {
+        scores[1] -= team2Bid * 10;
+      }
+      
+      if (scores[0] >= 200 || scores[1] >= 200) {
+        gamePhase = 'gameover';
+      } else {
+        gamePhase = 'roundover';
+      }
+      
+      render();
+    }
+
+    function startNewRound() {
+      roundNumber++;
+      dealCards();
+      render();
+    }
+
+    function startNewGame() {
+      scores = [0, 0];
+      roundNumber = 1;
+      dealCards();
+      render();
+    }
+
+    function placeBid(bid) {
+      if (gamePhase !== 'bidding' || bids[0] !== null) return;
+      bids[0] = bid;
+      gamePhase = 'playing';
+      render();
+      
+      if (currentPlayer !== 0) {
+        setTimeout(() => playAITurns(), 500);
+      }
+    }
+
+    function renderCard(card, isBack = false, isSmall = false) {
+      const baseSize = config.font_size || defaultConfig.font_size;
+      const cardWidth = isSmall ? baseSize * 2 : baseSize * 3;
+      const cardHeight = isSmall ? baseSize * 2.8 : baseSize * 4.2;
+      const fontSize = isSmall ? baseSize * 0.75 : baseSize * 1.25;
+      const suitSize = isSmall ? baseSize * 1.25 : baseSize * 2;
+      
+      if (isBack) {
+        return `
+          <div class="card card-back flex items-center justify-center" style="width: ${cardWidth}px; height: ${cardHeight}px; background-color: ${config.button_color || defaultConfig.button_color};">
+            <div style="font-size: ${baseSize * 1.5}px; color: white;">♠</div>
+          </div>
+        `;
+      }
+      
+      return `
+        <div class="card flex flex-col items-center justify-between p-2" style="width: ${cardWidth}px; height: ${cardHeight}px; background-color: ${config.card_color || defaultConfig.card_color};">
+          <div class="text-left w-full ${getSuitClass(card.suit)}" style="font-size: ${fontSize}px; font-weight: 600;">
+            ${card.rank}
+          </div>
+          <div class="${getSuitClass(card.suit)}" style="font-size: ${suitSize}px;">
+            ${card.suit}
+          </div>
+          <div class="text-right w-full ${getSuitClass(card.suit)}" style="font-size: ${fontSize}px; font-weight: 600;">
+            ${card.rank}
+          </div>
+        </div>
+      `;
+    }
+
+    function render() {
+      const customFont = config.font_family || defaultConfig.font_family;
+      const baseFontStack = 'system-ui, -apple-system, sans-serif';
+      const baseSize = config.font_size || defaultConfig.font_size;
+      
+      const app = document.getElementById('app');
+      
+      if (gamePhase === 'bidding' && bids[0] === null) {
+        app.innerHTML = `
+          <div style="background-color: ${config.background_color || defaultConfig.background_color}; font-family: ${customFont}, ${baseFontStack}; color: ${config.text_color || defaultConfig.text_color}; font-size: ${baseSize}px;" class="w-full h-full flex flex-col p-4">
+            <header class="text-center mb-4">
+              <h1 style="font-size: ${baseSize * 1.75}px; font-weight: 700; margin-bottom: ${baseSize * 0.5}px;">${config.game_title || defaultConfig.game_title}</h1>
+              <div style="font-size: ${baseSize * 0.875}px; opacity: 0.8;">Round ${roundNumber}</div>
+            </header>
+            
+            <div class="flex-1 flex flex-col items-center justify-center">
+              <div style="font-size: ${baseSize * 1.25}px; font-weight: 600; margin-bottom: ${baseSize * 1.5}px;">Place Your Bid</div>
+              <div style="font-size: ${baseSize * 0.875}px; margin-bottom: ${baseSize * 2}px; opacity: 0.8; text-align: center;">
+                Choose how many tricks you think you'll win
+              </div>
+              
+              <div class="grid grid-cols-4 gap-3 mb-6">
+                ${[1, 2, 3, 4, 5, 6, 7, 8].map(bid => `
+                  <button onclick="placeBid(${bid})" style="background: linear-gradient(135deg, ${config.button_color || defaultConfig.button_color}, ${adjustBrightness(config.button_color || defaultConfig.button_color, -20)}); color: white; font-size: ${baseSize * 1.125}px; font-weight: 600; padding: ${baseSize * 1.2}px ${baseSize * 1.5}px; border-radius: ${baseSize * 0.625}px; min-width: ${baseSize * 3.5}px; transition: all 0.3s; box-shadow: 0 4px 8px rgba(0,0,0,0.2); border: none;" onmouseover="this.style.transform='translateY(-2px) scale(1.05)'; this.style.boxShadow='0 6px 12px rgba(0,0,0,0.3)'" onmouseout="this.style.transform='translateY(0) scale(1)'; this.style.boxShadow='0 4px 8px rgba(0,0,0,0.2)'">
+                    ${bid}
+                  </button>
+                `).join('')}
+              </div>
+              
+              <div style="font-size: ${baseSize * 0.875}px; opacity: 0.6; margin-top: ${baseSize * 2}px;">
+                ${config.score_label || defaultConfig.score_label}: Team 1: ${scores[0]} | Team 2: ${scores[1]}
+              </div>
+            </div>
+          </div>
+        `;
+        return;
+      }
+      
+      if (gamePhase === 'roundover' || gamePhase === 'gameover') {
+        const team1Tricks = tricksWon[0] + tricksWon[2];
+        const team2Tricks = tricksWon[1] + tricksWon[3];
+        const team1Bid = bids[0] + bids[2];
+        const team2Bid = bids[1] + bids[3];
+        
+        app.innerHTML = `
+          <div style="background-color: ${config.background_color || defaultConfig.background_color}; font-family: ${customFont}, ${baseFontStack}; color: ${config.text_color || defaultConfig.text_color}; font-size: ${baseSize}px;" class="w-full h-full flex flex-col p-4">
+            <header class="text-center mb-6">
+              <h1 style="font-size: ${baseSize * 1.75}px; font-weight: 700; margin-bottom: ${baseSize * 0.5}px;">${gamePhase === 'gameover' ? 'Game Over!' : 'Round Complete'}</h1>
+            </header>
+            
+            <div class="flex-1 flex flex-col items-center justify-center">
+              <div style="background: linear-gradient(135deg, white 0%, #f9fafb 100%); border-radius: ${baseSize * 1.25}px; padding: ${baseSize * 2.5}px; box-shadow: 0 8px 20px rgba(0,0,0,0.15); margin-bottom: ${baseSize * 2}px; width: 100%; max-width: ${baseSize * 20}px; border: 2px solid #e5e7eb;">
+                <div style="font-size: ${baseSize * 1.5}px; font-weight: 700; margin-bottom: ${baseSize * 2}px; text-align: center; color: ${config.text_color || defaultConfig.text_color};">Round Results</div>
+                
+                <div style="margin-bottom: ${baseSize * 1.5}px; background-color: #f0fdf4; padding: ${baseSize * 1.25}px; border-radius: ${baseSize * 0.75}px; border-left: 4px solid #10b981;">
+                  <div style="font-weight: 700; margin-bottom: ${baseSize * 0.75}px; font-size: ${baseSize * 1.125}px;">Your Team (${config.player_name || defaultConfig.player_name} & Partner)</div>
+                  <div style="font-size: ${baseSize * 0.875}px; margin-bottom: ${baseSize * 0.5}px; opacity: 0.8;">Bid: ${team1Bid} | Won: ${team1Tricks} tricks</div>
+                  <div style="font-size: ${baseSize}px; font-weight: 600; color: ${team1Tricks >= team1Bid ? '#10b981' : '#ef4444'};">
+                    ${team1Tricks >= team1Bid ? `✓ Made bid! +${team1Bid * 10 + (team1Tricks - team1Bid)} points` : `✗ Failed bid. -${team1Bid * 10} points`}
+                  </div>
+                </div>
+                
+                <div style="background-color: #fef2f2; padding: ${baseSize * 1.25}px; border-radius: ${baseSize * 0.75}px; border-left: 4px solid #ef4444;">
+                  <div style="font-weight: 700; margin-bottom: ${baseSize * 0.75}px; font-size: ${baseSize * 1.125}px;">Opponent Team</div>
+                  <div style="font-size: ${baseSize * 0.875}px; margin-bottom: ${baseSize * 0.5}px; opacity: 0.8;">Bid: ${team2Bid} | Won: ${team2Tricks} tricks</div>
+                  <div style="font-size: ${baseSize}px; font-weight: 600; color: ${team2Tricks >= team2Bid ? '#10b981' : '#ef4444'};">
+                    ${team2Tricks >= team2Bid ? `✓ Made bid! +${team2Bid * 10 + (team2Tricks - team2Bid)} points` : `✗ Failed bid. -${team2Bid * 10} points`}
+                  </div>
+                </div>
+              </div>
+              
+              <div style="background: linear-gradient(135deg, white 0%, #f9fafb 100%); border-radius: ${baseSize}px; padding: ${baseSize * 2}px; box-shadow: 0 8px 16px rgba(0,0,0,0.15); margin-bottom: ${baseSize * 2}px; width: 100%; max-width: ${baseSize * 20}px; border: 2px solid #e5e7eb;">
+                <div style="font-size: ${baseSize * 1.25}px; font-weight: 700; margin-bottom: ${baseSize * 1.25}px; text-align: center;">${config.score_label || defaultConfig.score_label}</div>
+                <div class="flex justify-between gap-4">
+                  <div style="text-align: center; flex: 1; background-color: #f0fdf4; padding: ${baseSize}px; border-radius: ${baseSize * 0.5}px;">
+                    <div style="font-size: ${baseSize * 0.875}px; opacity: 0.7; margin-bottom: ${baseSize * 0.5}px;">Your Team</div>
+                    <div style="font-size: ${baseSize * 2}px; font-weight: 700; color: #10b981;">${scores[0]}</div>
+                  </div>
+                  <div style="text-align: center; flex: 1; background-color: #fef2f2; padding: ${baseSize}px; border-radius: ${baseSize * 0.5}px;">
+                    <div style="font-size: ${baseSize * 0.875}px; opacity: 0.7; margin-bottom: ${baseSize * 0.5}px;">Opponents</div>
+                    <div style="font-size: ${baseSize * 2}px; font-weight: 700; color: #ef4444;">${scores[1]}</div>
+                  </div>
+                </div>
+              </div>
+              
+              ${gamePhase === 'gameover' ? `
+                <div style="font-size: ${baseSize * 2}px; font-weight: 700; margin-bottom: ${baseSize * 2}px; color: ${scores[0] > scores[1] ? '#10b981' : '#ef4444'}; text-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                  ${scores[0] > scores[1] ? '🎉 You Win! 🎉' : '😔 Opponents Win'}
+                </div>
+                <button onclick="startNewGame()" style="background: linear-gradient(135deg, ${config.button_color || defaultConfig.button_color}, ${adjustBrightness(config.button_color || defaultConfig.button_color, -20)}); color: white; font-size: ${baseSize * 1.25}px; font-weight: 700; padding: ${baseSize * 1.25}px ${baseSize * 3}px; border-radius: ${baseSize * 0.75}px; transition: all 0.3s; box-shadow: 0 6px 16px rgba(0,0,0,0.25); border: none;" onmouseover="this.style.transform='translateY(-3px) scale(1.05)'; this.style.boxShadow='0 8px 20px rgba(0,0,0,0.35)'" onmouseout="this.style.transform='translateY(0) scale(1)'; this.style.boxShadow='0 6px 16px rgba(0,0,0,0.25)'">
+                  🎮 New Game
+                </button>
+              ` : `
+                <button onclick="startNewRound()" style="background: linear-gradient(135deg, ${config.button_color || defaultConfig.button_color}, ${adjustBrightness(config.button_color || defaultConfig.button_color, -20)}); color: white; font-size: ${baseSize * 1.25}px; font-weight: 700; padding: ${baseSize * 1.25}px ${baseSize * 3}px; border-radius: ${baseSize * 0.75}px; transition: all 0.3s; box-shadow: 0 6px 16px rgba(0,0,0,0.25); border: none;" onmouseover="this.style.transform='translateY(-3px) scale(1.05)'; this.style.boxShadow='0 8px 20px rgba(0,0,0,0.35)'" onmouseout="this.style.transform='translateY(0) scale(1)'; this.style.boxShadow='0 6px 16px rgba(0,0,0,0.25)'">
+                  ▶ Next Round
+                </button>
+              `}
+            </div>
+          </div>
+        `;
+        return;
+      }
+      
+      app.innerHTML = `
+        <div style="background-color: ${config.background_color || defaultConfig.background_color}; font-family: ${customFont}, ${baseFontStack}; color: ${config.text_color || defaultConfig.text_color}; font-size: ${baseSize}px;" class="w-full h-full flex flex-col">
+          <header style="background: linear-gradient(135deg, white 0%, #f9fafb 100%); box-shadow: 0 4px 12px rgba(0,0,0,0.15); padding: ${baseSize * 1.25}px; text-align: center; border-bottom: 3px solid ${config.button_color || defaultConfig.button_color};">
+            <div style="font-size: ${baseSize * 1.5}px; font-weight: 700; margin-bottom: ${baseSize * 0.5}px; color: ${config.text_color || defaultConfig.text_color};">${config.game_title || defaultConfig.game_title}</div>
+            <div style="font-size: ${baseSize * 0.875}px; opacity: 0.8; display: flex; justify-content: center; gap: ${baseSize * 1.5}px; flex-wrap: wrap;">
+              <span style="background-color: #f0fdf4; padding: ${baseSize * 0.25}px ${baseSize * 0.75}px; border-radius: ${baseSize * 0.25}px; font-weight: 600;">
+                ${config.score_label || defaultConfig.score_label}: <span style="color: #10b981;">${scores[0]}</span> - <span style="color: #ef4444;">${scores[1]}</span>
+              </span>
+              <span style="background-color: #eff6ff; padding: ${baseSize * 0.25}px ${baseSize * 0.75}px; border-radius: ${baseSize * 0.25}px; font-weight: 600;">
+                Bid: ${bids[0]} | Won: ${tricksWon[0]}
+              </span>
+            </div>
+          </header>
+          
+          <div class="flex-1 flex flex-col items-center justify-between p-4 overflow-hidden">
+            <div class="mb-4">
+              <div class="flex justify-center gap-1">
+                ${opponentHands[1].map(card => renderCard(card, true, true)).join('')}
+              </div>
+            </div>
+            
+            <div class="game-table flex items-center justify-center relative" style="width: ${baseSize * 12}px; height: ${baseSize * 12}px; background-color: ${config.table_color || defaultConfig.table_color}; margin: ${baseSize}px 0;">
+              ${currentTrick.map((play, index) => {
+                const positions = [
+                  { bottom: '10%', left: '50%', transform: 'translateX(-50%)' },
+                  { top: '10%', left: '50%', transform: 'translateX(-50%)' },
+                  { top: '50%', right: '10%', transform: 'translateY(-50%)' },
+                  { top: '50%', left: '10%', transform: 'translateY(-50%)' }
+                ];
+                const pos = positions[play.player];
+                return `
+                  <div class="trick-card absolute" style="${Object.entries(pos).map(([k, v]) => `${k}: ${v}`).join('; ')};">
+                    ${renderCard(play.card, false, true)}
+                  </div>
+                `;
+              }).join('')}
+              
+              ${currentTrick.length === 0 ? `
+                <div style="color: white; font-size: ${baseSize * 0.875}px; opacity: 0.8; text-align: center;">
+                  ${currentPlayer === 0 ? 'Your turn!' : `Player ${currentPlayer + 1}'s turn`}
+                </div>
+              ` : ''}
+            </div>
+            
+            <div class="mt-4" style="width: 100%; max-width: 100%;">
+              <div class="flex justify-center gap-2 overflow-x-auto pb-3" style="padding: 0 ${baseSize}px; -webkit-overflow-scrolling: touch;">
+                ${playerHand.map((card, index) => `
+                  <div onclick="playCard(playerHand[${index}])" class="${canPlayCard(card) ? '' : 'unplayable'}" style="flex-shrink: 0;">
+                    ${renderCard(card)}
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    async function onConfigChange(newConfig) {
+      Object.assign(config, newConfig);
+      render();
+    }
+
+    const capabilities = {
+      recolorables: [
+        {
+          get: () => config.background_color || defaultConfig.background_color,
+          set: (value) => {
+            config.background_color = value;
+            window.elementSdk.setConfig({ background_color: value });
+          }
+        },
+        {
+          get: () => config.table_color || defaultConfig.table_color,
+          set: (value) => {
+            config.table_color = value;
+            window.elementSdk.setConfig({ table_color: value });
+          }
+        },
+        {
+          get: () => config.card_color || defaultConfig.card_color,
+          set: (value) => {
+            config.card_color = value;
+            window.elementSdk.setConfig({ card_color: value });
+          }
+        },
+        {
+          get: () => config.text_color || defaultConfig.text_color,
+          set: (value) => {
+            config.text_color = value;
+            window.elementSdk.setConfig({ text_color: value });
+          }
+        },
+        {
+          get: () => config.button_color || defaultConfig.button_color,
+          set: (value) => {
+            config.button_color = value;
+            window.elementSdk.setConfig({ button_color: value });
+          }
+        }
+      ],
+      borderables: [],
+      fontEditable: {
+        get: () => config.font_family || defaultConfig.font_family,
+        set: (value) => {
+          config.font_family = value;
+          window.elementSdk.setConfig({ font_family: value });
+        }
+      },
+      fontSizeable: {
+        get: () => config.font_size || defaultConfig.font_size,
+        set: (value) => {
+          config.font_size = value;
+          window.elementSdk.setConfig({ font_size: value });
+        }
+      }
+    };
+
+    if (window.elementSdk) {
+      window.elementSdk.init({
+        defaultConfig,
+        onConfigChange,
+        mapToCapabilities: () => capabilities,
+        mapToEditPanelValues: (config) => new Map([
+          ["game_title", config.game_title || defaultConfig.game_title],
+          ["player_name", config.player_name || defaultConfig.player_name],
+          ["score_label", config.score_label || defaultConfig.score_label]
+        ])
+      });
+    }
+
+    dealCards();
+    render();
+  </script>
+</body>
+</html>
