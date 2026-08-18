@@ -1,0 +1,955 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CASSETTE PROCESSOR</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-beautify/1.14.9/beautify.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-beautify/1.14.9/beautify-css.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-beautify/1.14.9/beautify-html.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Orbitron', monospace;
+            background: #0a0a0a;
+            color: #00ff88;
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                linear-gradient(90deg, transparent 98%, #00ff8822 100%),
+                linear-gradient(0deg, transparent 98%, #00ff8811 100%);
+            background-size: 20px 20px;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            position: relative;
+            z-index: 2;
+        }
+
+        .cassette {
+            background: linear-gradient(145deg, #1a1a1a, #0d0d0d);
+            border: 2px solid #00ff88;
+            border-radius: 15px;
+            box-shadow: 
+                0 0 30px rgba(0, 255, 136, 0.3),
+                inset 0 0 20px rgba(0, 255, 136, 0.1);
+            overflow: hidden;
+            position: relative;
+        }
+
+        .cassette::before {
+            content: '';
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 8px;
+            background: #00ff88;
+            border-radius: 4px;
+            box-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+        }
+
+        .header {
+            background: linear-gradient(135deg, #001122, #002244);
+            padding: 30px;
+            text-align: center;
+            border-bottom: 1px solid #00ff88;
+            position: relative;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 900;
+            color: #00ff88;
+            text-shadow: 0 0 20px rgba(0, 255, 136, 0.8);
+            letter-spacing: 3px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #66ffaa;
+            font-size: 0.9rem;
+            opacity: 0.8;
+            letter-spacing: 1px;
+        }
+
+        .main-content {
+            padding: 30px;
+        }
+
+        .upload-section {
+            background: rgba(0, 255, 136, 0.05);
+            border: 2px dashed #00ff88;
+            border-radius: 10px;
+            padding: 40px;
+            text-align: center;
+            margin-bottom: 30px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .upload-section:hover {
+            background: rgba(0, 255, 136, 0.1);
+            box-shadow: 0 0 20px rgba(0, 255, 136, 0.2);
+        }
+
+        .upload-section.dragover {
+            background: rgba(0, 255, 136, 0.15);
+            border-color: #66ffaa;
+        }
+
+        .upload-text {
+            font-size: 1rem;
+            color: #00ff88;
+            margin-bottom: 20px;
+            letter-spacing: 1px;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin: 30px 0;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #003366, #004488);
+            color: #00ff88;
+            border: 1px solid #00ff88;
+            padding: 12px 25px;
+            border-radius: 8px;
+            font-family: 'Orbitron', monospace;
+            font-size: 0.9rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(0, 255, 136, 0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .btn:hover::before {
+            left: 100%;
+        }
+
+        .btn:hover {
+            box-shadow: 0 0 15px rgba(0, 255, 136, 0.5);
+            transform: translateY(-2px);
+        }
+
+        .btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn:disabled:hover {
+            box-shadow: none;
+        }
+
+        .toggle-section {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            margin: 20px 0;
+            padding: 15px;
+            background: rgba(0, 255, 136, 0.05);
+            border-radius: 8px;
+            border: 1px solid rgba(0, 255, 136, 0.2);
+        }
+
+        .toggle-label {
+            color: #00ff88;
+            font-size: 0.9rem;
+            font-weight: 700;
+            letter-spacing: 1px;
+        }
+
+        .toggle {
+            position: relative;
+            width: 60px;
+            height: 30px;
+            background: #333;
+            border-radius: 15px;
+            border: 1px solid #00ff88;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .toggle::before {
+            content: '';
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 22px;
+            height: 22px;
+            background: #00ff88;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+        }
+
+        .toggle.active {
+            background: rgba(0, 255, 136, 0.2);
+        }
+
+        .toggle.active::before {
+            left: 33px;
+        }
+
+        .status {
+            background: rgba(0, 255, 136, 0.1);
+            border: 1px solid #00ff88;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+            font-size: 0.9rem;
+            letter-spacing: 1px;
+        }
+
+        .status.success {
+            background: rgba(0, 255, 136, 0.15);
+            color: #66ffaa;
+        }
+
+        .status.error {
+            background: rgba(255, 68, 68, 0.15);
+            border-color: #ff4444;
+            color: #ff6666;
+        }
+
+        .file-info {
+            background: rgba(0, 255, 136, 0.05);
+            border: 1px solid rgba(0, 255, 136, 0.3);
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            display: none;
+        }
+
+        .file-info h3 {
+            color: #00ff88;
+            margin-bottom: 15px;
+            font-size: 1.1rem;
+            letter-spacing: 1px;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .info-item {
+            background: rgba(0, 255, 136, 0.08);
+            padding: 12px;
+            border-radius: 6px;
+            border-left: 3px solid #00ff88;
+        }
+
+        .info-label {
+            font-weight: 700;
+            color: #66ffaa;
+            font-size: 0.8rem;
+            margin-bottom: 5px;
+            letter-spacing: 1px;
+        }
+
+        .info-value {
+            font-size: 1rem;
+            color: #00ff88;
+        }
+
+        .preview-section {
+            margin-top: 30px;
+            display: none;
+        }
+
+        .preview-tabs {
+            display: flex;
+            border-bottom: 1px solid #00ff88;
+            margin-bottom: 20px;
+        }
+
+        .tab {
+            padding: 12px 20px;
+            background: none;
+            border: none;
+            font-family: 'Orbitron', monospace;
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: #66ffaa;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s ease;
+            letter-spacing: 1px;
+        }
+
+        .tab.active {
+            color: #00ff88;
+            border-bottom-color: #00ff88;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .code-preview {
+            background: #000;
+            color: #00ff88;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.8rem;
+            line-height: 1.4;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+            border: 1px solid #00ff88;
+        }
+
+        .processing {
+            display: none;
+            text-align: center;
+            padding: 40px;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(0, 255, 136, 0.3);
+            border-top: 3px solid #00ff88;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .main-content {
+                padding: 20px;
+            }
+            
+            .controls {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .btn {
+                width: 100%;
+                max-width: 300px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="cassette">
+            <div class="header">
+                <h1>CASSETTE PROCESSOR</h1>
+                <p>DECODE • ENCODE • BEAUTIFY</p>
+            </div>
+
+            <div class="main-content">
+                <div class="upload-section" id="uploadSection">
+                    <div class="upload-text">
+                        <strong>DROP HTML FILE</strong><br>
+                        OR CLICK TO BROWSE
+                    </div>
+                    <input type="file" id="fileInput" class="file-input" accept=".html,.htm">
+                </div>
+
+                <div class="toggle-section">
+                    <span class="toggle-label">ENCODE STYLES</span>
+                    <div class="toggle" id="styleToggle"></div>
+                </div>
+
+                <div class="controls">
+                    <button class="btn" id="decodeBtn" disabled>DECODE</button>
+                    <button class="btn" id="encodeBtn" disabled>ENCODE</button>
+                </div>
+
+                <div class="processing" id="processing">
+                    <div class="spinner"></div>
+                    <p>PROCESSING...</p>
+                </div>
+
+                <div class="status" id="status" style="display: none;"></div>
+
+                <div class="file-info" id="fileInfo">
+                    <h3>FILE ANALYSIS</h3>
+                    <div class="info-grid" id="infoGrid"></div>
+                </div>
+
+                <div class="preview-section" id="previewSection">
+                    <div class="preview-tabs">
+                        <button class="tab active" data-tab="original">ORIGINAL</button>
+                        <button class="tab" data-tab="processed">PROCESSED</button>
+                    </div>
+                    <div class="tab-content active" id="originalTab">
+                        <div class="code-preview" id="originalPreview"></div>
+                    </div>
+                    <div class="tab-content" id="processedTab">
+                        <div class="code-preview" id="processedPreview"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class HTMLScriptProcessor {
+            constructor() {
+                this.currentFile = null;
+                this.originalContent = '';
+                this.processedContent = '';
+                this.encodeStyles = false;
+                this.initializeEventListeners();
+            }
+
+            initializeEventListeners() {
+                const uploadSection = document.getElementById('uploadSection');
+                const fileInput = document.getElementById('fileInput');
+                const decodeBtn = document.getElementById('decodeBtn');
+                const encodeBtn = document.getElementById('encodeBtn');
+                const styleToggle = document.getElementById('styleToggle');
+
+                // File upload handling
+                uploadSection.addEventListener('click', () => fileInput.click());
+                uploadSection.addEventListener('dragover', this.handleDragOver.bind(this));
+                uploadSection.addEventListener('dragleave', this.handleDragLeave.bind(this));
+                uploadSection.addEventListener('drop', this.handleDrop.bind(this));
+                fileInput.addEventListener('change', this.handleFileSelect.bind(this));
+
+                // Processing buttons
+                decodeBtn.addEventListener('click', () => this.processFile('decode'));
+                encodeBtn.addEventListener('click', () => this.processFile('encode'));
+
+                // Style toggle
+                styleToggle.addEventListener('click', () => {
+                    this.encodeStyles = !this.encodeStyles;
+                    styleToggle.classList.toggle('active', this.encodeStyles);
+                });
+
+                // Tab switching
+                document.querySelectorAll('.tab').forEach(tab => {
+                    tab.addEventListener('click', this.switchTab.bind(this));
+                });
+            }
+
+            handleDragOver(e) {
+                e.preventDefault();
+                document.getElementById('uploadSection').classList.add('dragover');
+            }
+
+            handleDragLeave(e) {
+                e.preventDefault();
+                document.getElementById('uploadSection').classList.remove('dragover');
+            }
+
+            handleDrop(e) {
+                e.preventDefault();
+                document.getElementById('uploadSection').classList.remove('dragover');
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    this.loadFile(files[0]);
+                }
+            }
+
+            handleFileSelect(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    this.loadFile(file);
+                }
+            }
+
+            async loadFile(file) {
+                if (!file.name.match(/\.(html|htm)$/i)) {
+                    this.showStatus('Please select an HTML file (.html or .htm)', 'error');
+                    return;
+                }
+
+                this.currentFile = file;
+                
+                try {
+                    const content = await this.readFileContent(file);
+                    this.originalContent = content;
+                    this.analyzeFile(content);
+                    this.showFileInfo(file, content);
+                    this.showPreview(content, 'original');
+                    
+                    // Enable buttons
+                    document.getElementById('decodeBtn').disabled = false;
+                    document.getElementById('encodeBtn').disabled = false;
+                    
+                    this.showStatus('File loaded successfully! Choose an operation above.', 'success');
+                } catch (error) {
+                    this.showStatus(`Error reading file: ${error.message}`, 'error');
+                }
+            }
+
+            readFileContent(file) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = e => resolve(e.target.result);
+                    reader.onerror = () => reject(new Error('Failed to read file'));
+                    reader.readAsText(file);
+                });
+            }
+
+            analyzeFile(content) {
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(content, 'text/html');
+                
+                const scripts = doc.querySelectorAll('script');
+                const styles = doc.querySelectorAll('style');
+                
+                let base64Scripts = 0;
+                let plainScripts = 0;
+                let inlineScripts = 0;
+                let externalScripts = 0;
+                let base64Styles = 0;
+                let plainStyles = 0;
+
+                scripts.forEach(script => {
+                    if (script.src) {
+                        externalScripts++;
+                    } else if (script.textContent) {
+                        inlineScripts++;
+                        if (this.isBase64(script.textContent.trim())) {
+                            base64Scripts++;
+                        } else {
+                            plainScripts++;
+                        }
+                    }
+                });
+
+                styles.forEach(style => {
+                    if (style.textContent) {
+                        if (this.isBase64CSS(style.textContent.trim())) {
+                            base64Styles++;
+                        } else {
+                            plainStyles++;
+                        }
+                    }
+                });
+
+                this.fileAnalysis = {
+                    totalScripts: scripts.length,
+                    base64Scripts,
+                    plainScripts,
+                    inlineScripts,
+                    externalScripts,
+                    totalStyles: styles.length,
+                    base64Styles,
+                    plainStyles,
+                    fileSize: content.length
+                };
+            }
+
+            isBase64(str) {
+                try {
+                    // Check if it looks like base64 and can be decoded
+                    const cleaned = str.replace(/\s/g, '');
+                    if (cleaned.length % 4 !== 0) return false;
+                    if (!/^[A-Za-z0-9+/]*={0,2}$/.test(cleaned)) return false;
+                    
+                    const decoded = atob(cleaned);
+                    // Check if decoded content looks like JavaScript
+                    return decoded.includes('function') || decoded.includes('var') || 
+                           decoded.includes('let') || decoded.includes('const') ||
+                           decoded.includes('document') || decoded.includes('window');
+                } catch {
+                    return false;
+                }
+            }
+
+            isBase64CSS(str) {
+                try {
+                    const cleaned = str.replace(/\s/g, '');
+                    if (cleaned.length % 4 !== 0) return false;
+                    if (!/^[A-Za-z0-9+/]*={0,2}$/.test(cleaned)) return false;
+                    
+                    const decoded = atob(cleaned);
+                    // Check if decoded content looks like CSS
+                    return decoded.includes('{') && decoded.includes('}') && 
+                           (decoded.includes(':') || decoded.includes('color') || 
+                            decoded.includes('background') || decoded.includes('font'));
+                } catch {
+                    return false;
+                }
+            }
+
+            showFileInfo(file, content) {
+                const fileInfo = document.getElementById('fileInfo');
+                const infoGrid = document.getElementById('infoGrid');
+                
+                const analysis = this.fileAnalysis;
+                
+                infoGrid.innerHTML = `
+                    <div class="info-item">
+                        <div class="info-label">FILE</div>
+                        <div class="info-value">${file.name}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">SIZE</div>
+                        <div class="info-value">${this.formatFileSize(file.size)}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">SCRIPTS</div>
+                        <div class="info-value">${analysis.totalScripts}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">B64 SCRIPTS</div>
+                        <div class="info-value">${analysis.base64Scripts}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">STYLES</div>
+                        <div class="info-value">${analysis.totalStyles}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">B64 STYLES</div>
+                        <div class="info-value">${analysis.base64Styles}</div>
+                    </div>
+                `;
+                
+                fileInfo.style.display = 'block';
+            }
+
+            formatFileSize(bytes) {
+                if (bytes === 0) return '0 Bytes';
+                const k = 1024;
+                const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+            }
+
+            async processFile(operation) {
+                this.showProcessing(true);
+                
+                try {
+                    let processedContent;
+                    
+                    if (operation === 'decode') {
+                        processedContent = await this.decodeAndBeautify(this.originalContent);
+                    } else {
+                        processedContent = await this.encodeScripts(this.originalContent);
+                    }
+                    
+                    this.processedContent = processedContent;
+                    this.showPreview(processedContent, 'processed');
+                    this.switchToProcessedTab();
+                    
+                    // Download the processed file
+                    await this.downloadFile(processedContent, operation);
+                    
+                    this.showStatus(`${operation === 'decode' ? 'Decoding' : 'Encoding'} completed successfully! File downloaded.`, 'success');
+                } catch (error) {
+                    this.showStatus(`Error during ${operation}: ${error.message}`, 'error');
+                } finally {
+                    this.showProcessing(false);
+                }
+            }
+
+            async decodeAndBeautify(content) {
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(content, 'text/html');
+                
+                // Find and decode base64 scripts
+                const scripts = doc.querySelectorAll('script');
+                const scriptsToMove = [];
+                
+                scripts.forEach(script => {
+                    if (!script.src && script.textContent) {
+                        const scriptContent = script.textContent.trim();
+                        if (this.isBase64(scriptContent)) {
+                            try {
+                                const decoded = atob(scriptContent);
+                                const beautified = js_beautify(decoded, {
+                                    indent_size: 2,
+                                    space_in_empty_paren: true
+                                });
+                                script.textContent = beautified;
+                                
+                                // If script is above body, mark for moving
+                                const body = doc.body;
+                                if (body && this.isElementBefore(script, body)) {
+                                    scriptsToMove.push(script);
+                                }
+                            } catch (error) {
+                                console.warn('Failed to decode script:', error);
+                            }
+                        }
+                    }
+                });
+
+                // Find and decode base64 styles if enabled
+                if (this.encodeStyles) {
+                    const styles = doc.querySelectorAll('style');
+                    styles.forEach(style => {
+                        if (style.textContent) {
+                            const styleContent = style.textContent.trim();
+                            if (this.isBase64CSS(styleContent)) {
+                                try {
+                                    const decoded = atob(styleContent);
+                                    const beautified = css_beautify(decoded, {
+                                        indent_size: 2
+                                    });
+                                    style.textContent = beautified;
+                                } catch (error) {
+                                    console.warn('Failed to decode style:', error);
+                                }
+                            }
+                        }
+                    });
+                }
+                
+                // Move scripts that were above body to below body
+                scriptsToMove.forEach(script => {
+                    script.remove();
+                    doc.body.appendChild(script);
+                });
+                
+                // Beautify the entire HTML
+                let htmlContent = doc.documentElement.outerHTML;
+                htmlContent = html_beautify(htmlContent, {
+                    indent_size: 2,
+                    wrap_line_length: 120,
+                    preserve_newlines: true
+                });
+                
+                return '<!DOCTYPE html>\n' + htmlContent;
+            }
+
+            async encodeScripts(content) {
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(content, 'text/html');
+                
+                // Find and encode plain scripts
+                const scripts = doc.querySelectorAll('script');
+                const scriptsToMove = [];
+                
+                scripts.forEach(script => {
+                    if (!script.src && script.textContent) {
+                        const scriptContent = script.textContent.trim();
+                        if (!this.isBase64(scriptContent) && scriptContent.length > 0) {
+                            try {
+                                const encoded = btoa(scriptContent);
+                                script.textContent = encoded;
+                                
+                                // If script is below body, mark for moving
+                                const body = doc.body;
+                                if (body && !this.isElementBefore(script, body)) {
+                                    scriptsToMove.push(script);
+                                }
+                            } catch (error) {
+                                console.warn('Failed to encode script:', error);
+                            }
+                        }
+                    }
+                });
+
+                // Find and encode plain styles if enabled
+                if (this.encodeStyles) {
+                    const styles = doc.querySelectorAll('style');
+                    styles.forEach(style => {
+                        if (style.textContent) {
+                            const styleContent = style.textContent.trim();
+                            if (!this.isBase64CSS(styleContent) && styleContent.length > 0) {
+                                try {
+                                    const encoded = btoa(styleContent);
+                                    style.textContent = encoded;
+                                } catch (error) {
+                                    console.warn('Failed to encode style:', error);
+                                }
+                            }
+                        }
+                    });
+                }
+                
+                // Move scripts that were below body to above body (in head)
+                scriptsToMove.forEach(script => {
+                    script.remove();
+                    doc.head.appendChild(script);
+                });
+                
+                // Beautify the entire HTML
+                let htmlContent = doc.documentElement.outerHTML;
+                htmlContent = html_beautify(htmlContent, {
+                    indent_size: 2,
+                    wrap_line_length: 120,
+                    preserve_newlines: true
+                });
+                
+                return '<!DOCTYPE html>\n' + htmlContent;
+            }
+
+            isElementBefore(element, reference) {
+                return element.compareDocumentPosition(reference) & Node.DOCUMENT_POSITION_FOLLOWING;
+            }
+
+async downloadFile(content, operation) {
+  try {
+    // Build default filename
+    const baseName = this.currentFile.name.replace(/\.[^/.]+$/, '');
+    let filename = `${baseName}_${operation}d.html`;
+
+    // Ask user for a file name
+    const userInput = prompt("Enter a file name:", filename);
+    if (!userInput) return; // user cancelled
+    if (!userInput.endsWith(".html")) filename = `${userInput}.html`;
+    else filename = userInput;
+
+    const blob = new Blob([content], { type: "text/html" });
+    const file = new File([blob], filename, { type: "text/html" });
+
+    // 1. Try Web Share API
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({ files: [file], title: filename });
+      console.log("File shared via Web Share API.");
+      return;
+    }
+
+    // 2. Try File System Access API
+    if ("showSaveFilePicker" in window) {
+      const handle = await window.showSaveFilePicker({
+        suggestedName: filename,
+        types: [{ description: "HTML files", accept: { "text/html": [".html"] } }]
+      });
+      const writable = await handle.createWritable();
+      await writable.write(content);
+      await writable.close();
+      console.log("File saved via File System Access API.");
+      return;
+    }
+
+    // 3. Fallback to Blob download
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    console.log("File saved via Blob download.");
+  } catch (error) {
+    if (error.name === "AbortError") {
+      console.log("User cancelled file save.");
+    } else {
+      console.error("Download error:", error);
+    }
+  }
+}
+
+            showPreview(content, type) {
+                const previewElement = document.getElementById(`${type}Preview`);
+                const truncatedContent = content.length > 5000 ? 
+                    content.substring(0, 5000) + '\n\n... (truncated for display)' : 
+                    content;
+                previewElement.textContent = truncatedContent;
+                
+                document.getElementById('previewSection').style.display = 'block';
+            }
+
+            switchTab(e) {
+                const tabName = e.target.dataset.tab;
+                
+                // Update tab buttons
+                document.querySelectorAll('.tab').forEach(tab => {
+                    tab.classList.remove('active');
+                });
+                e.target.classList.add('active');
+                
+                // Update tab content
+                document.querySelectorAll('.tab-content').forEach(content => {
+                    content.classList.remove('active');
+                });
+                document.getElementById(`${tabName}Tab`).classList.add('active');
+            }
+
+            switchToProcessedTab() {
+                document.querySelector('.tab[data-tab="processed"]').click();
+            }
+
+            showProcessing(show) {
+                document.getElementById('processing').style.display = show ? 'block' : 'none';
+            }
+
+            showStatus(message, type = 'info') {
+                const status = document.getElementById('status');
+                status.textContent = message;
+                status.className = `status ${type}`;
+                status.style.display = 'block';
+                
+                // Auto-hide after 5 seconds for success messages
+                if (type === 'success') {
+                    setTimeout(() => {
+                        status.style.display = 'none';
+                    }, 5000);
+                }
+            }
+        }
+
+        // Initialize the processor when the page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            new HTMLScriptProcessor();
+        });
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9814f3c6b1efeb5a',t:'MTc1ODI0MTU5My4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
