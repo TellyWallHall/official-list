@@ -1,0 +1,345 @@
+<!doctype html>
+<html lang="en">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Drive Link Opener</title>
+  <script src="/_sdk/element_sdk.js"></script>
+  <style>
+        body {
+            box-sizing: border-box;
+            height: 100%;
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0f0f0f;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100%;
+            padding: 20px;
+        }
+
+        html {
+            height: 100%;
+        }
+
+        .container {
+            background: #1a1a1a;
+            border-radius: 12px;
+            padding: 30px;
+            border: 1px solid #333;
+            max-width: 400px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .icon {
+            width: 60px;
+            height: 60px;
+            margin: 0 auto 20px;
+            background: #4285f4;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .title {
+            font-size: 24px;
+            font-weight: 600;
+            color: #ffffff;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            font-size: 14px;
+            color: #888;
+            margin-bottom: 25px;
+            line-height: 1.4;
+        }
+
+        .input-container {
+            position: relative;
+            margin-bottom: 20px;
+        }
+
+        .url-input {
+            width: 100%;
+            padding: 14px 16px;
+            border: 1px solid #444;
+            border-radius: 8px;
+            font-size: 14px;
+            background: #2a2a2a;
+            color: #ffffff;
+            transition: all 0.2s ease;
+            box-sizing: border-box;
+        }
+
+        .url-input:focus {
+            outline: none;
+            border-color: #4285f4;
+            background: #333;
+        }
+
+        .url-input::placeholder {
+            color: #666;
+        }
+
+        .open-button {
+            width: 100%;
+            padding: 14px;
+            background: #4285f4;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-bottom: 15px;
+        }
+
+        .open-button:hover {
+            background: #3367d6;
+        }
+
+        .open-button:disabled {
+            background: #444;
+            cursor: not-allowed;
+        }
+
+        .status-message {
+            padding: 12px;
+            border-radius: 6px;
+            margin-top: 15px;
+            font-weight: 400;
+            font-size: 13px;
+            display: none;
+        }
+
+        .status-success {
+            background: #1a3d2e;
+            color: #4ade80;
+            border: 1px solid #22543d;
+        }
+
+        .status-error {
+            background: #3d1a1a;
+            color: #f87171;
+            border: 1px solid #542222;
+        }
+
+        .status-info {
+            background: #1a2d3d;
+            color: #60a5fa;
+            border: 1px solid #1e3a8a;
+        }
+
+        .help-text {
+            font-size: 12px;
+            color: #666;
+            margin-top: 15px;
+            line-height: 1.4;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 25px 20px;
+                margin: 10px;
+            }
+            
+            .title {
+                font-size: 20px;
+            }
+            
+            .icon {
+                width: 50px;
+                height: 50px;
+            }
+        }
+    </style>
+  <style>@view-transition { navigation: auto; }</style>
+  <script src="/_sdk/data_sdk.js" type="text/javascript"></script>
+  <script src="https://cdn.tailwindcss.com" type="text/javascript"></script>
+ </head>
+ <body>
+  <main class="container">
+   <div class="icon">
+    <svg width="40" height="40" viewbox="0 0 24 24" fill="white"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z" />
+    </svg>
+   </div>
+   <h1 class="title" id="app-title">Drive Link Opener</h1>
+   <p class="subtitle" id="instruction-text">Paste any Google Drive link and open it directly in your browser</p>
+   <div class="input-container"><input type="url" class="url-input" id="driveUrl" placeholder="Paste Google Drive link here..." autocomplete="off">
+   </div><button class="open-button" id="openButton"> <span id="button-text">Open Link</span> </button>
+   <div class="status-message" id="statusMessage"></div>
+   <p class="help-text">• Supports all Google Drive, Docs, Sheets, and Slides links<br>
+     • Automatically fixes malformed URLs (drive*google*com → drive.google.com)<br>
+     • Opens links directly in your browser for immediate access</p>
+  </main>
+  <script>
+        const defaultConfig = {
+            app_title: "Drive Link Opener",
+            instruction_text: "Paste any Google Drive link and open it directly in your browser",
+            button_text: "Open Link"
+        };
+
+        let config = {};
+
+        const urlInput = document.getElementById('driveUrl');
+        const openButton = document.getElementById('openButton');
+        const statusMessage = document.getElementById('statusMessage');
+
+        function showStatus(message, type) {
+            statusMessage.textContent = message;
+            statusMessage.className = `status-message status-${type}`;
+            statusMessage.style.display = 'block';
+            
+            setTimeout(() => {
+                statusMessage.style.display = 'none';
+            }, 4000);
+        }
+
+        function cleanUrl(url) {
+            // Fix common URL issues like drive*google*com
+            return url.replace(/drive\*google\*com/g, 'drive.google.com')
+                     .replace(/docs\*google\*com/g, 'docs.google.com')
+                     .replace(/sheets\*google\*com/g, 'sheets.google.com')
+                     .replace(/slides\*google\*com/g, 'slides.google.com');
+        }
+
+        function isValidDriveUrl(url) {
+            const drivePatterns = [
+                /^https:\/\/drive\.google\.com\//,
+                /^https:\/\/docs\.google\.com\//,
+                /^https:\/\/sheets\.google\.com\//,
+                /^https:\/\/slides\.google\.com\//
+            ];
+            
+            return drivePatterns.some(pattern => pattern.test(url));
+        }
+
+        function convertToAppUrl(webUrl) {
+            // Convert web URLs to app-compatible URLs
+            if (webUrl.includes('/file/d/')) {
+                const fileId = webUrl.match(/\/file\/d\/([a-zA-Z0-9-_]+)/);
+                if (fileId) {
+                    return `googledrive://file?id=${fileId[1]}`;
+                }
+            }
+            
+            if (webUrl.includes('/folders/')) {
+                const folderId = webUrl.match(/\/folders\/([a-zA-Z0-9-_]+)/);
+                if (folderId) {
+                    return `googledrive://folder?id=${folderId[1]}`;
+                }
+            }
+            
+            // For other Drive URLs, try the generic approach
+            return webUrl.replace('https://', 'googledrive://');
+        }
+
+        function openDriveLink() {
+            let url = urlInput.value.trim();
+            
+            if (!url) {
+                showStatus('Please paste a Google Drive link first', 'error');
+                return;
+            }
+            
+            // Clean the URL first
+            url = cleanUrl(url);
+            
+            if (!isValidDriveUrl(url)) {
+                showStatus('Please enter a valid Google Drive link', 'error');
+                return;
+            }
+            
+            // Update the input field with the cleaned URL
+            if (url !== urlInput.value.trim()) {
+                urlInput.value = url;
+                showStatus('URL automatically cleaned and fixed!', 'success');
+            }
+            
+            // Open directly in new tab
+            window.open(url, '_blank', 'noopener,noreferrer');
+            showStatus('Opening Google Drive link...', 'info');
+        }
+
+
+
+        // Event listeners
+        openButton.addEventListener('click', openDriveLink);
+
+        urlInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                openDriveLink();
+            }
+        });
+
+        urlInput.addEventListener('input', () => {
+            const hasUrl = urlInput.value.trim().length > 0;
+            openButton.disabled = !hasUrl;
+        });
+
+        // Auto-detect and clean pasted URLs
+        urlInput.addEventListener('paste', (e) => {
+            setTimeout(() => {
+                let pastedUrl = urlInput.value.trim();
+                
+                // Clean up common URL issues
+                if (pastedUrl && !pastedUrl.startsWith('http')) {
+                    pastedUrl = 'https://' + pastedUrl;
+                }
+                
+                // Clean the URL
+                pastedUrl = cleanUrl(pastedUrl);
+                urlInput.value = pastedUrl;
+                
+                if (isValidDriveUrl(pastedUrl)) {
+                    showStatus('Google Drive link detected and cleaned!', 'success');
+                }
+            }, 100);
+        });
+
+        // Element SDK integration
+        async function onConfigChange(newConfig) {
+            const titleElement = document.getElementById('app-title');
+            const instructionElement = document.getElementById('instruction-text');
+            const buttonTextElement = document.getElementById('button-text');
+            
+            titleElement.textContent = newConfig.app_title || defaultConfig.app_title;
+            instructionElement.textContent = newConfig.instruction_text || defaultConfig.instruction_text;
+            buttonTextElement.textContent = newConfig.button_text || defaultConfig.button_text;
+        }
+
+        function mapToCapabilities(config) {
+            return {
+                recolorables: [],
+                borderables: [],
+                fontEditable: undefined,
+                fontSizeable: undefined
+            };
+        }
+
+        function mapToEditPanelValues(config) {
+            return new Map([
+                ['app_title', config.app_title || defaultConfig.app_title],
+                ['instruction_text', config.instruction_text || defaultConfig.instruction_text],
+                ['button_text', config.button_text || defaultConfig.button_text]
+            ]);
+        }
+
+        // Initialize Element SDK
+        if (window.elementSdk) {
+            window.elementSdk.init({
+                defaultConfig,
+                onConfigChange,
+                mapToCapabilities,
+                mapToEditPanelValues
+            });
+            config = window.elementSdk.config;
+        }
+    </script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'998da4af62cd0102',t:'MTc2MjE5MTQ4NS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
