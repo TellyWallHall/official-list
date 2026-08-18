@@ -1,0 +1,634 @@
+<!doctype html>
+<!-- by ImPot8o https://github.com/ImPot8o pot8o.dev -->
+<html lang="en">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Freecell Solitaire</title>
+  <style>
+    body {
+      box-sizing: border-box;
+    }
+    
+    *, *::before, *::after {
+      box-sizing: inherit;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      width: 100%;
+      overflow: hidden;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+      display: flex;
+      flex-direction: column;
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    .game-container {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      padding: 8px;
+      overflow: auto;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      padding: 0 4px;
+    }
+
+    .title {
+      font-size: 20px;
+      font-weight: bold;
+      color: #ffffff;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    }
+
+    .new-game-btn {
+      background: #4CAF50;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+      transition: background 0.2s;
+    }
+
+    .new-game-btn:hover {
+      background: #45a049;
+    }
+
+    .new-game-btn:active {
+      transform: translateY(1px);
+    }
+
+    .top-area {
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+
+    .cell-slot, .foundation-slot {
+      aspect-ratio: 2.5 / 3.5;
+      border: 2px dashed rgba(255,255,255,0.4);
+      border-radius: 6px;
+      background: rgba(255,255,255,0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      min-height: 50px;
+    }
+
+    .foundation-slot {
+      border-style: solid;
+      border-color: rgba(255,255,255,0.3);
+    }
+
+    .foundation-slot::before {
+      content: '♠';
+      font-size: 24px;
+      color: rgba(255,255,255,0.2);
+      position: absolute;
+    }
+
+    .foundation-slot:nth-child(5)::before { content: '♠'; }
+    .foundation-slot:nth-child(6)::before { content: '♥'; color: rgba(255,100,100,0.3); }
+    .foundation-slot:nth-child(7)::before { content: '♣'; }
+    .foundation-slot:nth-child(8)::before { content: '♦'; color: rgba(255,100,100,0.3); }
+
+    .tableau {
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      gap: 6px;
+      flex: 1;
+      align-content: start;
+    }
+
+    .column {
+      position: relative;
+      min-height: 100px;
+    }
+
+    .card {
+      width: 100%;
+      aspect-ratio: 2.5 / 3.5;
+      background: white;
+      border-radius: 6px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+      display: flex;
+      flex-direction: column;
+      padding: 4px;
+      position: absolute;
+      cursor: pointer;
+      transition: transform 0.1s;
+      font-size: 16px;
+      font-weight: bold;
+    }
+
+    .card.dragging {
+      opacity: 0.7;
+      z-index: 1000;
+    }
+
+    .card.selected {
+      transform: translateY(-8px);
+      box-shadow: 0 4px 12px rgba(255,255,255,0.5);
+    }
+
+    .card.red {
+      color: #dc143c;
+    }
+
+    .card.black {
+      color: #000000;
+    }
+
+    .card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+
+    .card-rank {
+      font-size: 14px;
+      line-height: 1;
+    }
+
+    .card-suit {
+      font-size: 14px;
+      line-height: 1;
+    }
+
+    .card-center {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+    }
+
+    .win-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.8);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+    }
+
+    .win-overlay.show {
+      display: flex;
+    }
+
+    .win-message {
+      background: white;
+      padding: 32px;
+      border-radius: 12px;
+      text-align: center;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    }
+
+    .win-message h2 {
+      margin: 0 0 16px 0;
+      color: #4CAF50;
+      font-size: 32px;
+    }
+
+    .win-message p {
+      margin: 0 0 24px 0;
+      color: #666;
+      font-size: 18px;
+    }
+
+    @media (max-width: 600px) {
+      .title {
+        font-size: 18px;
+      }
+      
+      .new-game-btn {
+        padding: 6px 12px;
+        font-size: 12px;
+      }
+      
+      .card-rank, .card-suit {
+        font-size: 12px;
+      }
+      
+      .card-center {
+        font-size: 24px;
+      }
+    }
+  </style>
+  <style>@view-transition { navigation: auto; }</style>
+  <script src="https://cdn.tailwindcss.com" type="text/javascript"></script>
+ </head>
+ <body>
+  <div class="game-container">
+   <div class="header">
+    <h1 class="title" id="gameTitle">Freecell Solitaire</h1><button class="new-game-btn" id="newGameBtn">New Game</button>
+   </div>
+   <div class="top-area">
+    <div class="cell-slot" data-cell="0"></div>
+    <div class="cell-slot" data-cell="1"></div>
+    <div class="cell-slot" data-cell="2"></div>
+    <div class="cell-slot" data-cell="3"></div>
+    <div class="foundation-slot" data-foundation="0"></div>
+    <div class="foundation-slot" data-foundation="1"></div>
+    <div class="foundation-slot" data-foundation="2"></div>
+    <div class="foundation-slot" data-foundation="3"></div>
+   </div>
+   <div class="tableau" id="tableau">
+    <div class="column" data-column="0"></div>
+    <div class="column" data-column="1"></div>
+    <div class="column" data-column="2"></div>
+    <div class="column" data-column="3"></div>
+    <div class="column" data-column="4"></div>
+    <div class="column" data-column="5"></div>
+    <div class="column" data-column="6"></div>
+    <div class="column" data-column="7"></div>
+   </div>
+  </div>
+  <div class="win-overlay" id="winOverlay">
+   <div class="win-message">
+    <h2>🎉 Congratulations! 🎉</h2>
+    <p id="winText">You won!</p><button class="new-game-btn" onclick="newGame()">Play Again</button>
+   </div>
+  </div>
+  <script>
+localStorage.setItem('pot8o watermark', `${localStorage.getItem('pot8o watermark') || ''} freecell-solitaire`);
+    const defaultConfig = {
+      game_title: "Freecell Solitaire",
+      new_game_text: "New Game",
+      win_message: "You won!",
+      background_color: "#1e3c72",
+      card_background: "#ffffff",
+      button_color: "#4CAF50",
+      text_color: "#ffffff"
+    };
+
+    let gameState = {
+      cells: [null, null, null, null],
+      foundations: [[], [], [], []],
+      tableau: [[], [], [], [], [], [], [], []],
+      selectedCard: null,
+      selectedFrom: null
+    };
+
+    const suits = ['♠', '♥', '♣', '♦'];
+    const ranks = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
+    const rankValues = { 'A': 1, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, '10': 10, 'J': 11, 'Q': 12, 'K': 13 };
+
+    function createDeck() {
+      const deck = [];
+      suits.forEach((suit, suitIndex) => {
+        ranks.forEach(rank => {
+          deck.push({
+            suit,
+            rank,
+            color: (suit === '♥' || suit === '♦') ? 'red' : 'black',
+            value: rankValues[rank],
+            suitIndex
+          });
+        });
+      });
+      return deck;
+    }
+
+    function shuffle(deck) {
+      for (let i = deck.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [deck[i], deck[j]] = [deck[j], deck[i]];
+      }
+      return deck;
+    }
+
+    function newGame() {
+      const deck = shuffle(createDeck());
+      gameState.cells = [null, null, null, null];
+      gameState.foundations = [[], [], [], []];
+      gameState.tableau = [[], [], [], [], [], [], [], []];
+      gameState.selectedCard = null;
+      gameState.selectedFrom = null;
+
+      let cardIndex = 0;
+      for (let col = 0; col < 8; col++) {
+        const cardsInColumn = col < 4 ? 7 : 6;
+        for (let row = 0; row < cardsInColumn; row++) {
+          gameState.tableau[col].push(deck[cardIndex++]);
+        }
+      }
+
+      document.getElementById('winOverlay').classList.remove('show');
+      render();
+    }
+
+    function render() {
+      // Render cells
+      for (let i = 0; i < 4; i++) {
+        const cellSlot = document.querySelector(`[data-cell="${i}"]`);
+        cellSlot.innerHTML = '';
+        if (gameState.cells[i]) {
+          cellSlot.appendChild(createCardElement(gameState.cells[i]));
+        }
+      }
+
+      // Render foundations
+      for (let i = 0; i < 4; i++) {
+        const foundationSlot = document.querySelector(`[data-foundation="${i}"]`);
+        foundationSlot.innerHTML = '';
+        const cards = gameState.foundations[i];
+        if (cards.length > 0) {
+          foundationSlot.appendChild(createCardElement(cards[cards.length - 1]));
+        }
+      }
+
+      // Render tableau
+      for (let col = 0; col < 8; col++) {
+        const column = document.querySelector(`[data-column="${col}"]`);
+        column.innerHTML = '';
+        const cards = gameState.tableau[col];
+        cards.forEach((card, index) => {
+          const cardEl = createCardElement(card);
+          cardEl.style.top = `${index * 24}px`;
+          cardEl.dataset.column = col;
+          cardEl.dataset.index = index;
+          column.appendChild(cardEl);
+        });
+      }
+
+      checkWin();
+    }
+
+    function createCardElement(card) {
+      const cardEl = document.createElement('div');
+      cardEl.className = `card ${card.color}`;
+      cardEl.innerHTML = `
+        <div class="card-top">
+          <span class="card-rank">${card.rank}</span>
+          <span class="card-suit">${card.suit}</span>
+        </div>
+        <div class="card-center">${card.suit}</div>
+      `;
+      
+      cardEl.addEventListener('click', () => handleCardClick(card, cardEl));
+      
+      return cardEl;
+    }
+
+    function handleCardClick(card, cardEl) {
+      // If a card is already selected
+      if (gameState.selectedCard) {
+        const moveSuccessful = attemptMove(card, cardEl);
+        
+        // Deselect
+        document.querySelectorAll('.card.selected').forEach(el => {
+          el.classList.remove('selected');
+        });
+        gameState.selectedCard = null;
+        gameState.selectedFrom = null;
+
+        if (moveSuccessful) {
+          render();
+        }
+      } else {
+        // Select this card if it's moveable
+        const column = cardEl.dataset.column;
+        const index = cardEl.dataset.index;
+        
+        if (column !== undefined) {
+          const columnCards = gameState.tableau[parseInt(column)];
+          if (parseInt(index) === columnCards.length - 1) {
+            gameState.selectedCard = card;
+            gameState.selectedFrom = { type: 'tableau', column: parseInt(column) };
+            cardEl.classList.add('selected');
+          }
+        } else {
+          // Card is in cell or foundation
+          const cellIndex = findCardInCells(card);
+          if (cellIndex !== -1) {
+            gameState.selectedCard = card;
+            gameState.selectedFrom = { type: 'cell', index: cellIndex };
+            cardEl.classList.add('selected');
+          }
+        }
+      }
+    }
+
+    function attemptMove(targetCard, targetEl) {
+      const selectedCard = gameState.selectedCard;
+      const from = gameState.selectedFrom;
+
+      // Try to move to tableau column
+      if (targetEl.parentElement.dataset.column !== undefined) {
+        const targetColumn = parseInt(targetEl.parentElement.dataset.column);
+        const columnCards = gameState.tableau[targetColumn];
+        
+        if (columnCards.length === 0) {
+          // Move to empty column
+          moveCard(from, { type: 'tableau', column: targetColumn });
+          return true;
+        } else if (targetCard === columnCards[columnCards.length - 1]) {
+          // Move to top of column
+          if (canPlaceOnTableau(selectedCard, targetCard)) {
+            moveCard(from, { type: 'tableau', column: targetColumn });
+            return true;
+          }
+        }
+      }
+
+      // Try to move to empty tableau column
+      const emptyColumns = document.querySelectorAll('.column');
+      emptyColumns.forEach((col, colIndex) => {
+        if (gameState.tableau[colIndex].length === 0) {
+          col.addEventListener('click', () => {
+            if (gameState.selectedCard) {
+              moveCard(from, { type: 'tableau', column: colIndex });
+              render();
+            }
+          }, { once: true });
+        }
+      });
+
+      return false;
+    }
+
+    function canPlaceOnTableau(card, onCard) {
+      return card.color !== onCard.color && card.value === onCard.value - 1;
+    }
+
+    function moveCard(from, to) {
+      let card;
+
+      // Remove from source
+      if (from.type === 'cell') {
+        card = gameState.cells[from.index];
+        gameState.cells[from.index] = null;
+      } else if (from.type === 'tableau') {
+        card = gameState.tableau[from.column].pop();
+      } else if (from.type === 'foundation') {
+        card = gameState.foundations[from.index].pop();
+      }
+
+      // Add to destination
+      if (to.type === 'cell') {
+        gameState.cells[to.index] = card;
+      } else if (to.type === 'tableau') {
+        gameState.tableau[to.column].push(card);
+      } else if (to.type === 'foundation') {
+        gameState.foundations[to.index].push(card);
+      }
+    }
+
+    function findCardInCells(card) {
+      return gameState.cells.findIndex(c => c && c.suit === card.suit && c.rank === card.rank);
+    }
+
+    // Click handlers for empty areas
+    document.querySelectorAll('.cell-slot').forEach((slot, index) => {
+      slot.addEventListener('click', () => {
+        if (gameState.selectedCard && gameState.cells[index] === null) {
+          moveCard(gameState.selectedFrom, { type: 'cell', index });
+          gameState.selectedCard = null;
+          gameState.selectedFrom = null;
+          document.querySelectorAll('.card.selected').forEach(el => {
+            el.classList.remove('selected');
+          });
+          render();
+        }
+      });
+    });
+
+    document.querySelectorAll('.foundation-slot').forEach((slot, index) => {
+      slot.addEventListener('click', () => {
+        if (gameState.selectedCard) {
+          const foundation = gameState.foundations[index];
+          if (canPlaceOnFoundation(gameState.selectedCard, foundation, index)) {
+            moveCard(gameState.selectedFrom, { type: 'foundation', index });
+            gameState.selectedCard = null;
+            gameState.selectedFrom = null;
+            document.querySelectorAll('.card.selected').forEach(el => {
+              el.classList.remove('selected');
+            });
+            render();
+          }
+        }
+      });
+    });
+
+    document.querySelectorAll('.column').forEach((column, colIndex) => {
+      column.addEventListener('click', (e) => {
+        if (e.target === column && gameState.selectedCard) {
+          if (gameState.tableau[colIndex].length === 0) {
+            moveCard(gameState.selectedFrom, { type: 'tableau', column: colIndex });
+            gameState.selectedCard = null;
+            gameState.selectedFrom = null;
+            document.querySelectorAll('.card.selected').forEach(el => {
+              el.classList.remove('selected');
+            });
+            render();
+          }
+        }
+      });
+    });
+
+    function canPlaceOnFoundation(card, foundation, foundationIndex) {
+      if (foundation.length === 0) {
+        return card.rank === 'A' && card.suitIndex === foundationIndex;
+      }
+      const topCard = foundation[foundation.length - 1];
+      return card.suit === topCard.suit && card.value === topCard.value + 1;
+    }
+
+    function checkWin() {
+      const totalInFoundations = gameState.foundations.reduce((sum, f) => sum + f.length, 0);
+      if (totalInFoundations === 52) {
+        document.getElementById('winOverlay').classList.add('show');
+      }
+    }
+
+    document.getElementById('newGameBtn').addEventListener('click', newGame);
+
+    // Element SDK implementation
+    async function onConfigChange(config) {
+      document.getElementById('gameTitle').textContent = config.game_title || defaultConfig.game_title;
+      document.getElementById('newGameBtn').textContent = config.new_game_text || defaultConfig.new_game_text;
+      document.getElementById('winText').textContent = config.win_message || defaultConfig.win_message;
+      
+      const bgColor = config.background_color || defaultConfig.background_color;
+      document.body.style.background = `linear-gradient(135deg, ${bgColor} 0%, #2a5298 100%)`;
+      
+      const btnColor = config.button_color || defaultConfig.button_color;
+      document.querySelectorAll('.new-game-btn').forEach(btn => {
+        btn.style.backgroundColor = btnColor;
+      });
+      
+      const textColor = config.text_color || defaultConfig.text_color;
+      document.querySelector('.title').style.color = textColor;
+    }
+
+    if (window.elementSdk) {
+      window.elementSdk.init({
+        defaultConfig,
+        onConfigChange,
+        mapToCapabilities: (config) => ({
+          recolorables: [
+            {
+              get: () => config.background_color || defaultConfig.background_color,
+              set: (value) => {
+                window.elementSdk.config.background_color = value;
+                window.elementSdk.setConfig({ background_color: value });
+              }
+            },
+            {
+              get: () => config.button_color || defaultConfig.button_color,
+              set: (value) => {
+                window.elementSdk.config.button_color = value;
+                window.elementSdk.setConfig({ button_color: value });
+              }
+            },
+            {
+              get: () => config.text_color || defaultConfig.text_color,
+              set: (value) => {
+                window.elementSdk.config.text_color = value;
+                window.elementSdk.setConfig({ text_color: value });
+              }
+            }
+          ],
+          borderables: [],
+          fontEditable: undefined,
+          fontSizeable: undefined
+        }),
+        mapToEditPanelValues: (config) => new Map([
+          ["game_title", config.game_title || defaultConfig.game_title],
+          ["new_game_text", config.new_game_text || defaultConfig.new_game_text],
+          ["win_message", config.win_message || defaultConfig.win_message]
+        ])
+      });
+    }
+
+    // Start new game on load
+    newGame();
+  </script>
+</body>
+</html>
