@@ -1,0 +1,2060 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Tank Battle Arena</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    body {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+      color: #fff;
+      overflow: hidden;
+      touch-action: manipulation;
+      height: 100%;
+    }
+
+    html {
+      height: 100%;
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .screen {
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      top: 0;
+      left: 0;
+      display: none;
+      flex-direction: column;
+      padding: 20px;
+      overflow-y: auto;
+    }
+
+    .screen.active {
+      display: flex;
+    }
+
+    .title {
+      font-size: 36px;
+      text-align: center;
+      margin-bottom: 20px;
+      text-shadow: 0 0 20px rgba(255,215,0,0.8), 3px 3px 6px rgba(0,0,0,0.5);
+      color: #ffd700;
+      font-weight: 900;
+      letter-spacing: 2px;
+    }
+
+    .player-setup {
+      background: rgba(255,255,255,0.1);
+      padding: 20px;
+      border-radius: 15px;
+      margin-bottom: 20px;
+      backdrop-filter: blur(10px);
+    }
+
+    .player-setup h3 {
+      margin-top: 0;
+      font-size: 20px;
+      color: #ffd700;
+    }
+
+    .input-group {
+      margin-bottom: 15px;
+    }
+
+    .input-group label {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 14px;
+    }
+
+    .input-group input {
+      width: 100%;
+      padding: 12px;
+      font-size: 16px;
+      border: none;
+      border-radius: 8px;
+      background: rgba(255,255,255,0.9);
+      color: #333;
+    }
+
+    .color-picker {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .color-option {
+      width: 100%;
+      aspect-ratio: 1;
+      border-radius: 8px;
+      border: 3px solid transparent;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .color-option.selected {
+      border-color: #ffd700;
+      transform: scale(1.1);
+    }
+
+    .btn {
+      width: 100%;
+      padding: 15px;
+      font-size: 18px;
+      font-weight: bold;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-transform: uppercase;
+      margin-top: 10px;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+
+    .btn-primary:active {
+      transform: scale(0.98);
+    }
+
+    .btn-secondary {
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      color: white;
+    }
+
+    .ammo-selection {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-bottom: 20px;
+      max-height: 60%;
+      overflow-y: auto;
+    }
+
+    .ammo-card {
+      background: rgba(255,255,255,0.1);
+      padding: 15px;
+      border-radius: 10px;
+      border: 2px solid transparent;
+      cursor: pointer;
+      transition: all 0.2s;
+      backdrop-filter: blur(10px);
+    }
+
+    .ammo-card.selected {
+      border-color: #ffd700;
+      background: rgba(255,215,0,0.2);
+    }
+
+    .ammo-card.disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .ammo-card h4 {
+      margin: 0 0 8px 0;
+      font-size: 16px;
+      color: #ffd700;
+    }
+
+    .ammo-card p {
+      margin: 0;
+      font-size: 12px;
+      color: #ddd;
+    }
+
+    .player-status {
+      background: linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04));
+      padding: 12px 15px;
+      border-radius: 12px;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 15px;
+      backdrop-filter: blur(10px);
+      border: 2px solid rgba(255,255,255,0.1);
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    }
+
+    .game-canvas {
+      flex: 1;
+      background: linear-gradient(180deg, #0a0e27 0%, #1a1e3e 100%);
+      border-radius: 15px;
+      position: relative;
+      overflow: hidden;
+      margin-bottom: 12px;
+      min-height: 300px;
+      box-shadow: inset 0 0 30px rgba(0,0,0,0.5);
+      border: 2px solid rgba(255,215,0,0.2);
+    }
+
+    .game-controls {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 8px;
+      padding: 10px;
+      background: rgba(0,0,0,0.3);
+      border-radius: 15px;
+    }
+
+    .control-btn {
+      padding: 14px 3px;
+      font-size: 9px;
+      font-weight: bold;
+      border: none;
+      border-radius: 10px;
+      background: linear-gradient(135deg, rgba(100,100,255,0.6), rgba(80,80,200,0.6));
+      color: white;
+      cursor: pointer;
+      transition: all 0.15s;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+      border: 2px solid rgba(255,255,255,0.1);
+    }
+
+    .control-btn i {
+      font-size: 18px;
+    }
+
+    .control-btn:active {
+      background: linear-gradient(135deg, rgba(120,120,255,0.8), rgba(100,100,220,0.8));
+      transform: scale(0.95);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+    }
+
+    .control-btn.fire {
+      grid-column: span 6;
+      background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
+      font-size: 18px;
+      padding: 20px 10px;
+      box-shadow: 0 6px 20px rgba(255,107,107,0.4);
+    }
+
+    .control-btn.fire:active {
+      background: linear-gradient(135deg, #ff5252 0%, #dd4a5f 100%);
+    }
+
+    .control-btn.move-btn {
+      background: linear-gradient(135deg, rgba(80,200,120,0.6), rgba(60,180,100,0.6));
+    }
+
+    .control-btn.move-btn:active {
+      background: linear-gradient(135deg, rgba(100,220,140,0.8), rgba(80,200,120,0.8));
+    }
+
+    .ammo-selector {
+      display: flex;
+      min-height: 110px;
+      gap: 10px;
+      overflow-x: auto;
+      padding: 12px 0;
+      margin-bottom: 12px;
+    }
+
+    .ammo-btn {
+      min-width: 110px;
+      padding: 14px 12px;
+      font-size: 13px;
+      background: rgba(255,255,255,0.2);
+      border: 2px solid transparent;
+      border-radius: 8px;
+      color: white;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .ammo-btn.selected {
+      border-color: #ffd700;
+      background: rgba(255,215,0,0.3);
+    }
+
+    .ammo-btn.empty {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .info-bar {
+      background: rgba(255,255,255,0.1);
+      padding: 10px;
+      border-radius: 8px;
+      margin-bottom: 10px;
+      text-align: center;
+      font-size: 14px;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    .winner-screen {
+      text-align: center;
+    }
+
+    .winner-text {
+      font-size: 48px;
+      margin: 50px 0;
+      text-shadow: 3px 3px 6px rgba(0,0,0,0.5);
+    }
+
+    .player-indicator {
+      background: linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04));
+      padding: 12px 15px;
+      border-radius: 12px;
+      border: 2px solid rgba(255,255,255,0.1);
+      transition: all 0.3s;
+      min-width: 140px;
+      flex: 1;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    }
+
+    .player-indicator.active {
+      border-color: #ffd700;
+      background: linear-gradient(135deg, rgba(255,215,0,0.25), rgba(255,215,0,0.15));
+      box-shadow: 0 0 25px rgba(255,215,0,0.6), 0 4px 15px rgba(0,0,0,0.3);
+      transform: scale(1.03);
+    }
+
+    .health-bar {
+      width: 100%;
+      height: 10px;
+      background: rgba(0,0,0,0.3);
+      border-radius: 5px;
+      overflow: hidden;
+      margin-top: 5px;
+    }
+
+    .health-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #44ff44, #66ff66);
+      transition: width 0.5s, background 0.5s;
+      border-radius: 5px;
+    }
+
+    .health-fill.low {
+      background: linear-gradient(90deg, #ffaa44, #ffcc66);
+    }
+
+    .health-fill.critical {
+      background: linear-gradient(90deg, #ff4444, #ff6666);
+    }
+
+    .info-bar {
+      background: linear-gradient(135deg, rgba(255,255,255,0.12), rgba(255,255,255,0.06));
+      padding: 10px 15px;
+      border-radius: 12px;
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-around;
+      font-size: 13px;
+      backdrop-filter: blur(10px);
+      border: 2px solid rgba(255,255,255,0.15);
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    }
+
+    .info-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 600;
+    }
+
+    .wind-indicator {
+      font-weight: bold;
+      color: #66d9ff;
+      text-shadow: 0 0 10px rgba(102,217,255,0.5);
+    }
+
+    .ammo-btn {
+      min-width: 120px;
+      padding: 16px 14px;
+      font-size: 14px;
+      background: rgba(255,255,255,0.2);
+      border: 2px solid rgba(255,255,255,0.3);
+      border-radius: 8px;
+      color: white;
+      cursor: pointer;
+      white-space: nowrap;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.2s;
+    }
+
+    .ammo-btn i {
+      font-size: 20px;
+    }
+
+    .ammo-btn span {
+      font-size: 11px;
+      font-weight: bold;
+    }
+
+    .ammo-btn.selected {
+      border-color: #ffd700;
+      background: rgba(255,215,0,0.3);
+      box-shadow: 0 0 15px rgba(255,215,0,0.5);
+      transform: scale(1.05);
+    }
+
+    .ammo-btn.empty {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .explosion {
+      position: absolute;
+      background: radial-gradient(circle, rgba(255,150,0,0.8), rgba(255,50,0,0.4), transparent);
+      border-radius: 50%;
+      pointer-events: none;
+      animation: explode 0.5s ease-out forwards;
+    }
+
+    @keyframes explode {
+      0% {
+        transform: scale(0);
+        opacity: 1;
+      }
+      100% {
+        transform: scale(2);
+        opacity: 0;
+      }
+    }
+
+    .ammo-card {
+      background: rgba(255,255,255,0.1);
+      padding: 15px;
+      border-radius: 10px;
+      border: 2px solid transparent;
+      cursor: pointer;
+      transition: all 0.2s;
+      backdrop-filter: blur(10px);
+      position: relative;
+    }
+
+    .ammo-card:hover:not(.disabled) {
+      transform: translateY(-2px);
+      border-color: rgba(255,215,0,0.5);
+      background: rgba(255,255,255,0.15);
+    }
+
+    .ammo-card.selected {
+      border-color: #ffd700;
+      background: rgba(255,215,0,0.2);
+      animation: pulse 1s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 10px rgba(255,215,0,0.5); }
+      50% { box-shadow: 0 0 20px rgba(255,215,0,0.8); }
+    }
+
+    .ammo-card.disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+      background: rgba(0,0,0,0.3);
+    }
+
+    .ammo-card h4 {
+      margin: 0 0 8px 0;
+      font-size: 16px;
+      color: #ffd700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .ammo-card p {
+      margin: 4px 0;
+      font-size: 11px;
+      color: #ddd;
+    }
+
+    .selection-indicator {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      width: 24px;
+      height: 24px;
+      background: #ffd700;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      color: #000;
+      font-size: 12px;
+    }
+  </style>
+  <style>@view-transition { navigation: auto; }</style>
+  
+  
+  <script src="https://cdn.tailwindcss.com" type="text/javascript"></script>
+ </head>
+ <body>
+  <div id="menuScreen" class="screen active">
+   <h1 class="title">🎮 TANK BATTLE 🎮</h1>
+   <div style="max-width: 400px; margin: 50px auto;"><button class="btn btn-primary" onclick="selectGameMode(1)" style="margin-bottom: 20px; font-size: 24px; padding: 25px;"> <i class="fas fa-user"></i> SINGLE PLAYER </button> <button class="btn btn-primary" onclick="selectGameMode(2)" style="font-size: 24px; padding: 25px;"> <i class="fas fa-users"></i> TWO PLAYERS </button>
+   </div>
+  </div>
+  <div id="setupScreen" class="screen">
+   <h1 class="title">🎮 TANK BATTLE 🎮</h1>
+   <div class="player-setup">
+    <h3 id="player1Title">Player 1</h3>
+    <div class="input-group"><label>Tank Commander Name:</label> <input type="text" id="player1Name" placeholder="Enter your name" maxlength="15">
+    </div>
+    <div class="input-group"><label>Choose Your Tank Color:</label>
+     <div class="color-picker" id="player1Colors"></div>
+    </div>
+   </div>
+   <div class="player-setup" id="player2Setup">
+    <h3>Player 2</h3>
+    <div class="input-group"><label>Tank Commander Name:</label> <input type="text" id="player2Name" placeholder="Enter your name" maxlength="15">
+    </div>
+    <div class="input-group"><label>Choose Your Tank Color:</label>
+     <div class="color-picker" id="player2Colors"></div>
+    </div>
+   </div><button class="btn btn-primary" onclick="startAmmoSelection()">START BATTLE PREP</button> <button class="btn btn-secondary" onclick="showScreen('menuScreen')" style="margin-top: 10px;">BACK TO MENU</button>
+  </div>
+  <div id="ammoScreen" class="screen">
+   <h1 class="title">SELECT AMMUNITION</h1>
+   <div class="player-status">
+    <div id="currentPlayerAmmo"></div>
+   </div>
+   <div class="ammo-selection" id="ammoGrid"></div><button class="btn btn-secondary" onclick="randomizeAmmo()">🎲 RANDOM LOADOUT</button> <button class="btn btn-primary" onclick="finishAmmoSelection()" id="finishAmmoBtn" style="display:none;">START BATTLE!</button>
+  </div>
+  <div id="gameScreen" class="screen">
+   <div class="info-bar" id="turnInfo"></div>
+   <div class="player-status">
+    <div id="player1Info"></div>
+    <div id="player2Info"></div>
+   </div>
+   <div class="game-canvas">
+    <canvas id="gameCanvas"></canvas>
+   </div>
+   <div class="ammo-selector" id="ammoSelector"></div>
+   <div class="game-controls"><button class="control-btn move-btn" onclick="moveTank(-10)"> <i class="fas fa-chevron-left"></i> <span>MOVE</span> </button> <button class="control-btn" onclick="adjustAngle(-5)"> <i class="fas fa-angle-down"></i> <span>ANGLE</span> </button> <button class="control-btn" onclick="adjustPower(-5)"> <i class="fas fa-minus"></i> <span>POWER</span> </button> <button class="control-btn" onclick="adjustPower(5)"> <i class="fas fa-plus"></i> <span>POWER</span> </button> <button class="control-btn" onclick="adjustAngle(5)"> <i class="fas fa-angle-up"></i> <span>ANGLE</span> </button> <button class="control-btn move-btn" onclick="moveTank(10)"> <i class="fas fa-chevron-right"></i> <span>MOVE</span> </button> <button class="control-btn fire" onclick="fire()"> <span> <i class="fas fa-rocket"></i> FIRE! <i class="fas fa-rocket"></i> </span> </button>   </div>
+  </div>
+  <div id="winnerScreen" class="screen winner-screen">
+   <h1 class="title">BATTLE COMPLETE!</h1>
+   <div class="winner-text" id="winnerText"></div><button class="btn btn-primary" onclick="location.reload()">NEW BATTLE</button>
+  </div>
+  <script>
+    const colors = ['#FF4444', '#44FF44', '#4444FF', '#FFAA44', '#FF44FF', '#44FFFF', '#FFFF44', '#AA44FF', '#44AAFF', '#AAFF44'];
+    
+    const ammoTypes = [
+      { name: 'Explosive', desc: 'Large blast radius', damage: 30, icon: 'fa-bomb', special: 'explosive', radius: 50 },
+      { name: 'Piercer', desc: 'Goes through walls', damage: 25, icon: 'fa-arrow-right', special: 'pierce', radius: 25 },
+      { name: 'Cluster', desc: 'Splits into 5 bombs', damage: 15, icon: 'fa-burst', special: 'cluster', radius: 30 },
+      { name: 'Homing', desc: 'Tracks enemy tank', damage: 35, icon: 'fa-crosshairs', special: 'homing', radius: 35 },
+      { name: 'Bouncer', desc: 'Bounces 3 times', damage: 20, icon: 'fa-basketball', special: 'bounce', radius: 30, bounces: 3 },
+      { name: 'Nuke', desc: 'Massive explosion', damage: 50, icon: 'fa-radiation', special: 'nuke', radius: 80 },
+      { name: 'Digger', desc: 'Digs through terrain', damage: 25, icon: 'fa-person-digging', special: 'digger', radius: 40 },
+      { name: 'Teleport', desc: 'Random repositioning', damage: 15, icon: 'fa-shuffle', special: 'teleport', radius: 30 },
+      { name: 'Shield Buster', desc: 'Ignores shields', damage: 30, icon: 'fa-shield-halved', special: 'shieldbreak', radius: 35 },
+      { name: 'EMP', desc: 'Disables special ammo', damage: 10, icon: 'fa-bolt', special: 'emp', radius: 60 },
+      { name: 'Scatter', desc: 'Wide spread pattern', damage: 12, icon: 'fa-spray-can', special: 'scatter', radius: 25 },
+      { name: 'Laser', desc: 'Instant hit beam', damage: 35, icon: 'fa-wand-sparkles', special: 'laser', radius: 15 },
+      { name: 'Artillery', desc: 'Long range blast', damage: 40, icon: 'fa-truck-pickup', special: 'artillery', radius: 55 },
+      { name: 'Mine', desc: 'Places proximity trap', damage: 30, icon: 'fa-land-mine-on', special: 'mine', radius: 45 },
+      { name: 'Healer', desc: 'Restores 20 HP', damage: -20, icon: 'fa-heart-pulse', special: 'heal', radius: 40 },
+      { name: 'Smoke', desc: 'Obscures vision', damage: 5, icon: 'fa-smog', special: 'smoke', radius: 50 },
+      { name: 'Rocket', desc: 'Fast projectile', damage: 25, icon: 'fa-rocket', special: 'rocket', radius: 30 },
+      { name: 'Gravity', desc: 'Pulls terrain down', damage: 20, icon: 'fa-weight-hanging', special: 'gravity', radius: 60 },
+      { name: 'Freeze', desc: 'Slows next shot', damage: 15, icon: 'fa-snowflake', special: 'freeze', radius: 35 },
+      { name: 'Multi-Shot', desc: 'Fires 3 rounds', damage: 15, icon: 'fa-ellipsis', special: 'multi', radius: 25 },
+      { name: 'Air Strike', desc: 'Bombs from above', damage: 35, icon: 'fa-plane', special: 'airstrike', radius: 45 },
+      { name: 'Meteor', desc: 'Giant falling rock', damage: 45, icon: 'fa-meteor', special: 'meteor', radius: 70 },
+      { name: 'Plasma', desc: 'Energy explosion', damage: 38, icon: 'fa-fire', special: 'plasma', radius: 50 },
+      { name: 'Splitter', desc: 'Splits into 8 pieces', damage: 18, icon: 'fa-asterisk', special: 'splitter', radius: 30 },
+      { name: 'Black Hole', desc: 'Pulls everything in', damage: 25, icon: 'fa-circle-dot', special: 'blackhole', radius: 65 },
+      { name: 'Lightning', desc: 'Chain reaction', damage: 30, icon: 'fa-bolt-lightning', special: 'lightning', radius: 40 },
+      { name: 'Toxic', desc: 'Damage over time', damage: 20, icon: 'fa-biohazard', special: 'toxic', radius: 45 },
+      { name: 'Railgun', desc: 'Pierces everything', damage: 42, icon: 'fa-bars', special: 'railgun', radius: 20 },
+      { name: 'Seeker', desc: 'Finds weak spots', damage: 33, icon: 'fa-magnifying-glass', special: 'seeker', radius: 30 },
+      { name: 'Shrapnel', desc: 'Metal fragments', damage: 28, icon: 'fa-cubes', special: 'shrapnel', radius: 55 },
+      { name: 'Napalm', desc: 'Burning flames', damage: 32, icon: 'fa-fire-flame-curved', special: 'napalm', radius: 60 },
+      { name: 'Sonic Boom', desc: 'Sound wave blast', damage: 26, icon: 'fa-volume-high', special: 'sonic', radius: 70 },
+      { name: 'Drill', desc: 'Deep penetration', damage: 29, icon: 'fa-screwdriver', special: 'drill', radius: 35 },
+      { name: 'Vortex', desc: 'Spinning destruction', damage: 31, icon: 'fa-tornado', special: 'vortex', radius: 50 },
+      { name: 'Orbital', desc: 'Satellite strike', damage: 48, icon: 'fa-satellite', special: 'orbital', radius: 65 },
+      { name: 'Tsunami', desc: 'Wave of destruction', damage: 40, icon: 'fa-water', special: 'tsunami', radius: 80 },
+      { name: 'Earthquake', desc: 'Shakes the ground', damage: 35, icon: 'fa-house-crack', special: 'earthquake', radius: 90 },
+      { name: 'Fireball', desc: 'Blazing inferno', damage: 33, icon: 'fa-fire-flame-simple', special: 'fireball', radius: 55 },
+      { name: 'Ice Spike', desc: 'Freezing piercer', damage: 28, icon: 'fa-icicles', special: 'icespike', radius: 35 },
+      { name: 'Bouncing Betty', desc: 'Bounces 5 times', damage: 22, icon: 'fa-volleyball', special: 'bounce', radius: 30, bounces: 5 },
+      { name: 'Carpet Bomb', desc: 'Multiple drops', damage: 25, icon: 'fa-boxes-stacked', special: 'carpet', radius: 40 },
+      { name: 'Boomerang', desc: 'Returns to sender', damage: 27, icon: 'fa-rotate-left', special: 'boomerang', radius: 30 },
+      { name: 'Wrecking Ball', desc: 'Heavy impact', damage: 45, icon: 'fa-circle', special: 'wreckingball', radius: 60 },
+      { name: 'Mirror Shot', desc: 'Reflects twice', damage: 24, icon: 'fa-arrows-left-right', special: 'mirror', radius: 30 },
+      { name: 'Time Bomb', desc: 'Delayed explosion', damage: 50, icon: 'fa-clock', special: 'timebomb', radius: 70 },
+      { name: 'Magnet', desc: 'Pulls tanks', damage: 18, icon: 'fa-magnet', special: 'magnet', radius: 80 },
+      { name: 'Teleporter', desc: 'Swaps tank positions', damage: 10, icon: 'fa-right-left', special: 'teleswap', radius: 30 },
+      { name: 'Shield', desc: 'Temporary protection', damage: 0, icon: 'fa-shield', special: 'shield', radius: 0 },
+      { name: 'Power Up', desc: 'Increase damage', damage: 0, icon: 'fa-bolt', special: 'powerup', radius: 0 },
+      { name: 'Mini Nuke', desc: 'Small nuclear bomb', damage: 38, icon: 'fa-atom', special: 'mininuke', radius: 60 },
+      { name: 'Chain Lightning', desc: 'Bounces between', damage: 30, icon: 'fa-link', special: 'chainlightning', radius: 40 },
+      { name: 'Kamikaze', desc: 'Self-damage too', damage: 60, icon: 'fa-skull', special: 'kamikaze', radius: 75 },
+      { name: 'Shotgun', desc: 'Wide spray', damage: 12, icon: 'fa-gun', special: 'shotgun', radius: 25 },
+      { name: 'Sniper', desc: 'Perfect accuracy', damage: 40, icon: 'fa-bullseye', special: 'sniper', radius: 20 }
+    ];
+
+    let gameState = {
+      players: [
+        { name: '', color: '', health: 100, ammo: [], tank: { x: 0, y: 0, angle: 45, power: 50 }, shield: 0, powerMultiplier: 1, isAI: false },
+        { name: '', color: '', health: 100, ammo: [], tank: { x: 0, y: 0, angle: 135, power: 50 }, shield: 0, powerMultiplier: 1, isAI: false }
+      ],
+      currentPlayer: 0,
+      currentAmmo: 'regular',
+      terrain: [],
+      availableAmmo: [],
+      ammoSelectionPlayer: 0,
+      selectionRound: 0,
+      projectiles: [],
+      effects: [],
+      particles: [],
+      mines: [],
+      wind: 0,
+      gravity: 0.25,
+      timeScale: 1,
+      turnInProgress: false,
+      gameMode: 2, // 1 = single player, 2 = two player
+      aiState: {
+        searchMin: 20,
+        searchMax: 160,
+        currentAngle: 90,
+        lastHit: null,
+        thinking: false
+      }
+    };
+
+    // Setup color pickers
+    function selectGameMode(mode) {
+      gameState.gameMode = mode;
+      
+      if (mode === 1) {
+        // Single player setup
+        gameState.players[1].isAI = true;
+        gameState.players[1].name = 'AI Commander';
+        gameState.players[1].color = colors[Math.floor(Math.random() * colors.length)];
+        document.getElementById('player2Setup').style.display = 'none';
+        document.getElementById('player1Title').textContent = 'Your Tank';
+      } else {
+        // Two player setup
+        gameState.players[1].isAI = false;
+        gameState.players[1].name = '';
+        gameState.players[1].color = '';
+        document.getElementById('player2Setup').style.display = 'block';
+        document.getElementById('player1Title').textContent = 'Player 1';
+      }
+      
+      showScreen('setupScreen');
+    }
+
+    function initColorPickers() {
+      const p1Colors = document.getElementById('player1Colors');
+      const p2Colors = document.getElementById('player2Colors');
+      
+      colors.forEach((color, idx) => {
+        const btn1 = document.createElement('div');
+        btn1.className = 'color-option';
+        btn1.style.background = color;
+        btn1.onclick = () => selectColor(0, color, btn1);
+        p1Colors.appendChild(btn1);
+
+        const btn2 = document.createElement('div');
+        btn2.className = 'color-option';
+        btn2.style.background = color;
+        btn2.onclick = () => selectColor(1, color, btn2);
+        p2Colors.appendChild(btn2);
+      });
+    }
+
+    function selectColor(player, color, element) {
+      const container = element.parentElement;
+      Array.from(container.children).forEach(el => el.classList.remove('selected'));
+      element.classList.add('selected');
+      gameState.players[player].color = color;
+    }
+
+    function startAmmoSelection() {
+      const p1Name = document.getElementById('player1Name').value.trim() || 'Player 1';
+      const p2Name = document.getElementById('player2Name').value.trim() || 'Player 2';
+      
+      if (!gameState.players[0].color || !gameState.players[1].color) {
+        const msg = document.createElement('div');
+        msg.textContent = 'Both players must select a color!';
+        msg.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#ff4444;padding:20px;border-radius:10px;z-index:1000;';
+        document.body.appendChild(msg);
+        setTimeout(() => msg.remove(), 2000);
+        return;
+      }
+      
+      if (gameState.players[0].color === gameState.players[1].color) {
+        const msg = document.createElement('div');
+        msg.textContent = 'Players must choose different colors!';
+        msg.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#ff4444;padding:20px;border-radius:10px;z-index:1000;';
+        document.body.appendChild(msg);
+        setTimeout(() => msg.remove(), 2000);
+        return;
+      }
+
+      gameState.players[0].name = p1Name;
+      gameState.players[1].name = p2Name;
+
+      // Generate 35 random ammo options (enough for both players to choose)
+      gameState.availableAmmo = [];
+      for (let i = 0; i < 35; i++) {
+        const ammo = {...ammoTypes[Math.floor(Math.random() * ammoTypes.length)]};
+        ammo.id = 'ammo_' + i;
+        ammo.selectedBy = null;
+        gameState.availableAmmo.push(ammo);
+      }
+
+      showScreen('ammoScreen');
+      updateAmmoGrid();
+    }
+
+    function updateAmmoGrid() {
+      const grid = document.getElementById('ammoGrid');
+      const status = document.getElementById('currentPlayerAmmo');
+      const currentPlayer = gameState.players[gameState.ammoSelectionPlayer];
+      
+      // If AI's turn, auto-select random ammo
+      if (currentPlayer.isAI && currentPlayer.ammo.length < 10) {
+        const available = gameState.availableAmmo.filter(a => a.selectedBy === null);
+        if (available.length > 0) {
+          const randomIdx = gameState.availableAmmo.indexOf(available[Math.floor(Math.random() * available.length)]);
+          selectAmmo(randomIdx);
+          return;
+        }
+      }
+      
+      const p1Count = gameState.players[0].ammo.length;
+      const p2Count = gameState.players[1].ammo.length;
+      
+      status.innerHTML = `
+        <div style="text-align: center; width: 100%;">
+          <div style="font-size: 18px; margin-bottom: 10px;">
+            <i class="fas fa-crosshairs"></i> <strong style="color: ${currentPlayer.color};">${currentPlayer.name}'s Turn</strong>
+          </div>
+          <div style="font-size: 14px; display: flex; justify-content: space-around;">
+            <div style="color: ${gameState.players[0].color};">
+              <i class="fas fa-user"></i> ${gameState.players[0].name}: ${p1Count}/10
+            </div>
+            <div style="color: ${gameState.players[1].color};">
+              <i class="fas fa-user"></i> ${gameState.players[1].name}: ${p2Count}/10
+            </div>
+          </div>
+        </div>
+      `;
+      
+      grid.innerHTML = '';
+      gameState.availableAmmo.forEach((ammo, idx) => {
+        const card = document.createElement('div');
+        card.className = 'ammo-card';
+        
+        if (ammo.selectedBy !== null) {
+          card.classList.add('disabled');
+        }
+        
+        card.innerHTML = `
+          <h4><i class="fas ${ammo.icon}"></i> ${ammo.name}</h4>
+          <p>${ammo.desc}</p>
+          <p><i class="fas fa-burst"></i> DMG: ${ammo.damage}</p>
+        `;
+        
+        if (ammo.selectedBy !== null) {
+          const indicator = document.createElement('div');
+          indicator.className = 'selection-indicator';
+          indicator.textContent = ammo.selectedBy + 1;
+          indicator.style.background = gameState.players[ammo.selectedBy].color;
+          card.appendChild(indicator);
+        }
+        
+        card.onclick = () => selectAmmo(idx);
+        grid.appendChild(card);
+      });
+
+      // Check if selection is complete
+      if (p1Count >= 10 && p2Count >= 10) {
+        document.getElementById('finishAmmoBtn').style.display = 'block';
+      }
+    }
+
+    function selectAmmo(idx) {
+      const ammo = gameState.availableAmmo[idx];
+      if (ammo.selectedBy !== null) return;
+      
+      const currentPlayer = gameState.ammoSelectionPlayer;
+      const playerAmmoCount = gameState.players[currentPlayer].ammo.length;
+      
+      if (playerAmmoCount >= 10) return;
+
+      // Mark ammo as selected by this player
+      ammo.selectedBy = currentPlayer;
+      
+      // Add to player's ammo with uses
+      gameState.players[currentPlayer].ammo.push({...ammo, uses: 1});
+      
+      // Switch to other player for next selection
+      gameState.ammoSelectionPlayer = 1 - gameState.ammoSelectionPlayer;
+      
+      updateAmmoGrid();
+    }
+
+    function randomizeAmmo() {
+      const currentPlayer = gameState.ammoSelectionPlayer;
+      const currentAmmoCount = gameState.players[currentPlayer].ammo.length;
+      const needed = 10 - currentAmmoCount;
+      
+      if (needed <= 0) return;
+      
+      const available = gameState.availableAmmo.filter(a => a.selectedBy === null);
+      
+      for (let i = 0; i < needed && available.length > 0; i++) {
+        const randomIdx = Math.floor(Math.random() * available.length);
+        const ammo = available[randomIdx];
+        ammo.selectedBy = currentPlayer;
+        gameState.players[currentPlayer].ammo.push({...ammo, uses: 1});
+        available.splice(randomIdx, 1);
+        gameState.ammoSelectionPlayer = 1 - gameState.ammoSelectionPlayer;
+        updateAmmoGrid();
+      }
+      
+      // Switch to other player if this player is done
+      if (gameState.players[currentPlayer].ammo.length >= 10) {
+        gameState.ammoSelectionPlayer = 1 - gameState.ammoSelectionPlayer;
+      }
+      
+      updateAmmoGrid();
+    }
+
+    function finishAmmoSelection() {
+      generateTerrain();
+      showScreen('gameScreen');
+      initGame();
+    }
+
+    function generateTerrain() {
+      const canvas = document.getElementById('gameCanvas');
+      canvas.width = 800;
+      canvas.height = 500;
+      
+      gameState.terrain = [];
+      let y = 350;
+      for (let x = 0; x < canvas.width; x += 10) {
+        y += (Math.random() - 0.5) * 20;
+        y = Math.max(200, Math.min(450, y));
+        gameState.terrain.push({x, y});
+      }
+
+      // Position tanks
+      gameState.players[0].tank.x = 100;
+      gameState.players[0].tank.y = getTerrainHeight(100) - 20;
+      gameState.players[1].tank.x = 700;
+      gameState.players[1].tank.y = getTerrainHeight(700) - 20;
+    }
+
+    function getTerrainHeight(x) {
+      const idx = Math.floor(x / 10);
+      if (idx < 0 || idx >= gameState.terrain.length) return 400;
+      return gameState.terrain[idx].y;
+    }
+
+    function initGame() {
+      updateUI();
+      gameLoop();
+    }
+
+    function updateUI() {
+      const current = gameState.players[gameState.currentPlayer];
+      document.getElementById('turnInfo').textContent = `${current.name}'s Turn | Angle: ${current.tank.angle}° | Power: ${current.tank.power}%`;
+      
+      document.getElementById('player1Info').innerHTML = `
+        <div><strong>${gameState.players[0].name}</strong></div>
+        <div>HP: ${gameState.players[0].health}</div>
+      `;
+      
+      document.getElementById('player2Info').innerHTML = `
+        <div><strong>${gameState.players[1].name}</strong></div>
+        <div>HP: ${gameState.players[1].health}</div>
+      `;
+
+      // Update ammo selector
+      const selector = document.getElementById('ammoSelector');
+      selector.innerHTML = '';
+      
+      const regularBtn = document.createElement('button');
+      regularBtn.className = 'ammo-btn' + (gameState.currentAmmo === 'regular' ? ' selected' : '');
+      regularBtn.textContent = 'Regular (∞)';
+      regularBtn.onclick = () => { gameState.currentAmmo = 'regular'; updateUI(); };
+      selector.appendChild(regularBtn);
+
+      current.ammo.forEach((ammo, idx) => {
+        const btn = document.createElement('button');
+        btn.className = 'ammo-btn' + (gameState.currentAmmo === ammo.id ? ' selected' : '') + (ammo.uses <= 0 ? ' empty' : '');
+        btn.textContent = `${ammo.name} (${ammo.uses})`;
+        btn.onclick = () => { 
+          if (ammo.uses > 0) {
+            gameState.currentAmmo = ammo.id;
+            updateUI();
+          }
+        };
+        selector.appendChild(btn);
+      });
+    }
+
+    function adjustAngle(delta) {
+      const current = gameState.players[gameState.currentPlayer];
+      current.tank.angle = Math.max(0, Math.min(180, current.tank.angle + delta));
+      updateUI();
+    }
+
+    function adjustPower(delta) {
+      const current = gameState.players[gameState.currentPlayer];
+      current.tank.power = Math.max(10, Math.min(100, current.tank.power + delta));
+      updateUI();
+    }
+
+    function moveTank(delta) {
+      const current = gameState.players[gameState.currentPlayer];
+      const newX = current.tank.x + delta;
+      
+      // Keep tank within bounds
+      if (newX < 50 || newX > 750) return;
+      
+      // Check if not moving into other tank
+      const other = gameState.players[1 - gameState.currentPlayer];
+      if (Math.abs(newX - other.tank.x) < 40) return;
+      
+      current.tank.x = newX;
+      current.tank.y = getTerrainHeight(newX) - 15;
+      updateUI();
+    }
+
+    function fire() {
+      const current = gameState.players[gameState.currentPlayer];
+      let ammoType = { name: 'Regular', damage: 20, special: 'regular' };
+      
+      if (gameState.currentAmmo !== 'regular') {
+        const selectedAmmo = current.ammo.find(a => a.id === gameState.currentAmmo);
+        if (selectedAmmo && selectedAmmo.uses > 0) {
+          ammoType = selectedAmmo;
+          selectedAmmo.uses--;
+        }
+      }
+
+      const angle = current.tank.angle * Math.PI / 180;
+      const power = current.tank.power / 10;
+      
+      gameState.projectiles.push({
+        x: current.tank.x,
+        y: current.tank.y,
+        vx: Math.cos(angle) * power * (gameState.currentPlayer === 0 ? 1 : -1),
+        vy: -Math.sin(angle) * power,
+        type: ammoType,
+        bounces: 0
+      });
+
+      gameState.currentPlayer = 1 - gameState.currentPlayer;
+      gameState.currentAmmo = 'regular';
+      updateUI();
+    }
+
+    function gameLoop() {
+      const canvas = document.getElementById('gameCanvas');
+      const ctx = canvas.getContext('2d');
+      
+      // Clear
+      ctx.fillStyle = '#0a0e27';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Draw terrain
+      ctx.fillStyle = '#2d5016';
+      ctx.beginPath();
+      ctx.moveTo(0, canvas.height);
+      gameState.terrain.forEach(point => ctx.lineTo(point.x, point.y));
+      ctx.lineTo(canvas.width, canvas.height);
+      ctx.closePath();
+      ctx.fill();
+
+      // Draw tanks
+      gameState.players.forEach((player, idx) => {
+        ctx.fillStyle = player.color;
+        ctx.fillRect(player.tank.x - 15, player.tank.y - 10, 30, 20);
+        
+        // Turret
+        const angle = player.tank.angle * Math.PI / 180;
+        const dir = idx === 0 ? 1 : -1;
+        ctx.strokeStyle = player.color;
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.moveTo(player.tank.x, player.tank.y);
+        ctx.lineTo(player.tank.x + Math.cos(angle) * 20 * dir, player.tank.y - Math.sin(angle) * 20);
+        ctx.stroke();
+      });
+
+      // Update and draw projectiles
+      for (let i = gameState.projectiles.length - 1; i >= 0; i--) {
+        const proj = gameState.projectiles[i];
+        proj.vy += 0.2; // gravity
+        proj.x += proj.vx;
+        proj.y += proj.vy;
+
+        ctx.fillStyle = '#ff0000';
+        ctx.beginPath();
+        ctx.arc(proj.x, proj.y, 5, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Check collision with terrain
+        if (proj.y >= getTerrainHeight(proj.x) || proj.x < 0 || proj.x > canvas.width) {
+          handleImpact(proj);
+          gameState.projectiles.splice(i, 1);
+        }
+      }
+
+      requestAnimationFrame(gameLoop);
+    }
+
+    function handleImpact(proj) {
+      // Check hit on tanks
+      gameState.players.forEach(player => {
+        const dist = Math.sqrt((proj.x - player.tank.x) ** 2 + (proj.y - player.tank.y) ** 2);
+        if (dist < 30) {
+          player.health -= proj.type.damage;
+          if (player.health <= 0) {
+            endGame(1 - gameState.players.indexOf(player));
+          }
+        }
+      });
+      updateUI();
+    }
+
+    function endGame(winner) {
+      const winnerPlayer = gameState.players[winner];
+      document.getElementById('winnerText').innerHTML = `🏆 ${winnerPlayer.name} WINS! 🏆`;
+      showScreen('winnerScreen');
+    }
+
+    function showScreen(screenId) {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      document.getElementById(screenId).classList.add('active');
+    }
+
+    function generateTerrain() {
+      const canvas = document.getElementById('gameCanvas');
+      canvas.width = 800;
+      canvas.height = 500;
+      
+      gameState.terrain = [];
+      let y = 350;
+      
+      // Generate smoother terrain with smaller increments
+      for (let x = 0; x < canvas.width; x += 3) {
+        y += (Math.random() - 0.5) * 6; // Smaller variation
+        y = Math.max(280, Math.min(450, y));
+        gameState.terrain.push({x, y});
+      }
+      
+      // Smooth the terrain with averaging
+      for (let pass = 0; pass < 3; pass++) {
+        for (let i = 1; i < gameState.terrain.length - 1; i++) {
+          gameState.terrain[i].y = (
+            gameState.terrain[i - 1].y + 
+            gameState.terrain[i].y + 
+            gameState.terrain[i + 1].y
+          ) / 3;
+        }
+      }
+
+      // Position tanks on flat areas
+      gameState.players[0].tank.x = 100;
+      gameState.players[0].tank.y = getTerrainHeight(100) - 15;
+      gameState.players[1].tank.x = 700;
+      gameState.players[1].tank.y = getTerrainHeight(700) - 15;
+      
+      // Random wind
+      gameState.wind = (Math.random() - 0.5) * 2;
+    }
+
+    function getTerrainHeight(x) {
+      const idx = Math.floor(x / 3);
+      if (idx < 0 || idx >= gameState.terrain.length) return 400;
+      
+      // Interpolate between terrain points for smoother collision
+      if (idx < gameState.terrain.length - 1) {
+        const t1 = gameState.terrain[idx];
+        const t2 = gameState.terrain[idx + 1];
+        const fraction = (x - t1.x) / (t2.x - t1.x);
+        return t1.y + (t2.y - t1.y) * fraction;
+      }
+      
+      return gameState.terrain[idx].y;
+    }
+
+    function initGame() {
+      updateUI();
+      gameLoop();
+    }
+
+    function updateUI() {
+      const current = gameState.players[gameState.currentPlayer];
+      const windIcon = gameState.wind > 0 ? 'fa-wind' : 'fa-wind';
+      const windDir = gameState.wind > 0 ? '→' : '←';
+      
+      document.getElementById('turnInfo').innerHTML = `
+        <div class="info-item">
+          <i class="fas fa-crosshairs"></i>
+          Angle: ${current.tank.angle}°
+        </div>
+        <div class="info-item">
+          <i class="fas fa-gauge-high"></i>
+          Power: ${current.tank.power}%
+        </div>
+        <div class="info-item wind-indicator">
+          <i class="fas ${windIcon}"></i>
+          Wind: ${windDir} ${Math.abs(gameState.wind).toFixed(1)}
+        </div>
+      `;
+      
+      // Update player indicators
+      const p1Info = document.getElementById('player1Info');
+      const p2Info = document.getElementById('player2Info');
+      
+      p1Info.className = 'player-indicator' + (gameState.currentPlayer === 0 ? ' active' : '');
+      p2Info.className = 'player-indicator' + (gameState.currentPlayer === 1 ? ' active' : '');
+      
+      gameState.players.forEach((player, idx) => {
+        const healthPercent = Math.max(0, player.health);
+        let healthClass = 'health-fill';
+        if (healthPercent < 30) healthClass += ' critical';
+        else if (healthPercent < 60) healthClass += ' low';
+        
+        const infoEl = idx === 0 ? p1Info : p2Info;
+        infoEl.innerHTML = `
+          <div style="font-weight: bold; margin-bottom: 5px;">
+            <i class="fas fa-user"></i> ${player.name}
+          </div>
+          <div style="font-size: 12px; margin-bottom: 5px;">
+            <i class="fas fa-heart"></i> ${Math.max(0, Math.floor(player.health))} HP
+          </div>
+          <div class="health-bar">
+            <div class="${healthClass}" style="width: ${healthPercent}%"></div>
+          </div>
+        `;
+      });
+
+      // Update ammo selector
+      const selector = document.getElementById('ammoSelector');
+      selector.innerHTML = '';
+      
+      // Hide ammo selector if AI is playing
+      if (current.isAI) {
+        selector.style.opacity = '0.5';
+      } else {
+        selector.style.opacity = '1';
+      }
+      
+      const regularBtn = document.createElement('button');
+      regularBtn.className = 'ammo-btn' + (gameState.currentAmmo === 'regular' ? ' selected' : '');
+      regularBtn.innerHTML = `<i class="fas fa-circle"></i><span>Regular</span><span>∞</span>`;
+      regularBtn.onclick = () => { 
+        if (!current.isAI) {
+          gameState.currentAmmo = 'regular'; 
+          updateUI(); 
+        }
+      };
+      regularBtn.disabled = current.isAI;
+      selector.appendChild(regularBtn);
+
+      current.ammo.forEach((ammo) => {
+        const btn = document.createElement('button');
+        btn.className = 'ammo-btn' + (gameState.currentAmmo === ammo.id ? ' selected' : '') + (ammo.uses <= 0 ? ' empty' : '');
+        btn.innerHTML = `<i class="fas ${ammo.icon}"></i><span>${ammo.name}</span><span>×${ammo.uses}</span>`;
+        btn.onclick = () => { 
+          if (!current.isAI && ammo.uses > 0) {
+            gameState.currentAmmo = ammo.id;
+            updateUI();
+          }
+        };
+        btn.disabled = current.isAI;
+        selector.appendChild(btn);
+      });
+      
+      // Disable controls if AI is playing
+      const controls = document.querySelectorAll('.control-btn');
+      controls.forEach(btn => {
+        btn.disabled = current.isAI;
+        btn.style.opacity = current.isAI ? '0.5' : '1';
+        btn.style.cursor = current.isAI ? 'not-allowed' : 'pointer';
+      });
+    }
+
+    function adjustAngle(delta) {
+      const current = gameState.players[gameState.currentPlayer];
+      current.tank.angle = Math.max(0, Math.min(180, current.tank.angle + delta));
+      updateUI();
+    }
+
+    function adjustPower(delta) {
+      const current = gameState.players[gameState.currentPlayer];
+      current.tank.power = Math.max(10, Math.min(100, current.tank.power + delta));
+      updateUI();
+    }
+
+    function moveTank(delta) {
+      const current = gameState.players[gameState.currentPlayer];
+      const newX = current.tank.x + delta;
+      
+      // Keep tank within bounds
+      if (newX < 50 || newX > 750) return;
+      
+      // Check if not moving into other tank
+      const other = gameState.players[1 - gameState.currentPlayer];
+      if (Math.abs(newX - other.tank.x) < 40) return;
+      
+      current.tank.x = newX;
+      current.tank.y = getTerrainHeight(newX) - 15;
+      updateUI();
+    }
+
+    function fire() {
+      if (gameState.turnInProgress || gameState.projectiles.length > 0) return;
+      
+      gameState.turnInProgress = true;
+      
+      const current = gameState.players[gameState.currentPlayer];
+      let ammoType = { name: 'Regular', damage: 20, icon: 'fa-circle', special: 'regular', radius: 30 };
+      
+      if (gameState.currentAmmo !== 'regular') {
+        const selectedAmmo = current.ammo.find(a => a.id === gameState.currentAmmo);
+        if (selectedAmmo && selectedAmmo.uses > 0) {
+          ammoType = selectedAmmo;
+          selectedAmmo.uses--;
+        }
+      }
+
+      // Handle special non-projectile ammo
+      if (ammoType.special === 'shield') {
+        current.shield = 50;
+        gameState.currentAmmo = 'regular';
+        nextTurn();
+        return;
+      }
+      
+      if (ammoType.special === 'powerup') {
+        current.powerMultiplier = 2;
+        gameState.currentAmmo = 'regular';
+        nextTurn();
+        return;
+      }
+      
+      if (ammoType.special === 'teleswap') {
+        const temp = {...gameState.players[0].tank};
+        gameState.players[0].tank.x = gameState.players[1].tank.x;
+        gameState.players[0].tank.y = gameState.players[1].tank.y;
+        gameState.players[1].tank.x = temp.x;
+        gameState.players[1].tank.y = temp.y;
+        createParticles(temp.x, temp.y, 20, '#44ffff');
+        createParticles(gameState.players[1].tank.x, gameState.players[1].tank.y, 20, '#44ffff');
+        gameState.currentAmmo = 'regular';
+        nextTurn();
+        return;
+      }
+
+      const angle = current.tank.angle * Math.PI / 180;
+      const power = (current.tank.power / 8) * current.powerMultiplier;
+      const dir = gameState.currentPlayer === 0 ? 1 : -1;
+      
+      // Spawn projectile at end of barrel (25 pixels away from tank center)
+      const barrelEndX = current.tank.x + Math.cos(angle) * 25 * dir;
+      const barrelEndY = current.tank.y - Math.sin(angle) * 25;
+      
+      // Multi-projectile ammo types
+      if (ammoType.special === 'multi' || ammoType.special === 'scatter' || ammoType.special === 'shotgun') {
+        const count = ammoType.special === 'shotgun' ? 10 : (ammoType.special === 'multi' ? 3 : 7);
+        const spread = ammoType.special === 'shotgun' ? 0.4 : (ammoType.special === 'multi' ? 0.15 : 0.3);
+        for (let i = 0; i < count; i++) {
+          const offsetAngle = angle + (Math.random() - 0.5) * spread;
+          gameState.projectiles.push({
+            x: barrelEndX,
+            y: barrelEndY,
+            vx: Math.cos(offsetAngle) * power * dir,
+            vy: -Math.sin(offsetAngle) * power,
+            type: ammoType,
+            bounces: ammoType.bounces || 0,
+            life: 300,
+            trail: [],
+            shooter: gameState.currentPlayer
+          });
+        }
+      } else if (ammoType.special === 'airstrike' || ammoType.special === 'meteor' || ammoType.special === 'orbital') {
+        const enemy = gameState.players[1 - gameState.currentPlayer];
+        const count = ammoType.special === 'airstrike' ? 3 : (ammoType.special === 'orbital' ? 5 : 1);
+        for (let i = 0; i < count; i++) {
+          gameState.projectiles.push({
+            x: enemy.tank.x + (i - Math.floor(count/2)) * 60 + (Math.random() - 0.5) * 40,
+            y: 20,
+            vx: 0,
+            vy: ammoType.special === 'meteor' ? 8 : 5,
+            type: ammoType,
+            bounces: 0,
+            life: 300,
+            trail: [],
+            shooter: gameState.currentPlayer
+          });
+        }
+      } else if (ammoType.special === 'carpet') {
+        const enemy = gameState.players[1 - gameState.currentPlayer];
+        for (let i = 0; i < 5; i++) {
+          setTimeout(() => {
+            gameState.projectiles.push({
+              x: enemy.tank.x + (i - 2) * 100 + (Math.random() - 0.5) * 50,
+              y: 30,
+              vx: 0,
+              vy: 6,
+              type: ammoType,
+              bounces: 0,
+              life: 300,
+              trail: [],
+              shooter: gameState.currentPlayer
+            });
+          }, i * 200);
+        }
+      } else if (ammoType.special === 'sniper') {
+        // Calculate direct path to enemy
+        const enemy = gameState.players[1 - gameState.currentPlayer];
+        const dx = enemy.tank.x - barrelEndX;
+        const dy = enemy.tank.y - barrelEndY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        gameState.projectiles.push({
+          x: barrelEndX,
+          y: barrelEndY,
+          vx: (dx / distance) * power * 2,
+          vy: (dy / distance) * power * 2,
+          type: ammoType,
+          bounces: 0,
+          life: 300,
+          trail: [],
+          shooter: gameState.currentPlayer
+        });
+      } else if (ammoType.special === 'boomerang') {
+        gameState.projectiles.push({
+          x: barrelEndX,
+          y: barrelEndY,
+          vx: Math.cos(angle) * power * dir,
+          vy: -Math.sin(angle) * power,
+          type: ammoType,
+          bounces: 0,
+          life: 300,
+          returnTimer: 150,
+          owner: gameState.currentPlayer,
+          trail: [],
+          shooter: gameState.currentPlayer
+        });
+      } else {
+        gameState.projectiles.push({
+          x: barrelEndX,
+          y: barrelEndY,
+          vx: Math.cos(angle) * power * dir,
+          vy: -Math.sin(angle) * power,
+          type: ammoType,
+          bounces: ammoType.bounces || 0,
+          life: 300,
+          trail: [],
+          shooter: gameState.currentPlayer
+        });
+      }
+      
+      // Reset power multiplier after use
+      current.powerMultiplier = 1;
+      gameState.currentAmmo = 'regular';
+    }
+
+    function nextTurn() {
+      gameState.currentPlayer = 1 - gameState.currentPlayer;
+      gameState.currentAmmo = 'regular';
+      gameState.turnInProgress = false;
+      gameState.turnEnding = false;
+      updateUI();
+      
+      // If AI's turn, trigger AI after a short delay
+      if (gameState.players[gameState.currentPlayer].isAI) {
+        setTimeout(aiTakeTurn, 1000);
+      }
+    }
+
+    function aiTakeTurn() {
+      if (gameState.turnInProgress) return;
+      
+      const ai = gameState.players[gameState.currentPlayer];
+      const enemy = gameState.players[1 - gameState.currentPlayer];
+      
+      // Binary search for angle between 20° (straight forward) and 160° (nearly straight up)
+      // The AI will lerp/binary search to find the best angle
+      
+      // Calculate optimal angle using binary search approach
+      const dx = enemy.tank.x - ai.tank.x;
+      const dy = enemy.tank.y - ai.tank.y;
+      const distance = Math.abs(dx);
+      
+      // If this is a new search or last hit was far off
+      if (!gameState.aiState.lastHit || Math.abs(gameState.aiState.lastHit - enemy.tank.x) > 100) {
+        gameState.aiState.searchMin = 0;
+        gameState.aiState.searchMax = 70;
+      }
+      
+      // Binary search midpoint
+      let targetAngle = (gameState.aiState.searchMin + gameState.aiState.searchMax) / 2;
+      
+      // Add some randomness to make AI less perfect
+      targetAngle += (Math.random() - 0.5) * 15;
+      targetAngle = Math.floor(Math.max(0, Math.min(90, targetAngle)));
+      
+      ai.tank.angle = targetAngle;
+      
+      // Calculate power based on distance (simple estimation)
+      const estimatedPower = Math.floor(Math.min(100, Math.max(20, distance / 8 + Math.random() * 50)));
+      ai.tank.power = estimatedPower;
+      
+      // Choose best available ammo
+      let selectedAmmo = 'regular';
+      const availableAmmo = ai.ammo.filter(a => a.uses > 0);
+      
+      if (availableAmmo.length > 0 && Math.random() > 0.5) {
+        // Prefer high damage ammo
+        const sorted = availableAmmo.sort((a, b) => b.damage - a.damage);
+        selectedAmmo = sorted[0].id;
+        gameState.currentAmmo = selectedAmmo;
+      }
+      
+      updateUI();
+      
+      // Fire after a short delay
+      setTimeout(() => {
+        fire();
+      }, 500);
+    }
+ 
+
+
+function getTerrainAngle(x) {
+  // Find the two terrain points surrounding x
+  const index = Math.floor(x / 10);
+  
+  if (index < 0 || index >= gameState.terrain.length - 1) {
+    return 0; // Default flat angle at edges
+  }
+  
+  const p1 = gameState.terrain[index];
+  const p2 = gameState.terrain[index + 1];
+  
+  // Calculate the angle of the terrain segment
+  const dx = p2.x - p1.x;
+  const dy = p2.y - p1.y;
+  
+  // Return angle in radians (positive = downward slope)
+  return Math.atan2(dy, dx);
+}
+
+    function gameLoop() {
+      const canvas = document.getElementById('gameCanvas');
+      const ctx = canvas.getContext('2d');
+      
+      // Clear and draw background gradient
+      const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+      gradient.addColorStop(0, '#0a0e27');
+      gradient.addColorStop(0.7, '#1a1e3e');
+      gradient.addColorStop(1, '#2a2e4e');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Draw stars
+      ctx.fillStyle = 'rgba(255,255,255,0.8)';
+      for (let i = 0; i < 80; i++) {
+        const x = (i * 157) % canvas.width;
+        const y = (i * 211) % (canvas.height / 2);
+        const size = (i % 3 === 0) ? 2 : 1;
+        ctx.fillRect(x, y, size, size);
+      }
+
+      // Draw terrain with gradient
+      const terrainGradient = ctx.createLinearGradient(0, 300, 0, canvas.height);
+      terrainGradient.addColorStop(0, '#2d5016');
+      terrainGradient.addColorStop(1, '#1a3010');
+      ctx.fillStyle = terrainGradient;
+      ctx.strokeStyle = '#4d7036';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(0, canvas.height);
+      gameState.terrain.forEach(point => ctx.lineTo(point.x, point.y));
+      ctx.lineTo(canvas.width, canvas.height);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+
+      // Apply gravity to tanks - make them fall if no ground beneath
+      gameState.players.forEach((player) => {
+        const groundHeight = getTerrainHeight(player.tank.x);
+        const targetY = groundHeight - 15;
+        
+        if (player.tank.y < targetY - 2) {
+          player.tank.y += 3; // Fall speed
+          if (player.tank.y > targetY) {
+            player.tank.y = targetY;
+          }
+        } else if (player.tank.y > targetY + 2) {
+          player.tank.y = targetY;
+        }
+      });
+
+      // Draw mines
+      if (gameState.mines) {
+        gameState.mines.forEach(mine => {
+          ctx.fillStyle = '#ff4444';
+          ctx.strokeStyle = '#aa0000';
+          ctx.lineWidth = 4;
+          ctx.beginPath();
+          ctx.arc(mine.x, mine.y, 8, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+          ctx.fillStyle = '#fff';
+          ctx.font = 'bold 12px Arial';
+          ctx.textAlign = 'center';
+          ctx.fillText('!', mine.x, mine.y + 4);
+        });
+      }
+
+      // Draw tanks
+      gameState.players.forEach((player, idx) => {
+        ctx.save();
+        ctx.translate(player.tank.x, player.tank.y);
+        
+        // Shield effect
+        if (player.shield > 0) {
+          ctx.strokeStyle = 'rgba(100,200,255,0.8)';
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.arc(0, 0, 35, 0, Math.PI * 2);
+          ctx.stroke();
+          
+          ctx.strokeStyle = 'rgba(100,200,255,0.4)';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(0, 0, 38, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+        
+        // Power multiplier glow
+        if (player.powerMultiplier > 1) {
+          ctx.shadowColor = '#ffff00';
+          ctx.shadowBlur = 20;
+        }
+        
+        // Tank body with gradient
+        const tankGradient = ctx.createLinearGradient(-15, -10, 15, 10);
+        tankGradient.addColorStop(0, player.color);
+        tankGradient.addColorStop(1, adjustColor(player.color, -30));
+        ctx.fillStyle = tankGradient;
+        ctx.fillRect(-15, -10, 30, 20);
+        
+        // Tank outline
+        ctx.strokeStyle = 'rgba(0,0,0,0.7)';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(-15, -10, 30, 20);
+        
+        ctx.shadowBlur = 0;
+        
+        // Tank treads
+        ctx.fillStyle = 'rgba(0,0,0,0.8)';
+        ctx.fillRect(-15, 5, 30, 5);
+        ctx.fillStyle = 'rgba(100,100,100,0.5)';
+        for (let i = -12; i < 15; i += 4) {
+          ctx.fillRect(i, 6, 2, 3);
+        }
+        
+        // Turret
+        const angle = player.tank.angle * Math.PI / 180;
+        const dir = idx === 0 ? 1 : -1;
+        const turretGradient = ctx.createLinearGradient(0, 0, Math.cos(angle) * 25 * dir, -Math.sin(angle) * 25);
+        turretGradient.addColorStop(0, player.color);
+        turretGradient.addColorStop(1, adjustColor(player.color, 20));
+        ctx.strokeStyle = turretGradient;
+        ctx.lineWidth = 6;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(Math.cos(angle) * 25 * dir, -Math.sin(angle) * 25);
+        ctx.stroke();
+        
+        // Player name
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 13px Arial';
+        ctx.textAlign = 'center';
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 4;
+        ctx.strokeText(player.name, 0, -30);
+        ctx.fillText(player.name, 0, -30);
+        
+        // Status indicators
+        let statusY = -45;
+        if (player.shield > 0) {
+          ctx.fillStyle = '#44aaff';
+          ctx.font = 'bold 11px Arial';
+          ctx.strokeText(`🛡️ ${Math.floor(player.shield)}`, 0, statusY);
+          ctx.fillText(`🛡️ ${Math.floor(player.shield)}`, 0, statusY);
+          statusY -= 14;
+        }
+        if (player.powerMultiplier > 1) {
+          ctx.fillStyle = '#ffff00';
+          ctx.font = 'bold 11px Arial';
+          ctx.strokeText('⚡ x2', 0, statusY);
+          ctx.fillText('⚡ x2', 0, statusY);
+        }
+        
+        ctx.restore();
+      });
+
+      // Update and draw projectiles
+      for (let i = gameState.projectiles.length - 1; i >= 0; i--) {
+        const proj = gameState.projectiles[i];
+        
+        // Special behaviors
+        if (proj.type.special === 'homing') {
+          const enemy = gameState.players[1 - gameState.currentPlayer];
+          const dx = enemy.tank.x - proj.x;
+          const dy = enemy.tank.y - proj.y;
+          const angle = Math.atan2(dy, dx);
+          proj.vx += Math.cos(angle);
+          proj.vy += Math.sin(angle);
+        }
+        
+        if (proj.type.special === 'boomerang' && proj.returnTimer) {
+          proj.returnTimer--;
+          if (proj.returnTimer <= 0) {
+            const owner = gameState.players[proj.owner];
+            const dx = owner.tank.x - proj.x;
+            const dy = owner.tank.y - proj.y;
+            const angle = Math.atan2(dy, dx);
+            proj.vx = Math.cos(angle) * 5;
+            proj.vy = Math.sin(angle) * 5;
+          }
+        }
+        
+        if (proj.type.special === 'magnet') {
+          gameState.players.forEach(player => {
+            const dx = proj.x - player.tank.x;
+            const dy = proj.y - player.tank.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist < 200) {
+              player.tank.x += dx * 0.02;
+              player.tank.y += dy * 0.02;
+            }
+          });
+        }
+        
+        // Apply physics
+        proj.vy += gameState.gravity;
+        proj.vx += gameState.wind * 0.08;
+        
+        // Add drag for certain ammo types
+        if (proj.type.special === 'wreckingball') {
+          proj.vx *= 0.99;
+          proj.vy *= 0.99;
+        }
+        
+        proj.x += proj.vx;
+        proj.y += proj.vy;
+        proj.life--;
+        
+        // Trail effect
+        if (!proj.trail) proj.trail = [];
+        proj.trail.push({x: proj.x, y: proj.y});
+        if (proj.trail.length > 15) proj.trail.shift();
+
+        // Draw trail
+        ctx.strokeStyle = proj.type.special === 'plasma' ? 'rgba(255,0,255,0.5)' :
+                         proj.type.special === 'toxic' ? 'rgba(0,255,0,0.5)' :
+                         proj.type.special === 'laser' ? 'rgba(0,255,255,0.8)' : 'rgba(255,150,50,0.6)';
+        ctx.lineWidth = 3;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        proj.trail.forEach((point, idx) => {
+          if (idx === 0) ctx.moveTo(point.x, point.y);
+          else ctx.lineTo(point.x, point.y);
+        });
+        ctx.stroke();
+
+        // Draw projectile
+        ctx.save();
+        ctx.translate(proj.x, proj.y);
+        
+        // Rotation for certain types
+        if (proj.type.special === 'drill' || proj.type.special === 'boomerang') {
+          ctx.rotate(proj.life * 0.5);
+        }
+        
+        // Projectile glow
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = proj.type.special === 'plasma' ? '#ff00ff' :
+                         proj.type.special === 'toxic' ? '#00ff00' :
+                         proj.type.special === 'nuke' ? '#ffff00' : '#ff6600';
+        
+        ctx.fillStyle = proj.type.special === 'plasma' ? '#ff00ff' :
+                       proj.type.special === 'toxic' ? '#00ff00' :
+                       proj.type.special === 'icespike' ? '#aaffff' :
+                       proj.type.special === 'fireball' ? '#ff6600' : '#ff4444';
+        
+        if (proj.type.special === 'wreckingball') {
+          ctx.beginPath();
+          ctx.arc(0, 0, 8, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = '#666';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+        } else if (proj.type.special === 'nuke' || proj.type.special === 'mininuke') {
+          ctx.fillStyle = '#ffff00';
+          ctx.beginPath();
+          ctx.arc(0, 0, 7, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = '#ff0000';
+          ctx.beginPath();
+          ctx.arc(0, 0, 3, 0, Math.PI * 2);
+          ctx.fill();
+        } else {
+          ctx.beginPath();
+          ctx.arc(0, 0, 6, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        
+        ctx.shadowBlur = 0;
+        ctx.restore();
+
+        // Check collision with tanks (never hit your own tank)
+        let tankHit = false;
+        
+        gameState.players.forEach((player, playerIdx) => {
+          // Skip collision check with the tank that fired this projectile
+          if (playerIdx === proj.shooter) return;
+          
+          const dist = Math.sqrt((proj.x - player.tank.x) ** 2 + (proj.y - player.tank.y) ** 2);
+          if (dist < 20) { // Direct hit on tank
+            tankHit = true;
+            handleImpact(proj);
+            gameState.projectiles.splice(i, 1);
+          }
+        });
+        
+        if (tankHit) continue;
+
+        // Check mine collisions
+        if (gameState.mines) {
+          for (let m = gameState.mines.length - 1; m >= 0; m--) {
+            const mine = gameState.mines[m];
+            const dist = Math.sqrt((proj.x - mine.x) ** 2 + (proj.y - mine.y) ** 2);
+            if (dist < 30) {
+              handleImpact({...proj, x: mine.x, y: mine.y, type: {damage: mine.damage, radius: mine.radius}});
+              gameState.mines.splice(m, 1);
+            }
+          }
+        }
+
+        // Check terrain collisions
+        const terrainHit = proj.y >= getTerrainHeight(proj.x);
+        const outOfBounds = proj.x < 0 || proj.x > canvas.width || proj.y > canvas.height;
+        const lifeExpired = proj.life <= 0;
+        
+        if (terrainHit && proj.type.special === 'bounce' && proj.bounces > 0) {
+          proj.vy = -proj.vy * 0.65;
+          proj.y = getTerrainHeight(proj.x) - 5;
+          proj.bounces--;
+          createParticles(proj.x, proj.y, 10, '#ffaa44');
+        } else if (terrainHit || outOfBounds || lifeExpired) {
+          if (!outOfBounds && !lifeExpired) {
+            handleImpact(proj);
+          }
+          gameState.projectiles.splice(i, 1);
+        }
+      }
+      
+      // Check if turn should end (all projectiles cleared) - only check once
+      if (gameState.turnInProgress && gameState.projectiles.length === 0 && !gameState.turnEnding) {
+        gameState.turnEnding = true;
+        setTimeout(() => {
+          nextTurn();
+        }, 800);
+      }
+      
+      // Draw and update particles
+      for (let i = gameState.particles.length - 1; i >= 0; i--) {
+        const p = gameState.particles[i];
+        p.vx *= 0.98;
+        p.vy += 0.2;
+        p.x += p.vx;
+        p.y += p.vy;
+        p.life--;
+        p.alpha = p.life / 50;
+        
+        ctx.globalAlpha = p.alpha;
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+        
+        if (p.life <= 0) {
+          gameState.particles.splice(i, 1);
+        }
+      }
+
+      requestAnimationFrame(gameLoop);
+    }
+    
+    // Helper function to adjust color brightness
+    function adjustColor(color, amount) {
+      const num = parseInt(color.replace("#",""), 16);
+      const r = Math.max(0, Math.min(255, (num >> 16) + amount));
+      const g = Math.max(0, Math.min(255, ((num >> 8) & 0x00FF) + amount));
+      const b = Math.max(0, Math.min(255, (num & 0x0000FF) + amount));
+      return "#" + (0x1000000 + (r << 16) + (g << 8) + b).toString(16).slice(1);
+    }
+    
+    function createParticles(x, y, count, color) {
+      if (!gameState.particles) gameState.particles = [];
+      for (let i = 0; i < count; i++) {
+        gameState.particles.push({
+          x: x,
+          y: y,
+          vx: (Math.random() - 0.5) * 8,
+          vy: (Math.random() - 0.5) * 8,
+          color: color,
+          size: Math.random() * 3 + 1,
+          life: Math.random() * 30 + 20,
+          alpha: 1
+        });
+      }
+    }
+
+    function handleImpact(proj) {
+      const radius = proj.type.radius || 30;
+      
+      createExplosion(proj.x, proj.y, radius);
+      createParticles(proj.x, proj.y, 30, proj.type.special === 'plasma' ? '#ff00ff' : 
+                     proj.type.special === 'toxic' ? '#00ff00' : '#ff6600');
+      
+      // Track where the shot landed for AI learning
+      if (gameState.players[proj.shooter] && gameState.players[proj.shooter].isAI) {
+        const enemy = gameState.players[1 - proj.shooter];
+        const hitDistance = Math.abs(proj.x - enemy.tank.x);
+        
+        // Binary search adjustment
+        if (proj.x < enemy.tank.x - 30) {
+          // Shot landed short/left, need more angle or power
+          gameState.aiState.searchMin = gameState.players[proj.shooter].tank.angle;
+        } else if (proj.x > enemy.tank.x + 30) {
+          // Shot landed long/right, need less angle
+          gameState.aiState.searchMax = gameState.players[proj.shooter].tank.angle;
+        } else {
+          // Good hit! Remember this
+          gameState.aiState.lastHit = proj.x;
+        }
+      }
+      
+      // Special cluster/split effects
+      if (proj.type.special === 'cluster' || proj.type.special === 'splitter') {
+        const count = proj.type.special === 'cluster' ? 5 : 8;
+        for (let i = 0; i < count; i++) {
+          const angle = (Math.PI * 2 * i) / count;
+          gameState.projectiles.push({
+            x: proj.x,
+            y: proj.y,
+            vx: Math.cos(angle) * 3,
+            vy: Math.sin(angle) * 3,
+            type: { ...proj.type, damage: proj.type.damage / 2, radius: 20, special: 'regular' },
+            bounces: 0,
+            life: 100,
+            trail: [],
+            shooter: proj.shooter
+          });
+        }
+      }
+      
+      // Earthquake effect
+      if (proj.type.special === 'earthquake') {
+        for (let i = 0; i < 5; i++) {
+          setTimeout(() => {
+            gameState.players.forEach(player => {
+              player.tank.x += (Math.random() - 0.5) * 10;
+            });
+            createParticles(proj.x + (Math.random() - 0.5) * 100, proj.y, 15, '#8B4513');
+          }, i * 200);
+        }
+      }
+      
+      // Tsunami effect
+      if (proj.type.special === 'tsunami') {
+        for (let offset = -150; offset <= 150; offset += 30) {
+          setTimeout(() => {
+            destroyTerrain(proj.x + offset, proj.y, 40);
+            createParticles(proj.x + offset, proj.y, 10, '#44aaff');
+          }, Math.abs(offset) * 2);
+        }
+      }
+      
+      // Time bomb - delayed secondary explosion
+      if (proj.type.special === 'timebomb') {
+        setTimeout(() => {
+          createExplosion(proj.x, proj.y, radius * 1.5);
+          createParticles(proj.x, proj.y, 50, '#ff0000');
+          gameState.players.forEach((player, idx) => {
+            const dist = Math.sqrt((proj.x - player.tank.x) ** 2 + (proj.y - player.tank.y) ** 2);
+            if (dist < radius * 1.5) {
+              const damageMult = 1 - (dist / (radius * 1.5));
+              player.health -= proj.type.damage * damageMult * 0.5;
+              if (player.health <= 0) endGame(1 - idx);
+            }
+          });
+          updateUI();
+        }, 5000);
+      }
+      
+      // Chain lightning
+      if (proj.type.special === 'chainlightning' || proj.type.special === 'lightning') {
+        const enemy = gameState.players.find(p => 
+          Math.sqrt((proj.x - p.tank.x) ** 2 + (proj.y - p.tank.y) ** 2) < 50
+        );
+        if (enemy) {
+          for (let i = 0; i < 3; i++) {
+            setTimeout(() => {
+              createParticles(enemy.tank.x, enemy.tank.y, 15, '#ffff00');
+              enemy.health -= proj.type.damage * 0.3;
+              if (enemy.health <= 0) endGame(1 - gameState.players.indexOf(enemy));
+              updateUI();
+            }, i * 300);
+          }
+        }
+      }
+      
+      // Mine placement
+      if (proj.type.special === 'mine') {
+        if (!gameState.mines) gameState.mines = [];
+        gameState.mines.push({ x: proj.x, y: proj.y, damage: proj.type.damage, radius: 40 });
+        createParticles(proj.x, proj.y, 10, '#ff0000');
+        return; // Don't deal damage on placement
+      }
+      
+      // Damage calculation for all players
+      gameState.players.forEach((player, idx) => {
+        const dist = Math.sqrt((proj.x - player.tank.x) ** 2 + (proj.y - player.tank.y) ** 2);
+        if (dist < radius) {
+          const damageMult = 1 - (dist / radius);
+          let damage = proj.type.damage * damageMult;
+          
+          // Kamikaze damages everyone including shooter
+          if (proj.type.special === 'kamikaze') {
+            damage *= 1.5;
+          }
+          
+          // Shield protection
+          if (player.shield > 0) {
+            const blocked = Math.min(player.shield, damage);
+            player.shield -= blocked;
+            damage -= blocked;
+            createParticles(player.tank.x, player.tank.y, 20, '#44ffff');
+          }
+          
+          // Healing effect
+          if (proj.type.special === 'heal') {
+            player.health = Math.min(100, player.health - damage);
+            createParticles(player.tank.x, player.tank.y, 20, '#44ff44');
+          } else {
+            player.health -= damage;
+            if (damage > 0) {
+              createParticles(player.tank.x, player.tank.y, Math.floor(damage / 2), '#ff0000');
+            }
+          }
+          
+          if (player.health <= 0) {
+            endGame(1 - idx);
+          }
+        }
+      });
+      
+      // Terrain destruction (except pierce and laser)
+      if (proj.type.special !== 'pierce' && proj.type.special !== 'laser' && proj.type.special !== 'railgun') {
+        destroyTerrain(proj.x, proj.y, radius);
+        
+        // Extra terrain destruction for drill and digger
+        if (proj.type.special === 'drill' || proj.type.special === 'digger') {
+          for (let i = 1; i <= 3; i++) {
+            destroyTerrain(proj.x, proj.y + i * 20, radius * 0.7);
+          }
+        }
+      }
+      
+      updateUI();
+    }
+
+    function createExplosion(x, y, radius) {
+      const explosion = document.createElement('div');
+      explosion.className = 'explosion';
+      explosion.style.cssText = `
+        left: ${x}px;
+        top: ${y}px;
+        width: ${radius * 2}px;
+        height: ${radius * 2}px;
+        margin-left: ${-radius}px;
+        margin-top: ${-radius}px;
+      `;
+      document.querySelector('.game-canvas').appendChild(explosion);
+      setTimeout(() => explosion.remove(), 500);
+    }
+
+    function destroyTerrain(x, y, radius) {
+      gameState.terrain = gameState.terrain.map(point => {
+        const dist = Math.sqrt((point.x - x) ** 2 + (point.y - y) ** 2);
+        if (dist < radius) {
+          return { ...point, y: Math.min(480, point.y + (radius - dist) * 0.8) };
+        }
+        return point;
+      });
+    }
+
+    function endGame(winner) {
+      const winnerPlayer = gameState.players[winner];
+      document.getElementById('winnerText').innerHTML = `
+        <i class="fas fa-crown" style="color: #ffd700;"></i><br>
+        ${winnerPlayer.name} WINS!<br>
+        <i class="fas fa-crown" style="color: #ffd700;"></i>
+      `;
+      showScreen('winnerScreen');
+    }
+
+    function showScreen(screenId) {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      document.getElementById(screenId).classList.add('active');
+    }
+
+    initColorPickers();
+  </script>
+ 
+</body></html>
