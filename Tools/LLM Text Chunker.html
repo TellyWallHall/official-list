@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LLM Text Chunker</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --border: #2b2f3a;
+      --text: #e1e4e8;
+      --text-dim: #8b949e;
+      --accent: #58a6ff;
+      --accent-hover: #79b8ff;
+      --success: #3fb950;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      padding: 2rem;
+      line-height: 1.5;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      margin-bottom: 1.5rem;
+      color: var(--accent);
+    }
+
+    textarea {
+      width: 100%;
+      height: 200px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      padding: 1rem;
+      font-family: monospace;
+      font-size: 0.9rem;
+      resize: vertical;
+      margin-bottom: 1rem;
+    }
+
+    textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      align-items: center;
+      background: var(--surface);
+      padding: 1rem;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      margin-bottom: 2rem;
+    }
+
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    label {
+      font-size: 0.75rem;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    input[type="number"],
+    select {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 0.5rem;
+      border-radius: 4px;
+      font-size: 0.9rem;
+    }
+
+    input[type="number"]:focus,
+    select:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    .checkbox-group {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-top: 1.2rem;
+    }
+
+    input[type="checkbox"] {
+      width: 1rem;
+      height: 1rem;
+      accent-color: var(--accent);
+    }
+
+    .checkbox-label {
+      text-transform: none;
+      font-size: 0.85rem;
+      margin-top: 0;
+      color: var(--text);
+      cursor: pointer;
+    }
+
+    button {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      padding: 0.6rem 1.2rem;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.9rem;
+      margin-top: 1.2rem;
+      transition: background 0.2s;
+    }
+
+    button:hover {
+      background: var(--accent-hover);
+    }
+
+    button:disabled {
+      background: var(--border);
+      color: var(--text-dim);
+      cursor: not-allowed;
+    }
+
+    .output-section {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .chunk-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    .chunk-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.75rem 1rem;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .chunk-title {
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+
+    .chunk-meta {
+      font-size: 0.75rem;
+      color: var(--text-dim);
+      margin-left: 1rem;
+    }
+
+    .copy-btn {
+      margin-top: 0;
+      padding: 0.4rem 0.8rem;
+      font-size: 0.8rem;
+      background: var(--border);
+      color: var(--text);
+    }
+
+    .copy-btn:hover {
+      background: var(--text-dim);
+    }
+
+    .copy-btn.copied {
+      background: var(--success);
+      color: #fff;
+    }
+
+    .chunk-body {
+      padding: 1rem;
+      font-family: monospace;
+      font-size: 0.85rem;
+      white-space: pre-wrap;
+      word-break: break-all;
+      max-height: 300px;
+      overflow-y: auto;
+      color: var(--text-dim);
+    }
+
+  </style>
+</head>
+
+<body>
+
+  <div class="container">
+    <h1>✂️ LLM Text Chunker</h1>
+
+    <textarea id="inputText" placeholder="Paste your massive text or code here..."></textarea>
+
+    <div class="controls">
+      <div class="control-group">
+        <label>Split By</label>
+        <select id="splitMode">
+          <option value="lines">Lines</option>
+          <option value="chars">Characters</option>
+        </select>
+      </div>
+
+      <div class="control-group">
+        <label id="sizeLabel">Lines per chunk</label>
+        <input type="number" id="chunkSize" value="500" min="1">
+      </div>
+
+      <div class="checkbox-group">
+        <input type="checkbox" id="snapToBlock">
+        <label for="snapToBlock" class="checkbox-label" title="Extends chunk size to close open { }, <div>, <style> etc. Only works in Line mode.">Snap to Block End (Balance brackets/tags)</label>
+      </div>
+
+      <div class="checkbox-group">
+        <input type="checkbox" id="minimize">
+        <label for="minimize" class="checkbox-label">Minimize (strip newlines & leading spaces)</label>
+      </div>
+
+      <button onclick="generateChunks()">Generate Chunks</button>
+    </div>
+
+    <div class="output-section" id="output"></div>
+  </div>
+
+  <script>
+    const splitModeSelect = document.getElementById('splitMode');
+    const sizeLabel = document.getElementById('sizeLabel');
+    const chunkSizeInput = document.getElementById('chunkSize');
+    const snapCheckbox = document.getElementById('snapToBlock');
+    const minimizeCheckbox = document.getElementById('minimize');
+
+    // Update UI labels based on split mode
+    splitModeSelect.addEventListener('change', () => {
+      if (splitModeSelect.value === 'lines') {
+        sizeLabel.textContent = 'Lines per chunk';
+        chunkSizeInput.value = 500;
+        snapCheckbox.disabled = false;
+      } else {
+        sizeLabel.textContent = 'Characters per chunk';
+        chunkSizeInput.value = 4000;
+        snapCheckbox.disabled = true;
+        snapCheckbox.checked = false;
+      }
+    });
+
+    minimizeCheckbox.addEventListener('change', () => {
+      if (minimizeCheckbox.checked) {
+        splitModeSelect.value = 'chars';
+        sizeLabel.textContent = 'Characters per chunk';
+        chunkSizeInput.value = 4000;
+        splitModeSelect.disabled = true;
+        snapCheckbox.disabled = true;
+        snapCheckbox.checked = false;
+      } else {
+        splitModeSelect.disabled = false;
+        if (splitModeSelect.value === 'lines') snapCheckbox.disabled = false;
+      }
+    });
+
+    // ── Safe Clipboard Fallback ──────────────────────────────────────
+    function fallbackCopyText(text) {
+      const textArea = document.createElement("textarea");
+      textArea.value = text;
+      textArea.style.position = "fixed";
+      textArea.style.top = "-1000px";
+      textArea.style.left = "-1000px";
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      try {
+        return document.execCommand('copy');
+      } catch (e) {
+        return false;
+      } finally {
+        document.body.removeChild(textArea);
+      }
+    }
+
+    async function safeCopy(text, btnElement) {
+      let success = false;
+      if (navigator.clipboard && window.isSecureContext) {
+        try {
+          await navigator.clipboard.writeText(text);
+          success = true;
+        } catch (err) {
+          success = false;
+        }
+      }
+      if (!success) {
+        success = fallbackCopyText(text);
+      }
+
+      if (success) {
+        btnElement.textContent = 'Copied!';
+        btnElement.classList.add('copied');
+        setTimeout(() => {
+          btnElement.textContent = 'Copy';
+          btnElement.classList.remove('copied');
+        }, 2000);
+      } else {
+        alert('Failed to copy. Please copy manually.');
+      }
+    }
+
+    // ── Depth / Block Tracker ────────────────────────────────────────
+    function updateDepth(line, currentDepth) {
+      let depth = currentDepth;
+
+      // 1. Track Curly Braces { } (Covers JS functions, CSS rules, etc.)
+      // Note: Simple regex, ignores braces in strings/comments. Good enough for 95% of chunking.
+      const opens = (line.match(/\{/g) || []).length;
+      const closes = (line.match(/\}/g) || []).length;
+      depth += (opens - closes);
+
+      // 2. Track HTML Block Tags (div, style, script, etc.)
+      const blockTags = 'div|style|script|section|main|header|footer|nav|table|ul|ol|form';
+      const openTags = line.match(new RegExp(`<(${blockTags})\\b[^>]*>`, 'gi'));
+      const closeTags = line.match(new RegExp(`</(${blockTags})>`, 'gi'));
+
+      if (openTags) depth += openTags.length;
+      if (closeTags) depth -= closeTags.length;
+
+      return depth;
+    }
+
+    // ── Chunking Logic ───────────────────────────────────────────────
+    function generateChunks() {
+      const rawText = document.getElementById('inputText').value;
+      if (!rawText.trim()) return;
+
+      const mode = splitModeSelect.value;
+      const size = parseInt(chunkSizeInput.value) || (mode === 'lines' ? 500 : 4000);
+      const minimize = minimizeCheckbox.checked;
+      const snapToBlock = snapCheckbox.checked;
+
+      let chunks = [];
+
+      if (mode === 'lines') {
+        const lines = rawText.split('\n');
+        let currentChunk = [];
+        let depth = 0;
+
+        for (let i = 0; i < lines.length; i++) {
+          currentChunk.push(lines[i]);
+          depth = updateDepth(lines[i], depth);
+
+          // Check if we hit the target size
+          if (currentChunk.length >= size) {
+            if (snapToBlock && depth > 0) {
+              // We are inside an unclosed block! Keep going until depth returns to 0.
+              // Safety valve: only look ahead up to 100 extra lines to prevent infinite loops on malformed files.
+              let oversizeLimit = size + 100;
+
+              while (depth > 0 && i < lines.length - 1 && currentChunk.length < oversizeLimit) {
+                i++;
+                currentChunk.push(lines[i]);
+                depth = updateDepth(lines[i], depth);
+              }
+            }
+            // Chunk is complete (either depth is 0, snap is off, or we hit oversize safety limit)
+            chunks.push(currentChunk.join('\n'));
+            currentChunk = [];
+            depth = 0; // Reset depth for the next chunk
+          }
+        }
+
+        // Add any remaining lines
+        if (currentChunk.length > 0) {
+          chunks.push(currentChunk.join('\n'));
+        }
+
+      } else {
+        // Character-based chunking (no block snapping possible)
+        for (let i = 0; i < rawText.length; i += size) {
+          chunks.push(rawText.substring(i, i + size));
+        }
+      }
+
+      // MINIMIZE SECOND (compresses each chunk to save tokens)
+      if (minimize) {
+        chunks = chunks.map(chunk => {
+          return chunk.split('\n')
+            .map(line => line.trim())
+            .filter(line => line.length > 0)
+            .join(' ');
+        });
+      }
+
+      renderChunks(chunks);
+    }
+
+    function renderChunks(chunks) {
+      const output = document.getElementById('output');
+      output.innerHTML = '';
+
+      chunks.forEach((chunk, index) => {
+        const approxTokens = Math.ceil(chunk.length / 4);
+        const linesCount = chunk.split('\n').length;
+
+        const card = document.createElement('div');
+        card.className = 'chunk-card';
+
+        card.innerHTML = `
+        <div class="chunk-header">
+          <div style="display: flex; align-items: center;">
+            <span class="chunk-title">Chunk ${index + 1} of ${chunks.length}</span>
+            <span class="chunk-meta">~${approxTokens} tokens • ${linesCount} lines • ${chunk.length.toLocaleString()} chars</span>
+          </div>
+          <button class="copy-btn" id="copy-btn-${index}">Copy</button>
+        </div>
+        <div class="chunk-body">${escapeHtml(chunk)}</div>
+      `;
+
+        output.appendChild(card);
+        const copyBtn = document.getElementById(`copy-btn-${index}`);
+        copyBtn.addEventListener('click', () => safeCopy(chunk, copyBtn));
+      });
+    }
+
+    function escapeHtml(text) {
+      return String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+  </script>
+
+</body>
+
+</html>
