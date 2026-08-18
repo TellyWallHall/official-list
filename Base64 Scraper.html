@@ -1,0 +1,846 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Base64 File Extractor</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            padding: 40px;
+        }
+
+        .upload-area {
+            border: 3px dashed #4facfe;
+            border-radius: 15px;
+            padding: 60px 40px;
+            text-align: center;
+            background: #f8faff;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            margin-bottom: 30px;
+        }
+
+        .upload-area:hover {
+            border-color: #00f2fe;
+            background: #f0f8ff;
+            transform: translateY(-2px);
+        }
+
+        .upload-area.dragover {
+            border-color: #00f2fe;
+            background: #e6f3ff;
+            transform: scale(1.02);
+        }
+
+        .upload-icon {
+            font-size: 4rem;
+            color: #4facfe;
+            margin-bottom: 20px;
+        }
+
+        .upload-text {
+            font-size: 1.3rem;
+            color: #333;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .upload-subtext {
+            color: #666;
+            font-size: 1rem;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .progress-container {
+            display: none;
+            margin: 30px 0;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 15px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4facfe, #00f2fe);
+            width: 0%;
+            transition: width 0.3s ease;
+            border-radius: 10px;
+        }
+
+        .progress-text {
+            text-align: center;
+            color: #666;
+            font-weight: 500;
+        }
+
+        .results {
+            display: none;
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 30px;
+            margin-top: 30px;
+        }
+
+        .results h3 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+        }
+
+        .file-list {
+            max-height: 300px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+        }
+
+        .file-item {
+            background: white;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 10px;
+            border-left: 4px solid #4facfe;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .file-name {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .file-size {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .download-btn {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+
+        .download-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(79, 172, 254, 0.3);
+        }
+
+        .download-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .error {
+            background: #ffe6e6;
+            color: #d63031;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border-left: 4px solid #d63031;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #4facfe;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                border-radius: 15px;
+            }
+            
+            .header {
+                padding: 30px 20px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .main-content {
+                padding: 30px 20px;
+            }
+            
+            .upload-area {
+                padding: 40px 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📁 Base64 File Extractor</h1>
+            <p>Upload large HTML files and extract all embedded base64 content</p>
+        </div>
+        
+        <div class="main-content">
+            <div class="upload-area" id="uploadArea">
+                <div class="upload-icon">📤</div>
+                <div class="upload-text">Drop your HTML file here</div>
+                <div class="upload-subtext">or click to browse (supports files up to 200MB+)</div>
+                <input type="file" id="fileInput" class="file-input" accept=".html,.htm">
+            </div>
+            
+            <div class="progress-container" id="progressContainer">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <div class="progress-text" id="progressText">Processing...</div>
+            </div>
+            
+            <div class="error" id="errorContainer" style="display: none;"></div>
+            
+            <div class="results" id="results">
+                <h3>📊 Extraction Results</h3>
+                <div class="stats">
+                    <div class="stat-card">
+                        <div class="stat-number" id="fileCount">0</div>
+                        <div class="stat-label">Files Found</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="totalSize">0 MB</div>
+                        <div class="stat-label">Total Size</div>
+                    </div>
+                </div>
+                <div class="file-list" id="fileList"></div>
+                <button class="download-btn" id="downloadBtn">📥 Download ZIP Archive</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class Base64Extractor {
+            constructor() {
+                this.uploadArea = document.getElementById('uploadArea');
+                this.fileInput = document.getElementById('fileInput');
+                this.progressContainer = document.getElementById('progressContainer');
+                this.progressFill = document.getElementById('progressFill');
+                this.progressText = document.getElementById('progressText');
+                this.results = document.getElementById('results');
+                this.fileList = document.getElementById('fileList');
+                this.downloadBtn = document.getElementById('downloadBtn');
+                this.errorContainer = document.getElementById('errorContainer');
+                this.fileCount = document.getElementById('fileCount');
+                this.totalSize = document.getElementById('totalSize');
+                
+                this.extractedFiles = [];
+                this.zip = new JSZip();
+                
+                this.initEventListeners();
+            }
+            
+            initEventListeners() {
+                this.uploadArea.addEventListener('click', () => this.fileInput.click());
+                this.fileInput.addEventListener('change', (e) => this.handleFile(e.target.files[0]));
+                this.downloadBtn.addEventListener('click', () => this.downloadZip());
+                
+                // Drag and drop
+                this.uploadArea.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    this.uploadArea.classList.add('dragover');
+                });
+                
+                this.uploadArea.addEventListener('dragleave', () => {
+                    this.uploadArea.classList.remove('dragover');
+                });
+                
+                this.uploadArea.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    this.uploadArea.classList.remove('dragover');
+                    this.handleFile(e.dataTransfer.files[0]);
+                });
+            }
+            
+            async handleFile(file) {
+                if (!file) return;
+                
+                this.hideError();
+                this.showProgress();
+                this.results.style.display = 'none';
+                
+                try {
+                    this.updateProgress(10, 'Reading file...');
+                    const content = await this.readFile(file);
+                    
+                    this.updateProgress(30, 'Scanning for base64 content...');
+                    await this.sleep(100); // Allow UI to update
+                    
+                    const base64Matches = await this.findBase64Content(content);
+                    
+                    if (base64Matches.length === 0) {
+                        throw new Error('No base64 encoded files found in the HTML file.');
+                    }
+                    
+                    this.updateProgress(50, 'Extracting files...');
+                    await this.extractFiles(base64Matches);
+                    
+                    this.updateProgress(100, 'Complete!');
+                    await this.sleep(500);
+                    
+                    this.hideProgress();
+                    this.showResults();
+                    
+                } catch (error) {
+                    this.hideProgress();
+                    this.showError(error.message);
+                }
+            }
+            
+            readFile(file) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => resolve(e.target.result);
+                    reader.onerror = () => reject(new Error('Failed to read file'));
+                    reader.readAsText(file);
+                });
+            }
+            
+            async findBase64Content(content) {
+                // Multiple patterns to catch different base64 formats
+                const patterns = [
+                    /data:([^;]+);base64,([A-Za-z0-9+/=]+)/g,
+                    /src\s*=\s*["']data:([^;]+);base64,([A-Za-z0-9+/=]+)["']/g,
+                    /href\s*=\s*["']data:([^;]+);base64,([A-Za-z0-9+/=]+)["']/g,
+                    /url\(["']?data:([^;]+);base64,([A-Za-z0-9+/=]+)["']?\)/g
+                ];
+                
+                const matches = [];
+                let matchCount = 0;
+                
+                for (const pattern of patterns) {
+                    let match;
+                    while ((match = pattern.exec(content)) !== null) {
+                        const mimeType = match[1];
+                        const base64Data = match[2];
+                        
+                        // Skip very small base64 strings (likely not files)
+                        if (base64Data.length < 100) continue;
+                        
+                        matches.push({
+                            mimeType,
+                            base64Data,
+                            index: matchCount++
+                        });
+                        
+                        // Prevent infinite loops
+                        if (matchCount > 10000) break;
+                    }
+                }
+                
+                return matches;
+            }
+            
+            async extractFiles(matches) {
+                this.extractedFiles = [];
+                this.zip = new JSZip();
+                let totalSize = 0;
+                
+                for (let i = 0; i < matches.length; i++) {
+                    const match = matches[i];
+                    const progress = 50 + (i / matches.length) * 40;
+                    this.updateProgress(progress, `Extracting file ${i + 1}/${matches.length}...`);
+                    
+                    try {
+                        // Decode base64
+                        const binaryString = atob(match.base64Data);
+                        const bytes = new Uint8Array(binaryString.length);
+                        for (let j = 0; j < binaryString.length; j++) {
+                            bytes[j] = binaryString.charCodeAt(j);
+                        }
+                        
+                        // Determine file extension using multiple methods
+                        const extension = this.detectFileType(match.mimeType, bytes);
+                        const fileName = `extracted_file_${match.index + 1}.${extension}`;
+                        
+                        // Add to zip
+                        this.zip.file(fileName, bytes);
+                        
+                        const fileSize = bytes.length;
+                        totalSize += fileSize;
+                        
+                        this.extractedFiles.push({
+                            name: fileName,
+                            size: fileSize,
+                            mimeType: match.mimeType,
+                            detectedType: extension
+                        });
+                        
+                    } catch (error) {
+                        console.warn(`Failed to extract file ${i + 1}:`, error);
+                    }
+                    
+                    // Allow UI updates for large files
+                    if (i % 10 === 0) {
+                        await this.sleep(1);
+                    }
+                }
+                
+                // Update stats
+                this.fileCount.textContent = this.extractedFiles.length;
+                this.totalSize.textContent = this.formatFileSize(totalSize);
+            }
+            
+            detectFileType(mimeType, bytes) {
+                // First try file signature detection (magic numbers)
+                const signature = this.detectBySignature(bytes);
+                if (signature !== 'unknown') {
+                    return signature;
+                }
+                
+                // Then try MIME type mapping
+                const fromMime = this.getExtensionFromMimeType(mimeType);
+                if (fromMime !== 'unknown') {
+                    return fromMime;
+                }
+                
+                // Final fallback
+                return 'data';
+            }
+            
+            detectBySignature(bytes) {
+                if (bytes.length < 4) return 'unknown';
+                
+                // Convert first few bytes to hex for comparison
+                const hex = Array.from(bytes.slice(0, 16))
+                    .map(b => b.toString(16).padStart(2, '0'))
+                    .join('').toLowerCase();
+                
+                // Image formats
+                if (hex.startsWith('ffd8ff')) return 'jpg';
+                if (hex.startsWith('89504e47')) return 'png';
+                if (hex.startsWith('47494638')) return 'gif';
+                if (hex.startsWith('52494646') && hex.substring(16, 24) === '57454250') return 'webp';
+                if (hex.startsWith('424d')) return 'bmp';
+                if (hex.startsWith('49492a00') || hex.startsWith('4d4d002a')) return 'tiff';
+                if (hex.startsWith('00000100')) return 'ico';
+                
+                // Document formats
+                if (hex.startsWith('25504446')) return 'pdf';
+                if (hex.startsWith('504b0304')) {
+                    // ZIP-based formats (Office docs, etc.)
+                    const str = new TextDecoder().decode(bytes.slice(0, 100));
+                    if (str.includes('word/')) return 'docx';
+                    if (str.includes('xl/')) return 'xlsx';
+                    if (str.includes('ppt/')) return 'pptx';
+                    return 'zip';
+                }
+                if (hex.startsWith('d0cf11e0a1b11ae1')) {
+                    // Old Office formats
+                    return 'doc'; // Could be doc, xls, ppt - defaulting to doc
+                }
+                if (hex.startsWith('7b5c727466')) return 'rtf';
+                
+                // Audio formats
+                if (hex.startsWith('494433') || hex.startsWith('fffb') || hex.startsWith('fff3')) return 'mp3';
+                if (hex.startsWith('52494646') && hex.substring(16, 24) === '57415645') return 'wav';
+                if (hex.startsWith('4f676753')) return 'ogg';
+                if (hex.startsWith('664c6143')) return 'flac';
+                
+                // Video formats
+                if (hex.substring(8, 16) === '66747970') {
+                    const brand = hex.substring(16, 24);
+                    if (brand.startsWith('6d703432') || brand.startsWith('69736f6d')) return 'mp4';
+                    if (brand.startsWith('71742020')) return 'mov';
+                }
+                if (hex.startsWith('1a45dfa3')) return 'webm';
+                if (hex.startsWith('464c5601')) return 'flv';
+                if (hex.startsWith('52494646') && hex.substring(16, 24) === '41564920') return 'avi';
+                
+                // Archive formats
+                if (hex.startsWith('504b0304')) return 'zip';
+                if (hex.startsWith('526172211a0700')) return 'rar';
+                if (hex.startsWith('377abcaf271c')) return '7z';
+                if (hex.startsWith('1f8b08')) return 'gz';
+                if (hex.startsWith('425a68')) return 'bz2';
+                
+                // Font formats
+                if (hex.startsWith('774f4646')) return 'woff';
+                if (hex.startsWith('774f4632')) return 'woff2';
+                if (hex.startsWith('00010000')) return 'ttf';
+                if (hex.startsWith('4f54544f')) return 'otf';
+                
+                // Executable formats
+                if (hex.startsWith('4d5a')) return 'exe';
+                if (hex.startsWith('7f454c46')) return 'elf';
+                if (hex.startsWith('cafebabe') || hex.startsWith('feedface')) return 'bin';
+                
+                // Database formats
+                if (hex.startsWith('53514c69746520666f726d6174203300')) return 'sqlite';
+                
+                return 'unknown';
+            }
+            
+            getExtensionFromMimeType(mimeType) {
+                const mimeMap = {
+                    // Images
+                    'image/jpeg': 'jpg',
+                    'image/jpg': 'jpg',
+                    'image/png': 'png',
+                    'image/gif': 'gif',
+                    'image/webp': 'webp',
+                    'image/svg+xml': 'svg',
+                    'image/bmp': 'bmp',
+                    'image/tiff': 'tiff',
+                    'image/tif': 'tif',
+                    'image/ico': 'ico',
+                    'image/x-icon': 'ico',
+                    'image/vnd.microsoft.icon': 'ico',
+                    'image/avif': 'avif',
+                    'image/heic': 'heic',
+                    'image/heif': 'heif',
+                    
+                    // Documents
+                    'application/pdf': 'pdf',
+                    'application/msword': 'doc',
+                    'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx',
+                    'application/vnd.ms-excel': 'xls',
+                    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'xlsx',
+                    'application/vnd.ms-powerpoint': 'ppt',
+                    'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'pptx',
+                    'application/rtf': 'rtf',
+                    'application/vnd.oasis.opendocument.text': 'odt',
+                    'application/vnd.oasis.opendocument.spreadsheet': 'ods',
+                    'application/vnd.oasis.opendocument.presentation': 'odp',
+                    
+                    // Text files
+                    'text/plain': 'txt',
+                    'text/html': 'html',
+                    'text/css': 'css',
+                    'text/javascript': 'js',
+                    'text/csv': 'csv',
+                    'text/xml': 'xml',
+                    'text/markdown': 'md',
+                    'text/x-python': 'py',
+                    'text/x-java-source': 'java',
+                    'text/x-c': 'c',
+                    'text/x-c++': 'cpp',
+                    'text/x-csharp': 'cs',
+                    'text/x-php': 'php',
+                    'text/x-ruby': 'rb',
+                    'text/x-go': 'go',
+                    'text/x-rust': 'rs',
+                    'text/x-swift': 'swift',
+                    'text/x-kotlin': 'kt',
+                    'text/x-scala': 'scala',
+                    'text/x-perl': 'pl',
+                    'text/x-shell': 'sh',
+                    'text/x-powershell': 'ps1',
+                    'text/x-batch': 'bat',
+                    
+                    // Application files
+                    'application/javascript': 'js',
+                    'application/json': 'json',
+                    'application/xml': 'xml',
+                    'application/x-yaml': 'yaml',
+                    'application/yaml': 'yml',
+                    'application/toml': 'toml',
+                    'application/x-ini': 'ini',
+                    'application/x-config': 'conf',
+                    'application/x-properties': 'properties',
+                    
+                    // Archives
+                    'application/zip': 'zip',
+                    'application/x-rar-compressed': 'rar',
+                    'application/x-7z-compressed': '7z',
+                    'application/x-tar': 'tar',
+                    'application/gzip': 'gz',
+                    'application/x-bzip2': 'bz2',
+                    'application/x-xz': 'xz',
+                    
+                    // Audio
+                    'audio/mpeg': 'mp3',
+                    'audio/mp3': 'mp3',
+                    'audio/wav': 'wav',
+                    'audio/x-wav': 'wav',
+                    'audio/ogg': 'ogg',
+                    'audio/flac': 'flac',
+                    'audio/aac': 'aac',
+                    'audio/x-m4a': 'm4a',
+                    'audio/mp4': 'm4a',
+                    'audio/webm': 'webm',
+                    'audio/x-ms-wma': 'wma',
+                    'audio/amr': 'amr',
+                    'audio/3gpp': '3gp',
+                    
+                    // Video
+                    'video/mp4': 'mp4',
+                    'video/mpeg': 'mpg',
+                    'video/quicktime': 'mov',
+                    'video/x-msvideo': 'avi',
+                    'video/x-ms-wmv': 'wmv',
+                    'video/webm': 'webm',
+                    'video/ogg': 'ogv',
+                    'video/x-flv': 'flv',
+                    'video/3gpp': '3gp',
+                    'video/x-matroska': 'mkv',
+                    
+                    // Fonts
+                    'font/woff': 'woff',
+                    'font/woff2': 'woff2',
+                    'font/ttf': 'ttf',
+                    'font/otf': 'otf',
+                    'application/font-woff': 'woff',
+                    'application/font-woff2': 'woff2',
+                    'application/x-font-ttf': 'ttf',
+                    'application/x-font-otf': 'otf',
+                    'application/vnd.ms-fontobject': 'eot',
+                    
+                    // 3D Models
+                    'model/gltf+json': 'gltf',
+                    'model/gltf-binary': 'glb',
+                    'model/obj': 'obj',
+                    'model/stl': 'stl',
+                    'model/x3d+xml': 'x3d',
+                    'model/collada+xml': 'dae',
+                    
+                    // CAD files
+                    'application/acad': 'dwg',
+                    'image/vnd.dwg': 'dwg',
+                    'application/dxf': 'dxf',
+                    'image/vnd.dxf': 'dxf',
+                    
+                    // Executable files
+                    'application/x-msdownload': 'exe',
+                    'application/x-executable': 'exe',
+                    'application/x-mach-binary': 'bin',
+                    'application/x-elf': 'elf',
+                    'application/x-deb': 'deb',
+                    'application/x-rpm': 'rpm',
+                    'application/vnd.android.package-archive': 'apk',
+                    'application/x-apple-diskimage': 'dmg',
+                    'application/x-ms-installer': 'msi',
+                    
+                    // Database files
+                    'application/x-sqlite3': 'sqlite',
+                    'application/vnd.sqlite3': 'sqlite3',
+                    'application/x-dbf': 'dbf',
+                    'application/x-access': 'mdb'
+                };
+                
+                // If exact match found, return it
+                if (mimeMap[mimeType]) {
+                    return mimeMap[mimeType];
+                }
+                
+                // Try to extract extension from MIME type pattern
+                if (mimeType.includes('/')) {
+                    const subtype = mimeType.split('/')[1];
+                    
+                    // Handle common patterns like "application/x-something"
+                    if (subtype.startsWith('x-')) {
+                        const extension = subtype.substring(2);
+                        if (extension.length <= 5 && /^[a-zA-Z0-9]+$/.test(extension)) {
+                            return extension;
+                        }
+                    }
+                    
+                    // Handle patterns like "application/vnd.something"
+                    if (subtype.startsWith('vnd.')) {
+                        const parts = subtype.split('.');
+                        if (parts.length > 1) {
+                            const lastPart = parts[parts.length - 1];
+                            if (lastPart.length <= 5 && /^[a-zA-Z0-9]+$/.test(lastPart)) {
+                                return lastPart;
+                            }
+                        }
+                    }
+                    
+                    // Use subtype directly if it looks like a file extension
+                    if (subtype.length <= 5 && /^[a-zA-Z0-9]+$/.test(subtype)) {
+                        return subtype;
+                    }
+                }
+                
+                return 'unknown';
+            }
+            
+            showResults() {
+                this.results.style.display = 'block';
+                this.fileList.innerHTML = '';
+                
+                this.extractedFiles.forEach(file => {
+                    const fileItem = document.createElement('div');
+                    fileItem.className = 'file-item';
+                    fileItem.innerHTML = `
+                        <div class="file-name">${file.name}</div>
+                        <div class="file-size">${this.formatFileSize(file.size)} • ${file.mimeType}</div>
+                    `;
+                    this.fileList.appendChild(fileItem);
+                });
+            }
+            
+            async downloadZip() {
+                try {
+                    this.downloadBtn.disabled = true;
+                    this.downloadBtn.textContent = '📦 Creating ZIP...';
+                    
+                    const zipBlob = await this.zip.generateAsync({
+                        type: 'blob',
+                        compression: 'DEFLATE',
+                        compressionOptions: { level: 6 }
+                    });
+                    
+                    // Use File System Access API if available
+                    if ('showSaveFilePicker' in window) {
+                        const fileHandle = await window.showSaveFilePicker({
+                            suggestedName: 'extracted_files.zip',
+                            types: [{
+                                description: 'ZIP files',
+                                accept: { 'application/zip': ['.zip'] }
+                            }]
+                        });
+                        
+                        const writable = await fileHandle.createWritable();
+                        await writable.write(zipBlob);
+                        await writable.close();
+                        
+                        this.downloadBtn.textContent = '✅ Downloaded Successfully!';
+                    } else {
+                        // Fallback to regular download
+                        const url = URL.createObjectURL(zipBlob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = 'extracted_files.zip';
+                        a.click();
+                        URL.revokeObjectURL(url);
+                        
+                        this.downloadBtn.textContent = '✅ Download Started!';
+                    }
+                    
+                    setTimeout(() => {
+                        this.downloadBtn.disabled = false;
+                        this.downloadBtn.textContent = '📥 Download ZIP Archive';
+                    }, 3000);
+                    
+                } catch (error) {
+                    this.downloadBtn.disabled = false;
+                    this.downloadBtn.textContent = '📥 Download ZIP Archive';
+                    this.showError('Download failed: ' + error.message);
+                }
+            }
+            
+            formatFileSize(bytes) {
+                if (bytes === 0) return '0 B';
+                const k = 1024;
+                const sizes = ['B', 'KB', 'MB', 'GB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+            }
+            
+            updateProgress(percent, text) {
+                this.progressFill.style.width = percent + '%';
+                this.progressText.textContent = text;
+            }
+            
+            showProgress() {
+                this.progressContainer.style.display = 'block';
+            }
+            
+            hideProgress() {
+                this.progressContainer.style.display = 'none';
+            }
+            
+            showError(message) {
+                this.errorContainer.textContent = message;
+                this.errorContainer.style.display = 'block';
+            }
+            
+            hideError() {
+                this.errorContainer.style.display = 'none';
+            }
+            
+            sleep(ms) {
+                return new Promise(resolve => setTimeout(resolve, ms));
+            }
+        }
+        
+        // Initialize the extractor when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            new Base64Extractor();
+        });
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'974af296c1d27aad',t:'MTc1NjEyMzQyMS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
