@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JS Code Challenge</title>
+    <style>
+        body {
+            box-sizing: border-box;
+            font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100%;
+            color: #333;
+        }
+        
+        html, body {
+            height: 100%;
+        }
+        
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            padding: 30px 25px;
+            text-align: center;
+            color: white;
+        }
+        
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: 700;
+        }
+        
+        .level-badge {
+            background: rgba(255,255,255,0.2);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            margin-top: 10px;
+            display: inline-block;
+        }
+        
+        .challenge-content {
+            padding: 30px 25px;
+        }
+        
+        .challenge-title {
+            font-size: 22px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #2d3748;
+        }
+        
+        .challenge-description {
+            background: #f7fafc;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+            border-left: 4px solid #4facfe;
+            line-height: 1.6;
+        }
+        
+        .example {
+            background: #edf2f7;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 14px;
+        }
+        
+        .code-input {
+            width: 100%;
+            min-height: 120px;
+            padding: 20px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 16px;
+            resize: vertical;
+            background: #fafafa;
+            transition: border-color 0.3s ease;
+        }
+        
+        .code-input:focus {
+            outline: none;
+            border-color: #4facfe;
+            background: white;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+        }
+        
+        .btn {
+            flex: 1;
+            padding: 16px;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(79, 172, 254, 0.3);
+        }
+        
+        .btn-secondary {
+            background: #e2e8f0;
+            color: #4a5568;
+        }
+        
+        .btn-secondary:hover {
+            background: #cbd5e0;
+        }
+        
+        .result {
+            margin-top: 20px;
+            padding: 20px;
+            border-radius: 12px;
+            font-weight: 500;
+        }
+        
+        .result.success {
+            background: #f0fff4;
+            color: #22543d;
+            border: 2px solid #68d391;
+        }
+        
+        .result.error {
+            background: #fff5f5;
+            color: #742a2a;
+            border: 2px solid #fc8181;
+        }
+        
+        .hint {
+            background: #fffbeb;
+            border: 2px solid #f6e05e;
+            color: #744210;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            font-size: 14px;
+        }
+        
+        .progress {
+            text-align: center;
+            margin-top: 20px;
+            color: #718096;
+        }
+        
+        .experiment-box {
+            background: #e6fffa;
+            border: 2px solid #38b2ac;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+    <main class="container">
+        <header class="header">
+            <h1>🧩 JS Code Challenge</h1>
+            <div class="level-badge" id="levelBadge">Challenge 1 of 16</div>
+        </header>
+        
+        <div class="challenge-content">
+            <h2 class="challenge-title" id="challengeTitle">Sum of Two Numbers</h2>
+            
+            <div class="challenge-description" id="challengeDescription">
+                Write a function called <code>addNumbers</code> that takes two parameters and returns their sum.
+                
+                <div class="example">
+                    <strong>Example:</strong><br>
+                    addNumbers(5, 3) should return 8<br>
+                    addNumbers(-2, 7) should return 5
+                </div>
+            </div>
+            
+            <label for="codeInput" class="sr-only">Enter your JavaScript code</label>
+            <textarea 
+                id="codeInput" 
+                class="code-input" 
+                placeholder="function addNumbers(a, b) {
+    // Your code here
+}"
+            ></textarea>
+            
+            <div class="button-group">
+                <button class="btn btn-primary" onclick="runCode()">🚀 Run Code</button>
+                <button class="btn btn-secondary" onclick="getHint()">💡 Hint</button>
+                <button class="btn btn-secondary" onclick="nextChallenge()">⏭️ Next</button>
+            </div>
+            
+            <div id="result" class="result" style="display: none;"></div>
+            <div id="hint" class="hint" style="display: none;"></div>
+            
+            <div class="progress">
+                <div id="progressText">Complete the challenge to advance!</div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        let currentChallenge = 0;
+        let hintsUsed = 0;
+        
+        const challenges = [
+            {
+                title: "Sum of Two Numbers",
+                description: `Write a function called <code>addNumbers</code> that takes two parameters and returns their sum.
+                
+                <div class="example">
+                    <strong>Example:</strong><br>
+                    addNumbers(5, 3) should return 8<br>
+                    addNumbers(-2, 7) should return 5
+                </div>`,
+                functionName: "addNumbers",
+                tests: [
+                    { args: [5, 3], expected: 8 },
+                    { args: [-2, 7], expected: 5 },
+                    { args: [0, 0], expected: 0 },
+                    { args: [10, -5], expected: 5 }
+                ],
+                hint: "Remember to use the + operator to add the two parameters together and return the result.",
+                starter: `function addNumbers(a, b) {
+    // Your code here
+}`
+            },
+            {
+                type: "lesson",
+                title: "🔧 Array Methods Lab",
+                description: `<strong>Experiment with this working solution!</strong><br><br>
+                
+                Here's a function that sums all even numbers. Run it first to see how it works!
+                
+                <div class="experiment-box">
+                    <strong>🧪 Try these experiments:</strong><br>
+                    1. Change "% 2 === 0" to "% 2 === 1" (sum odds instead)<br>
+                    2. Change "sum + num" to "sum * num" (multiply instead)<br>
+                    3. Add ".map(num => num * 2)" before filter (double first)<br>
+                    4. Change "reduce" to "length" (count instead of sum)
+                </div>`,
+                functionName: "sumEvenNumbers",
+                tests: [
+                    { args: [[1, 2, 3, 4, 5, 6]], expected: 12 },
+                    { args: [[1, 3, 5]], expected: 0 },
+                    { args: [[2, 4, 6, 8]], expected: 20 },
+                    { args: [[]], expected: 0 }
+                ],
+                starter: `function sumEvenNumbers(numbers) {
+    return numbers
+        .filter(num => num % 2 === 0)  // Keep only even numbers
+        .reduce((sum, num) => sum + num, 0);  // Add them up
+}`,
+                isLesson: true
+            },
+            {
+                title: "Find Maximum Number",
+                description: `Write a function called <code>findMax</code> that takes an array of numbers and returns the largest number.
+                
+                <div class="example">
+                    <strong>Example:</strong><br>
+                    findMax([1, 5, 3, 9, 2]) should return 9<br>
+                    findMax([-1, -5, -2]) should return -1
+                </div>`,
+                functionName: "findMax",
+                tests: [
+                    { args: [[1, 5, 3, 9, 2]], expected: 9 },
+                    { args: [[-1, -5, -2]], expected: -1 },
+                    { args: [[42]], expected: 42 },
+                    { args: [[0, 100, 50]], expected: 100 }
+                ],
+                hint: "You can use Math.max() with the spread operator (...) or loop through the array to find the maximum.",
+                starter: `function findMax(numbers) {
+    // Your code here
+}`
+            },
+            {
+                type: "lesson",
+                title: "🔧 String Processing Lab",
+                description: `<strong>Experiment with this word counter!</strong><br><br>
+                
+                This function counts words in a sentence. Run it to see how it handles spaces!
+                
+                <div class="experiment-box">
+                    <strong>🧪 Try these experiments:</strong><br>
+                    1. Remove ".trim()" - what happens with "  hello  "?<br>
+                    2. Change "split(' ')" to "split('')" - what changes?<br>
+                    3. Remove the filter - what happens with extra spaces?<br>
+                    4. Add ".toLowerCase()" before split - test with "HELLO world"
+                </div>`,
+                functionName: "countWords",
+                tests: [
+                    { args: ["Hello world"], expected: 2 },
+                    { args: ["  JavaScript   is   fun  "], expected: 3 },
+                    { args: [""], expected: 0 },
+                    { args: ["OneWord"], expected: 1 }
+                ],
+                starter: `function countWords(sentence) {
+    if (!sentence.trim()) return 0;  // Handle empty strings
+    return sentence
+        .trim()                      // Remove leading/trailing spaces
+        .split(' ')                  // Split by spaces
+        .filter(word => word !== '') // Remove empty strings
+        .length;                     // Count the words
+}`,
+                isLesson: true
+            },
+            {
+                title: "Palindrome Checker",
+                description: `Write a function called <code>isPalindrome</code> that checks if a string reads the same forwards and backwards (ignoring spaces and case).
+                
+                <div class="example">
+                    <strong>Example:</strong><br>
+                    isPalindrome("racecar") should return true<br>
+                    isPalindrome("A man a plan a canal Panama") should return true<br>
+                    isPalindrome("hello") should return false
+                </div>`,
+                functionName: "isPalindrome",
+                tests: [
+                    { args: ["racecar"], expected: true },
+                    { args: ["A man a plan a canal Panama"], expected: true },
+                    { args: ["hello"], expected: false },
+                    { args: ["Madam"], expected: true },
+                    { args: ["race a car"], expected: false }
+                ],
+                hint: "Remove spaces and convert to lowercase, then compare the string with its reverse.",
+                starter: `function isPalindrome(str) {
+    // Your code here
+}`
+            },
+            {
+                title: "Array Intersection",
+                description: `Write a function called <code>findIntersection</code> that takes two arrays and returns a new array containing only the elements that appear in both arrays (no duplicates).
+                
+                <div class="example">
+                    <strong>Example:</strong><br>
+                    findIntersection([1, 2, 3], [2, 3, 4]) should return [2, 3]<br>
+                    findIntersection(['a', 'b'], ['b', 'c', 'a']) should return ['a', 'b']
+                </div>`,
+                functionName: "findIntersection",
+                tests: [
+                    { args: [[1, 2, 3], [2, 3, 4]], expected: [2, 3] },
+                    { args: [['a', 'b'], ['b', 'c', 'a']], expected: ['a', 'b'] },
+                    { args: [[1, 1, 2], [1, 3]], expected: [1] },
+                    { args: [[], [1, 2, 3]], expected: [] }
+                ],
+                hint: "Use filter() and includes() methods, or convert one array to a Set for faster lookups.",
+                starter: `function findIntersection(arr1, arr2) {
+    // Your code here
+}`
+            },
+            {
+                type: "lesson",
+                title: "🔧 Set Operations Lab",
+                description: `<strong>Experiment with this duplicate remover!</strong><br><br>
+                
+                This function removes duplicates using a Set. See how it works!
+                
+                <div class="experiment-box">
+                    <strong>🧪 Try these experiments:</strong><br>
+                    1. Remove "new Set()" wrapper - what happens?<br>
+                    2. Change "[...new Set(arr)]" to "Array.from(new Set(arr))"<br>
+                    3. Add ".sort()" at the end - what changes?<br>
+                    4. Test with [3,1,4,1,5,9,2,6,5] - see the order?
+                </div>`,
+                functionName: "removeDuplicates",
+                tests: [
+                    { args: [[1, 2, 2, 3, 3, 4]], expected: [1, 2, 3, 4] },
+                    { args: [['a', 'b', 'a', 'c']], expected: ['a', 'b', 'c'] },
+                    { args: [[]], expected: [] },
+                    { args: [[5, 5, 5]], expected: [5] }
+                ],
+                starter: `function removeDuplicates(arr) {
+    return [...new Set(arr)];  // Set removes duplicates, spread converts back
+}`,
+                isLesson: true
+            },
+            {
+                title: "Fibonacci Sequence",
+                description: `Write a function called <code>fibonacci</code> that returns the nth number in the Fibonacci sequence (0, 1, 1, 2, 3, 5, 8, 13...).
+                
+                <div class="example">
+                    <strong>Example:</strong><br>
+                    fibonacci(0) should return 0<br>
+                    fibonacci(6) should return 8<br>
+                    fibonacci(10) should return 55
+                </div>`,
+                functionName: "fibonacci",
+                tests: [
+                    { args: [0], expected: 0 },
+                    { args: [1], expected: 1 },
+                    { args: [6], expected: 8 },
+                    { args: [10], expected: 55 },
+                    { args: [15], expected: 610 }
+                ],
+                hint: "Use iteration rather than recursion for better performance. Keep track of the previous two numbers.",
+                starter: `function fibonacci(n) {
+    // Your code here
+}`
+            },
+            {
+                title: "Anagram Detector",
+                description: `Write a function called <code>areAnagrams</code> that checks if two strings are anagrams (contain the same letters in different order).
+                
+                <div class="example">
+                    <strong>Example:</strong><br>
+                    areAnagrams("listen", "silent") should return true<br>
+                    areAnagrams("hello", "bello") should return false<br>
+                    areAnagrams("The Eyes", "They See") should return true
+                </div>`,
+                functionName: "areAnagrams",
+                tests: [
+                    { args: ["listen", "silent"], expected: true },
+                    { args: ["hello", "bello"], expected: false },
+                    { args: ["The Eyes", "They See"], expected: true },
+                    { args: ["abc", "cab"], expected: true },
+                    { args: ["rat", "car"], expected: false }
+                ],
+                hint: "Remove spaces, convert to lowercase, sort the characters, and compare the sorted strings.",
+                starter: `function areAnagrams(str1, str2) {
+    // Your code here
+}`
+            },
+            {
+                title: "Prime Number Checker",
+                description: `Write a function called <code>isPrime</code> that determines if a number is prime (only divisible by 1 and itself).
+                
+                <div class="example">
+                    <strong>Example:</strong><br>
+                    isPrime(17) should return true<br>
+                    isPrime(4) should return false<br>
+                    isPrime(2) should return true
+                </div>`,
+                functionName: "isPrime",
+                tests: [
+                    { args: [2], expected: true },
+                    { args: [4], expected: false },
+                    { args: [17], expected: true },
+                    { args: [25], expected: false },
+                    { args: [97], expected: true }
+                ],
+                hint: "Check divisibility from 2 up to the square root of the number. Handle edge cases for numbers less than 2.",
+                starter: `function isPrime(num) {
+    // Your code here
+}`
+            },
+            {
+                type: "lesson",
+                title: "🔧 Efficient Search Lab",
+                description: `<strong>Experiment with this fast intersection finder!</strong><br><br>
+                
+                This finds common elements efficiently using a Set. Compare speeds!
+                
+                <div class="experiment-box">
+                    <strong>🧪 Try these experiments:</strong><br>
+                    1. Replace "set2.has(item)" with "arr2.includes(item)" - still works?<br>
+                    2. Remove "new Set()" from the result - what happens?<br>
+                    3. Switch arr1 and arr2 positions - same result?<br>
+                    4. Test with large arrays: [1,2,3,4,5] and [4,5,6,7,8]
+                </div>`,
+                functionName: "findCommon",
+                tests: [
+                    { args: [[1, 2, 3], [2, 3, 4]], expected: [2, 3] },
+                    { args: [['a', 'b'], ['c', 'd']], expected: [] },
+                    { args: [[1, 1, 2], [2, 2, 3]], expected: [2] },
+                    { args: [[], [1, 2, 3]], expected: [] }
+                ],
+                starter: `function findCommon(arr1, arr2) {
+    const set2 = new Set(arr2);  // Convert to Set for fast lookups
+    return [...new Set(arr1.filter(item => set2.has(item)))];  // Filter and remove duplicates
+}`,
+                isLesson: true
+            },
+            {
+                title: "Deep Array Flatten",
+                description: `Write a function called <code>flattenArray</code> that flattens a nested array of any depth into a single-level array.
+                
+                <div class="example">
+                    <strong>Example:</strong><br>
+                    flattenArray([1, [2, 3], [4, [5, 6]]]) should return [1, 2, 3, 4, 5, 6]<br>
+                    flattenArray([[[1]], [2, [3]]]) should return [1, 2, 3]
+                </div>`,
+                functionName: "flattenArray",
+                tests: [
+                    { args: [[1, [2, 3], [4, [5, 6]]]], expected: [1, 2, 3, 4, 5, 6] },
+                    { args: [[[[1]], [2, [3]]]], expected: [1, 2, 3] },
+                    { args: [[1, 2, 3]], expected: [1, 2, 3] },
+                    { args: [[[[[5]]]]], expected: [5] }
+                ],
+                hint: "Use recursion or the flat(Infinity) method. For recursion, check if each element is an array.",
+                starter: `function flattenArray(arr) {
+    // Your code here
+}`
+            },
+            {
+                type: "lesson",
+                title: "🔧 Recursion Lab",
+                description: `<strong>Experiment with this recursive factorial function!</strong><br><br>
+                
+                This function calls itself to solve smaller problems. Watch the magic!
+                
+                <div class="experiment-box">
+                    <strong>🧪 Try these experiments:</strong><br>
+                    1. Change "n <= 1" to "n <= 0" - what happens with factorial(1)?<br>
+                    2. Add console.log(n) before the return - see the recursion!<br>
+                    3. Change "n - 1" to "n - 2" - what breaks?<br>
+                    4. Test with factorial(5) and trace through the calls
+                </div>`,
+                functionName: "factorial",
+                tests: [
+                    { args: [5], expected: 120 },
+                    { args: [0], expected: 1 },
+                    { args: [3], expected: 6 },
+                    { args: [1], expected: 1 }
+                ],
+                starter: `function factorial(n) {
+    // Base case: factorial of 0 or 1 is 1
+    if (n <= 1) return 1;
+    
+    // Recursive case: n! = n × (n-1)!
+    return n * factorial(n - 1);
+}`,
+                isLesson: true
+            },
+            {
+                title: "Binary Search",
+                description: `Write a function called <code>binarySearch</code> that finds the index of a target value in a sorted array using binary search. Return -1 if not found.
+                
+                <div class="example">
+                    <strong>Example:</strong><br>
+                    binarySearch([1, 3, 5, 7, 9], 5) should return 2<br>
+                    binarySearch([1, 3, 5, 7, 9], 6) should return -1
+                </div>`,
+                functionName: "binarySearch",
+                tests: [
+                    { args: [[1, 3, 5, 7, 9], 5], expected: 2 },
+                    { args: [[1, 3, 5, 7, 9], 6], expected: -1 },
+                    { args: [[1, 3, 5, 7, 9], 1], expected: 0 },
+                    { args: [[1, 3, 5, 7, 9], 9], expected: 4 },
+                    { args: [[], 5], expected: -1 }
+                ],
+                hint: "Use two pointers (left and right). Compare the middle element with the target and adjust the search range.",
+                starter: `function binarySearch(arr, target) {
+    // Your code here
+}`
+            },
+            {
+                title: "Longest Common Subsequence",
+                description: `Write a function called <code>longestCommonSubsequence</code> that finds the length of the longest common subsequence between two strings.
+                
+                <div class="example">
+                    <strong>Example:</strong><br>
+                    longestCommonSubsequence("abcde", "ace") should return 3<br>
+                    longestCommonSubsequence("abc", "abc") should return 3<br>
+                    longestCommonSubsequence("abc", "def") should return 0
+                </div>`,
+                functionName: "longestCommonSubsequence",
+                tests: [
+                    { args: ["abcde", "ace"], expected: 3 },
+                    { args: ["abc", "abc"], expected: 3 },
+                    { args: ["abc", "def"], expected: 0 },
+                    { args: ["ABCDGH", "AEDFHR"], expected: 3 },
+                    { args: ["AGGTAB", "GXTXAYB"], expected: 4 }
+                ],
+                hint: "Use dynamic programming with a 2D array. Build up solutions for smaller subproblems.",
+                starter: `function longestCommonSubsequence(str1, str2) {
+    // Your code here
+}`
+            },
+            {
+                type: "lesson",
+                title: "🔧 Stack Operations Lab",
+                description: `<strong>Experiment with this bracket matcher!</strong><br><br>
+                
+                This uses a stack (array) to match opening and closing brackets. See how LIFO works!
+                
+                <div class="experiment-box">
+                    <strong>🧪 Try these experiments:</strong><br>
+                    1. Change "stack.push(char)" to "stack.unshift(char)" - still work?<br>
+                    2. Remove the "stack.length === 0" check - what breaks?<br>
+                    3. Add support for [] brackets - modify the conditions<br>
+                    4. Test with "(((" and ")))" - see different failure modes
+                </div>`,
+                functionName: "isBalanced",
+                tests: [
+                    { args: ["()"], expected: true },
+                    { args: ["(()"], expected: false },
+                    { args: ["()()"], expected: true },
+                    { args: [""], expected: true }
+                ],
+                starter: `function isBalanced(str) {
+    const stack = [];
+    
+    for (let char of str) {
+        if (char === '(') {
+            stack.push(char);  // Push opening bracket
+        } else if (char === ')') {
+            if (stack.length === 0) return false;  // No matching opening
+            stack.pop();  // Remove matching opening bracket
+        }
+    }
+    
+    return stack.length === 0;  // Should be empty if balanced
+}`,
+                isLesson: true
+            },
+            {
+                title: "Valid Parentheses",
+                description: `Write a function called <code>isValidParentheses</code> that checks if a string of parentheses, brackets, and braces is properly balanced.
+                
+                <div class="example">
+                    <strong>Example:</strong><br>
+                    isValidParentheses("()[]{}") should return true<br>
+                    isValidParentheses("([)]") should return false<br>
+                    isValidParentheses("{[()]}") should return true
+                </div>`,
+                functionName: "isValidParentheses",
+                tests: [
+                    { args: ["()[]{}"], expected: true },
+                    { args: ["([)]"], expected: false },
+                    { args: ["{[()]}"], expected: true },
+                    { args: ["(("], expected: false },
+                    { args: [""], expected: true }
+                ],
+                hint: "Use a stack. Push opening brackets and pop when you find matching closing brackets.",
+                starter: `function isValidParentheses(s) {
+    // Your code here
+}`
+            },
+            {
+                title: "Merge Sorted Arrays",
+                description: `Write a function called <code>mergeSortedArrays</code> that merges two sorted arrays into one sorted array.
+                
+                <div class="example">
+                    <strong>Example:</strong><br>
+                    mergeSortedArrays([1, 3, 5], [2, 4, 6]) should return [1, 2, 3, 4, 5, 6]<br>
+                    mergeSortedArrays([1, 5, 9], [2, 3, 8]) should return [1, 2, 3, 5, 8, 9]
+                </div>`,
+                functionName: "mergeSortedArrays",
+                tests: [
+                    { args: [[1, 3, 5], [2, 4, 6]], expected: [1, 2, 3, 4, 5, 6] },
+                    { args: [[1, 5, 9], [2, 3, 8]], expected: [1, 2, 3, 5, 8, 9] },
+                    { args: [[], [1, 2, 3]], expected: [1, 2, 3] },
+                    { args: [[1, 2, 3], []], expected: [1, 2, 3] }
+                ],
+                hint: "Use two pointers to traverse both arrays simultaneously, always picking the smaller element.",
+                starter: `function mergeSortedArrays(arr1, arr2) {
+    // Your code here
+}`
+            },
+            {
+                title: "Roman to Integer",
+                description: `Write a function called <code>romanToInt</code> that converts a Roman numeral string to an integer.
+                
+                <div class="example">
+                    <strong>Example:</strong><br>
+                    romanToInt("III") should return 3<br>
+                    romanToInt("IV") should return 4<br>
+                    romanToInt("MCMXC") should return 1990
+                </div>`,
+                functionName: "romanToInt",
+                tests: [
+                    { args: ["III"], expected: 3 },
+                    { args: ["IV"], expected: 4 },
+                    { args: ["IX"], expected: 9 },
+                    { args: ["LVIII"], expected: 58 },
+                    { args: ["MCMXC"], expected: 1990 }
+                ],
+                hint: "Create a map of Roman numerals to values. If a smaller numeral comes before a larger one, subtract it.",
+                starter: `function romanToInt(s) {
+    // Your code here
+}`
+            },
+            {
+                title: "Sliding Window Maximum",
+                description: `Write a function called <code>maxSlidingWindow</code> that finds the maximum value in each sliding window of size k in an array.
+                
+                <div class="example">
+                    <strong>Example:</strong><br>
+                    maxSlidingWindow([1,3,-1,-3,5,3,6,7], 3) should return [3,3,5,5,6,7]<br>
+                    maxSlidingWindow([1,2,3,4], 2) should return [2,3,4]
+                </div>`,
+                functionName: "maxSlidingWindow",
+                tests: [
+                    { args: [[1,3,-1,-3,5,3,6,7], 3], expected: [3,3,5,5,6,7] },
+                    { args: [[1,2,3,4], 2], expected: [2,3,4] },
+                    { args: [[1], 1], expected: [1] },
+                    { args: [[7,2,4], 2], expected: [7,4] }
+                ],
+                hint: "For each window position, find the maximum in that window. You can optimize with a deque data structure.",
+                starter: `function maxSlidingWindow(nums, k) {
+    // Your code here
+}`
+            },
+            {
+                title: "Word Break Problem",
+                description: `Write a function called <code>wordBreak</code> that determines if a string can be segmented into words from a given dictionary.
+                
+                <div class="example">
+                    <strong>Example:</strong><br>
+                    wordBreak("leetcode", ["leet","code"]) should return true<br>
+                    wordBreak("applepenapple", ["apple","pen"]) should return true<br>
+                    wordBreak("catsandog", ["cats","dog","sand","and","cat"]) should return false
+                </div>`,
+                functionName: "wordBreak",
+                tests: [
+                    { args: ["leetcode", ["leet","code"]], expected: true },
+                    { args: ["applepenapple", ["apple","pen"]], expected: true },
+                    { args: ["catsandog", ["cats","dog","sand","and","cat"]], expected: false },
+                    { args: ["cars", ["car","ca","rs"]], expected: true }
+                ],
+                hint: "Use dynamic programming. For each position, check if any word in the dictionary can end at that position.",
+                starter: `function wordBreak(s, wordDict) {
+    // Your code here
+}`
+            }
+        ];
+        
+        function loadChallenge() {
+            const challenge = challenges[currentChallenge];
+            document.getElementById('challengeTitle').textContent = challenge.title;
+            document.getElementById('challengeDescription').innerHTML = challenge.description;
+            
+            const codeInput = document.getElementById('codeInput');
+            const runButton = document.querySelector('.btn-primary');
+            const hintButton = document.querySelector('.btn-secondary');
+            
+            if (challenge.isLesson) {
+                // Show coding elements for lessons (they're now interactive)
+                codeInput.style.display = 'block';
+                codeInput.value = challenge.starter;
+                runButton.style.display = 'block';
+                hintButton.style.display = 'block';
+                hintButton.textContent = '🔄 Reset Code';
+                document.getElementById('levelBadge').textContent = `Lab ${currentChallenge + 1} of ${challenges.length}`;
+            } else {
+                // Show coding elements for challenges
+                codeInput.style.display = 'block';
+                codeInput.value = challenge.starter;
+                runButton.style.display = 'block';
+                hintButton.style.display = 'block';
+                hintButton.textContent = '💡 Hint';
+                document.getElementById('levelBadge').textContent = `Challenge ${currentChallenge + 1} of ${challenges.length}`;
+            }
+            
+            document.getElementById('result').style.display = 'none';
+            document.getElementById('hint').style.display = 'none';
+            hintsUsed = 0;
+        }
+        
+        function runCode() {
+            const challenge = challenges[currentChallenge];
+            
+            const code = document.getElementById('codeInput').value;
+            const resultDiv = document.getElementById('result');
+            
+            try {
+                // Create a safe evaluation environment
+                const func = new Function('return ' + code)();
+                
+                if (typeof func !== 'function') {
+                    throw new Error('Please define a function');
+                }
+                
+                let allPassed = true;
+                let results = [];
+                
+                for (let test of challenge.tests) {
+                    try {
+                        const result = func.apply(null, test.args);
+                        const passed = JSON.stringify(result) === JSON.stringify(test.expected);
+                        
+                        if (!passed) {
+                            allPassed = false;
+                            results.push(`❌ ${challenge.functionName}(${test.args.map(arg => JSON.stringify(arg)).join(', ')}) returned ${JSON.stringify(result)}, expected ${JSON.stringify(test.expected)}`);
+                        } else {
+                            results.push(`✅ ${challenge.functionName}(${test.args.map(arg => JSON.stringify(arg)).join(', ')}) = ${JSON.stringify(result)}`);
+                        }
+                    } catch (e) {
+                        allPassed = false;
+                        results.push(`❌ Error with ${challenge.functionName}(${test.args.map(arg => JSON.stringify(arg)).join(', ')}): ${e.message}`);
+                    }
+                }
+                
+                if (allPassed) {
+                    resultDiv.className = 'result success';
+                    if (challenge.isLesson) {
+                        resultDiv.innerHTML = `
+                            <strong>🎉 Great! Your experiment worked!</strong><br><br>
+                            ${results.join('<br>')}
+                            <br><br>
+                            <em>Try more experiments or move to the next challenge!</em>
+                        `;
+                    } else {
+                        resultDiv.innerHTML = `
+                            <strong>🎉 Excellent! All tests passed!</strong><br><br>
+                            ${results.join('<br>')}
+                            <br><br>
+                            <em>Ready for the next challenge?</em>
+                        `;
+                    }
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.innerHTML = `
+                        <strong>Not quite right. Keep experimenting!</strong><br><br>
+                        ${results.join('<br>')}
+                    `;
+                }
+                
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `<strong>Error:</strong> ${error.message}`;
+            }
+            
+            resultDiv.style.display = 'block';
+        }
+        
+        function getHint() {
+            const challenge = challenges[currentChallenge];
+            const hintDiv = document.getElementById('hint');
+            
+            if (challenge.isLesson) {
+                // Reset code for lessons
+                document.getElementById('codeInput').value = challenge.starter;
+                hintDiv.innerHTML = `<strong>🔄 Code Reset!</strong> The original working solution has been restored. Try your experiments again!`;
+                hintDiv.style.display = 'block';
+            } else {
+                // Show hint for regular challenges
+                if (hintsUsed === 0) {
+                    hintDiv.innerHTML = `<strong>💡 Hint:</strong> ${challenge.hint}`;
+                    hintDiv.style.display = 'block';
+                    hintsUsed++;
+                } else {
+                    hintDiv.innerHTML = `<strong>💡 Hint:</strong> ${challenge.hint}<br><br><em>Try breaking down the problem into smaller steps!</em>`;
+                }
+            }
+        }
+        
+        function nextChallenge() {
+            if (currentChallenge < challenges.length - 1) {
+                currentChallenge++;
+                loadChallenge();
+                document.getElementById('progressText').textContent = 'New challenge loaded!';
+            } else {
+                currentChallenge = 0;
+                loadChallenge();
+                document.getElementById('progressText').textContent = 'Back to the first challenge!';
+            }
+        }
+        
+        // Initialize the first challenge
+        loadChallenge();
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'994a899fd3f9a6ee',t:'MTc2MTQ4NzgzMS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
