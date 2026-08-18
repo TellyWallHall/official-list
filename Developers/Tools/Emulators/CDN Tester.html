@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CDN Script Tester</title>
+    <style>
+        body {
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        h1 {
+            text-align: center;
+            color: #4a5568;
+            margin-bottom: 30px;
+            font-size: 2.2rem;
+        }
+
+        .test-section {
+            background: #f8fafc;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-left: 4px solid #4299e1;
+        }
+
+        .test-section h3 {
+            margin-top: 0;
+            color: #2d3748;
+        }
+
+        .script-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            margin-bottom: 10px;
+            resize: vertical;
+            min-height: 60px;
+        }
+
+        .script-input:focus {
+            outline: none;
+            border-color: #4299e1;
+            box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1);
+        }
+
+        .test-btn {
+            background: #4299e1;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+
+        .test-btn:hover {
+            background: #3182ce;
+            transform: translateY(-1px);
+        }
+
+        .clear-btn {
+            background: #e53e3e;
+        }
+
+        .clear-btn:hover {
+            background: #c53030;
+        }
+
+        .output {
+            background: #1a202c;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            min-height: 100px;
+            white-space: pre-wrap;
+            overflow-y: auto;
+            max-height: 300px;
+            border: 2px solid #2d3748;
+        }
+
+        .status {
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .status.success {
+            background: #c6f6d5;
+            color: #22543d;
+            border: 1px solid #9ae6b4;
+        }
+
+        .status.error {
+            background: #fed7d7;
+            color: #742a2a;
+            border: 1px solid #fc8181;
+        }
+
+        .preset-scripts {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .preset-btn {
+            background: #805ad5;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+
+        .preset-btn:hover {
+            background: #6b46c1;
+        }
+
+        .info-box {
+            background: #ebf8ff;
+            border: 1px solid #90cdf4;
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .info-box h4 {
+            margin-top: 0;
+            color: #2b6cb0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 CDN Script Tester</h1>
+        
+        <div class="info-box">
+            <h4>How to use:</h4>
+            <p>1. Paste your CDN script tag in the textarea below<br>
+            2. Click "Load Script" to test it<br>
+            3. Check the console output for any errors or success messages<br>
+            4. Use preset buttons for common libraries</p>
+        </div>
+
+        <div class="test-section">
+            <h3>📦 Script Input</h3>
+            
+            <div class="preset-scripts">
+                <button class="preset-btn" onclick="loadPreset('jquery')">jQuery</button>
+                <button class="preset-btn" onclick="loadPreset('bootstrap')">Bootstrap</button>
+                <button class="preset-btn" onclick="loadPreset('vue')">Vue.js</button>
+                <button class="preset-btn" onclick="loadPreset('react')">React</button>
+                <button class="preset-btn" onclick="loadPreset('lodash')">Lodash</button>
+                <button class="preset-btn" onclick="loadPreset('moment')">Moment.js</button>
+            </div>
+
+            <textarea 
+                id="scriptInput" 
+                class="script-input" 
+                placeholder="Paste your CDN script tag here, e.g.:
+<script src='https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js'></script>"
+            ></textarea>
+            
+            <button class="test-btn" onclick="loadScript()">🔄 Load Script</button>
+            <button class="test-btn clear-btn" onclick="clearAll()">🗑️ Clear All</button>
+        </div>
+
+        <div class="test-section">
+            <h3>📊 Status</h3>
+            <div id="status"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>📝 Console Output</h3>
+            <div id="output" class="output">Ready to test CDN scripts...</div>
+        </div>
+
+        <div class="test-section">
+            <h3>🧪 Quick Tests</h3>
+            <button class="test-btn" onclick="testJQuery()">Test jQuery ($)</button>
+            <button class="test-btn" onclick="testBootstrap()">Test Bootstrap</button>
+            <button class="test-btn" onclick="testVue()">Test Vue</button>
+            <button class="test-btn" onclick="testReact()">Test React</button>
+            <button class="test-btn" onclick="testLodash()">Test Lodash (_)</button>
+            <button class="test-btn" onclick="testMoment()">Test Moment</button>
+        </div>
+    </div>
+
+    <script>
+
+        function log(message, type = 'info') {
+            const output = document.getElementById('output');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = `[${timestamp}] ${message}\n`;
+            output.textContent += logEntry;
+            output.scrollTop = output.scrollHeight;
+        }
+
+        function setStatus(message, type) {
+            const status = document.getElementById('status');
+            status.className = `status ${type}`;
+            status.textContent = message;
+        }
+
+        function loadPreset(preset) {
+            document.getElementById('scriptInput').value = presets[preset];
+            log(`Loaded ${preset} preset`);
+        }
+
+        function loadScript() {
+            const input = document.getElementById('scriptInput').value.trim();
+            
+            if (!input) {
+                setStatus('Please enter a script tag', 'error');
+                log('Error: No script provided', 'error');
+                return;
+            }
+
+            // Extract src from script tag
+            const srcMatch = input.match(/src=['"]([^'"]+)['"]/);
+            if (!srcMatch) {
+                setStatus('Invalid script tag format', 'error');
+                log('Error: Could not find src attribute', 'error');
+                return;
+            }
+
+            const src = srcMatch[1];
+            log(`Loading script: ${src}`);
+            setStatus('Loading script...', 'info');
+
+            // Create and load script
+            const script = document.createElement('script');
+            script.src = src;
+            
+            script.onload = function() {
+                setStatus('Script loaded successfully!', 'success');
+                log(`✅ Script loaded successfully: ${src}`);
+            };
+            
+            script.onerror = function() {
+                setStatus('Failed to load script', 'error');
+                log(`❌ Failed to load script: ${src}`);
+            };
+
+            document.head.appendChild(script);
+        }
+
+        function clearAll() {
+            document.getElementById('scriptInput').value = '';
+            document.getElementById('output').textContent = 'Console cleared...';
+            document.getElementById('status').innerHTML = '';
+            log('Console and input cleared');
+        }
+
+        // Test functions for loaded libraries
+        function testJQuery() {
+            if (typeof $ !== 'undefined') {
+                log('✅ jQuery is available! Version: ' + $.fn.jquery);
+                $('body').append('<div style="position:fixed;top:10px;right:10px;background:green;color:white;padding:10px;border-radius:5px;z-index:9999;">jQuery Works!</div>');
+                setTimeout(() => $('div:last').fadeOut(), 2000);
+            } else {
+                log('❌ jQuery is not loaded');
+            }
+        }
+
+        function testBootstrap() {
+            if (typeof bootstrap !== 'undefined') {
+                log('✅ Bootstrap is available!');
+            } else {
+                log('❌ Bootstrap is not loaded');
+            }
+        }
+
+        function testVue() {
+            if (typeof Vue !== 'undefined') {
+                log('✅ Vue.js is available! Version: ' + Vue.version);
+            } else {
+                log('❌ Vue.js is not loaded');
+            }
+        }
+
+        function testReact() {
+            if (typeof React !== 'undefined') {
+                log('✅ React is available! Version: ' + React.version);
+            } else {
+                log('❌ React is not loaded');
+            }
+        }
+
+        function testLodash() {
+            if (typeof _ !== 'undefined') {
+                log('✅ Lodash is available! Version: ' + _.VERSION);
+                log('Test: _.capitalize("hello world") = ' + _.capitalize("hello world"));
+            } else {
+                log('❌ Lodash is not loaded');
+            }
+        }
+
+        function testMoment() {
+            if (typeof moment !== 'undefined') {
+                log('✅ Moment.js is available! Version: ' + moment.version);
+                log('Current time: ' + moment().format('YYYY-MM-DD HH:mm:ss'));
+            } else {
+                log('❌ Moment.js is not loaded');
+            }
+        }
+
+        // Initial log
+        log('CDN Script Tester ready! 🚀');
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'985458a5818a13f9',t:'MTc1ODkwNjMyOC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
