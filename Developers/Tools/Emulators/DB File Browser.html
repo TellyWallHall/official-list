@@ -1,0 +1,1028 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DB File Viewer</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0a0a0a;
+            color: #e5e5e5;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 300;
+            color: #ffffff;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            font-size: 14px;
+            color: #888;
+        }
+
+        .file-input-container {
+            background: #1a1a1a;
+            border: 2px dashed #333;
+            border-radius: 12px;
+            padding: 40px 20px;
+            text-align: center;
+            margin-bottom: 30px;
+            transition: all 0.3s ease;
+        }
+
+        .file-input-container:hover {
+            border-color: #555;
+            background: #1f1f1f;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .file-label {
+            cursor: pointer;
+            display: block;
+        }
+
+        .file-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.6;
+        }
+
+        .file-text {
+            font-size: 16px;
+            color: #ccc;
+            margin-bottom: 8px;
+        }
+
+        .file-subtext {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .controls {
+            display: none;
+            margin-bottom: 20px;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+
+        .page-btn {
+            background: #2a2a2a;
+            border: 1px solid #444;
+            color: #e5e5e5;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            min-width: 40px;
+        }
+
+        .page-btn:hover {
+            background: #333;
+        }
+
+        .page-btn.active {
+            background: #0066cc;
+            border-color: #0066cc;
+        }
+
+        .page-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .page-info {
+            color: #888;
+            font-size: 14px;
+            margin: 0 10px;
+        }
+
+        .btn {
+            background: #2a2a2a;
+            border: 1px solid #444;
+            color: #e5e5e5;
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn:hover {
+            background: #333;
+            border-color: #555;
+        }
+
+        .btn.active {
+            background: #0066cc;
+            border-color: #0066cc;
+        }
+
+        .query-container {
+            display: none;
+            margin-bottom: 20px;
+        }
+
+        .query-input {
+            width: 100%;
+            background: #1a1a1a;
+            border: 1px solid #333;
+            color: #e5e5e5;
+            padding: 12px;
+            border-radius: 8px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 14px;
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .query-input:focus {
+            outline: none;
+            border-color: #0066cc;
+        }
+
+        .execute-btn {
+            background: #0066cc;
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        .execute-btn:hover {
+            background: #0052a3;
+        }
+
+        .results-container {
+            display: none;
+        }
+
+        .table-info {
+            background: #1a1a1a;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+
+        .table-info h3 {
+            font-size: 16px;
+            margin-bottom: 12px;
+            color: #fff;
+        }
+
+        .tables-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .table-card {
+            background: #2a2a2a;
+            border: 1px solid #444;
+            border-radius: 8px;
+            padding: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .table-card:hover {
+            background: #333;
+            border-color: #555;
+        }
+
+        .table-card.selected {
+            background: #0066cc;
+            border-color: #0066cc;
+        }
+
+        .table-name {
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+
+        .table-count {
+            font-size: 12px;
+            color: #888;
+        }
+
+        .data-table {
+            width: 100%;
+            background: #1a1a1a;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid #333;
+        }
+
+        .data-table th,
+        .data-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #333;
+            font-size: 14px;
+        }
+
+        .data-table th {
+            background: #2a2a2a;
+            font-weight: 500;
+            color: #fff;
+        }
+
+        .data-table tr:hover {
+            background: #222;
+        }
+
+        .data-table td.editable {
+            cursor: text;
+            position: relative;
+        }
+
+        .data-table td.editable:hover {
+            background: #2a2a2a;
+        }
+
+        .data-table td.editing {
+            background: #1a3a5c;
+        }
+
+        .edit-input {
+            background: #1a1a1a;
+            border: 1px solid #0066cc;
+            color: #e5e5e5;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 14px;
+            width: 100%;
+            min-width: 100px;
+        }
+
+        .edit-input:focus {
+            outline: none;
+            border-color: #0088ff;
+        }
+
+        .save-indicator {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            background: #00aa00;
+            color: white;
+            font-size: 10px;
+            padding: 2px 4px;
+            border-radius: 2px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .save-indicator.show {
+            opacity: 1;
+        }
+
+        .error {
+            background: #2a1a1a;
+            border: 1px solid #664444;
+            color: #ff6b6b;
+            padding: 12px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-size: 14px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #888;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 15px;
+            }
+            
+            .header h1 {
+                font-size: 20px;
+            }
+            
+            .file-input-container {
+                padding: 30px 15px;
+            }
+            
+            .tables-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .data-table {
+                font-size: 12px;
+            }
+            
+            .data-table th,
+            .data-table td {
+                padding: 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>DB File Viewer</h1>
+            <p>Open and explore SQLite database files</p>
+        </div>
+
+        <div class="file-input-container" id="fileContainer">
+            <label for="fileInput" class="file-label">
+                <div class="file-icon">📁</div>
+                <div class="file-text">Tap to select a .db file</div>
+                <div class="file-subtext">SQLite databases supported</div>
+            </label>
+            <input type="file" id="fileInput" class="file-input" accept=".db,.sqlite,.sqlite3">
+        </div>
+
+        <div class="controls" id="controls">
+            <button class="btn active" id="browseBtn">Browse Tables</button>
+            <button class="btn" id="queryBtn">Custom Query</button>
+            <button class="btn" id="interpretBtn">Interpret Data</button>
+        </div>
+
+        <div class="query-container" id="queryContainer">
+            <textarea class="query-input" id="queryInput" placeholder="SELECT * FROM table_name LIMIT 10;"></textarea>
+            <button class="execute-btn" id="executeBtn">Execute Query</button>
+        </div>
+
+        <div class="interpret-container" id="interpretContainer" style="display: none; margin-bottom: 20px;">
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 8px; color: #ccc; font-size: 14px;">Paste your data to interpret:</label>
+                <textarea class="query-input" id="interpretInput" placeholder="172,27,142,41,238,57,58,189,2,60,50,188..." style="min-height: 100px;"></textarea>
+            </div>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 15px;">
+                <button class="btn" id="hexBtn">As Hex</button>
+                <button class="btn" id="textBtn">As Text</button>
+                <button class="btn" id="base64Btn">As Base64</button>
+                <button class="btn" id="binaryBtn">As Binary</button>
+                <button class="btn" id="hashBtn">As Hash</button>
+            </div>
+            <div id="interpretResults" style="background: #1a1a1a; border-radius: 8px; padding: 16px; border: 1px solid #333;"></div>
+        </div>
+
+        <div class="results-container" id="resultsContainer">
+            <div class="table-info" id="tableInfo">
+                <h3>Database Tables</h3>
+                <div class="tables-grid" id="tablesGrid"></div>
+            </div>
+            <div id="dataDisplay"></div>
+            <div class="pagination" id="pagination" style="display: none;">
+                <button class="page-btn" id="firstBtn">First</button>
+                <button class="page-btn" id="prevBtn">Previous</button>
+                <div class="page-info" id="pageInfo">Page 1 of 1</div>
+                <button class="page-btn" id="nextBtn">Next</button>
+                <button class="page-btn" id="lastBtn">Last</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let db = null;
+        let currentMode = 'browse';
+        let currentTable = null;
+        let currentPage = 1;
+        let rowsPerPage = 50;
+        let totalRows = 0;
+        let totalPages = 0;
+        let tableColumns = [];
+        let primaryKey = null;
+
+        // Initialize SQL.js
+        const config = {
+            locateFile: file => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/${file}`
+        };
+
+        initSqlJs(config).then(function(SQL) {
+            window.SQL = SQL;
+        });
+
+        // File input handling
+        document.getElementById('fileInput').addEventListener('change', handleFile);
+        document.getElementById('fileContainer').addEventListener('dragover', handleDragOver);
+        document.getElementById('fileContainer').addEventListener('drop', handleDrop);
+
+        // Mode switching
+        document.getElementById('browseBtn').addEventListener('click', () => switchMode('browse'));
+        document.getElementById('queryBtn').addEventListener('click', () => switchMode('query'));
+        document.getElementById('interpretBtn').addEventListener('click', () => switchMode('interpret'));
+        document.getElementById('executeBtn').addEventListener('click', executeQuery);
+
+        // Interpretation buttons
+        document.getElementById('hexBtn').addEventListener('click', () => interpretData('hex'));
+        document.getElementById('textBtn').addEventListener('click', () => interpretData('text'));
+        document.getElementById('base64Btn').addEventListener('click', () => interpretData('base64'));
+        document.getElementById('binaryBtn').addEventListener('click', () => interpretData('binary'));
+        document.getElementById('hashBtn').addEventListener('click', () => interpretData('hash'));
+
+        // Pagination controls
+        document.getElementById('firstBtn').addEventListener('click', () => goToPage(1));
+        document.getElementById('prevBtn').addEventListener('click', () => goToPage(currentPage - 1));
+        document.getElementById('nextBtn').addEventListener('click', () => goToPage(currentPage + 1));
+        document.getElementById('lastBtn').addEventListener('click', () => goToPage(totalPages));
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.currentTarget.style.borderColor = '#0066cc';
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            e.currentTarget.style.borderColor = '#333';
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                loadDatabase(files[0]);
+            }
+        }
+
+        function handleFile(e) {
+            const file = e.target.files[0];
+            if (file) {
+                loadDatabase(file);
+            }
+        }
+
+        function loadDatabase(file) {
+            if (!window.SQL) {
+                showError('SQL.js is still loading. Please wait a moment and try again.');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const arrayBuffer = e.target.result;
+                    const uint8Array = new Uint8Array(arrayBuffer);
+                    db = new window.SQL.Database(uint8Array);
+                    
+                    document.getElementById('controls').style.display = 'flex';
+                    document.getElementById('resultsContainer').style.display = 'block';
+                    
+                    loadTables();
+                    switchMode('browse');
+                } catch (error) {
+                    showError('Failed to load database: ' + error.message);
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function loadTables() {
+            try {
+                const stmt = db.prepare("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name");
+                const tables = [];
+                
+                while (stmt.step()) {
+                    const tableName = stmt.get()[0];
+                    const countStmt = db.prepare(`SELECT COUNT(*) FROM "${tableName}"`);
+                    countStmt.step();
+                    const count = countStmt.get()[0];
+                    countStmt.free();
+                    
+                    tables.push({ name: tableName, count: count });
+                }
+                stmt.free();
+                
+                displayTables(tables);
+            } catch (error) {
+                showError('Failed to load tables: ' + error.message);
+            }
+        }
+
+        function displayTables(tables) {
+            const grid = document.getElementById('tablesGrid');
+            grid.innerHTML = '';
+            
+            tables.forEach(table => {
+                const card = document.createElement('div');
+                card.className = 'table-card';
+                card.innerHTML = `
+                    <div class="table-name">${table.name}</div>
+                    <div class="table-count">${table.count} rows</div>
+                `;
+                card.addEventListener('click', () => selectTable(table.name, card));
+                grid.appendChild(card);
+            });
+        }
+
+        function selectTable(tableName, cardElement) {
+            // Remove previous selection
+            document.querySelectorAll('.table-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            
+            // Select current card
+            cardElement.classList.add('selected');
+            
+            // Set current table and reset pagination
+            currentTable = tableName;
+            currentPage = 1;
+            
+            // Get table info and load data
+            getTableInfo(tableName);
+            loadTableData(tableName);
+        }
+
+        function getTableInfo(tableName) {
+            try {
+                // Get total row count
+                const countStmt = db.prepare(`SELECT COUNT(*) FROM "${tableName}"`);
+                countStmt.step();
+                totalRows = countStmt.get()[0];
+                countStmt.free();
+                
+                // Calculate total pages
+                totalPages = Math.ceil(totalRows / rowsPerPage);
+                
+                // Get column info and primary key
+                const pragmaStmt = db.prepare(`PRAGMA table_info("${tableName}")`);
+                tableColumns = [];
+                primaryKey = null;
+                
+                while (pragmaStmt.step()) {
+                    const row = pragmaStmt.get();
+                    const columnName = row[1];
+                    const isPrimaryKey = row[5] === 1;
+                    
+                    tableColumns.push(columnName);
+                    if (isPrimaryKey && !primaryKey) {
+                        primaryKey = columnName;
+                    }
+                }
+                pragmaStmt.free();
+                
+            } catch (error) {
+                showError('Failed to get table info: ' + error.message);
+            }
+        }
+
+        function loadTableData(tableName) {
+            try {
+                const offset = (currentPage - 1) * rowsPerPage;
+                const stmt = db.prepare(`SELECT * FROM "${tableName}" LIMIT ${rowsPerPage} OFFSET ${offset}`);
+                const results = [];
+                const columns = stmt.getColumnNames();
+                
+                while (stmt.step()) {
+                    results.push(stmt.get());
+                }
+                stmt.free();
+                
+                displayResults(columns, results, true);
+                updatePagination();
+            } catch (error) {
+                showError('Failed to load table data: ' + error.message);
+            }
+        }
+
+        function goToPage(page) {
+            if (page < 1 || page > totalPages || page === currentPage) return;
+            
+            currentPage = page;
+            if (currentTable) {
+                loadTableData(currentTable);
+            }
+        }
+
+        function updatePagination() {
+            const pagination = document.getElementById('pagination');
+            const pageInfo = document.getElementById('pageInfo');
+            const firstBtn = document.getElementById('firstBtn');
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+            const lastBtn = document.getElementById('lastBtn');
+            
+            if (totalPages <= 1) {
+                pagination.style.display = 'none';
+                return;
+            }
+            
+            pagination.style.display = 'flex';
+            pageInfo.textContent = `Page ${currentPage} of ${totalPages} (${totalRows} rows)`;
+            
+            firstBtn.disabled = currentPage === 1;
+            prevBtn.disabled = currentPage === 1;
+            nextBtn.disabled = currentPage === totalPages;
+            lastBtn.disabled = currentPage === totalPages;
+        }
+
+        function switchMode(mode) {
+            currentMode = mode;
+            
+            // Update button states
+            document.getElementById('browseBtn').classList.toggle('active', mode === 'browse');
+            document.getElementById('queryBtn').classList.toggle('active', mode === 'query');
+            document.getElementById('interpretBtn').classList.toggle('active', mode === 'interpret');
+            
+            // Show/hide containers
+            document.getElementById('queryContainer').style.display = mode === 'query' ? 'block' : 'none';
+            document.getElementById('interpretContainer').style.display = mode === 'interpret' ? 'block' : 'none';
+            document.getElementById('tableInfo').style.display = mode === 'browse' ? 'block' : 'none';
+            document.getElementById('pagination').style.display = mode === 'browse' && totalPages > 1 ? 'flex' : 'none';
+        }
+
+        function executeQuery() {
+            const query = document.getElementById('queryInput').value.trim();
+            if (!query) {
+                showError('Please enter a SQL query');
+                return;
+            }
+            
+            try {
+                const stmt = db.prepare(query);
+                const results = [];
+                const columns = stmt.getColumnNames();
+                
+                while (stmt.step()) {
+                    results.push(stmt.get());
+                }
+                stmt.free();
+                
+                // Hide pagination for custom queries
+                document.getElementById('pagination').style.display = 'none';
+                displayResults(columns, results, false);
+            } catch (error) {
+                showError('Query error: ' + error.message);
+            }
+        }
+
+        function displayResults(columns, rows, isEditable = false) {
+            const display = document.getElementById('dataDisplay');
+            
+            if (rows.length === 0) {
+                display.innerHTML = '<div class="loading">No data found</div>';
+                return;
+            }
+            
+            let html = '<table class="data-table"><thead><tr>';
+            columns.forEach(col => {
+                html += `<th>${col}</th>`;
+            });
+            html += '</tr></thead><tbody>';
+            
+            rows.forEach((row, rowIndex) => {
+                const actualRowIndex = isEditable ? (currentPage - 1) * rowsPerPage + rowIndex : rowIndex;
+                html += '<tr>';
+                row.forEach((cell, colIndex) => {
+                    const cellValue = cell === null ? '<em>NULL</em>' : String(cell);
+                    const columnName = columns[colIndex];
+                    
+                    if (isEditable && currentTable) {
+                        html += `<td class="editable" data-row="${actualRowIndex}" data-column="${columnName}" data-original="${cell}">${cellValue}<div class="save-indicator">Saved</div></td>`;
+                    } else {
+                        html += `<td>${cellValue}</td>`;
+                    }
+                });
+                html += '</tr>';
+            });
+            
+            html += '</tbody></table>';
+            display.innerHTML = html;
+            
+            // Add click listeners for editable cells
+            if (isEditable) {
+                addEditListeners();
+            }
+        }
+
+        function addEditListeners() {
+            document.querySelectorAll('.editable').forEach(cell => {
+                cell.addEventListener('click', function() {
+                    if (this.classList.contains('editing')) return;
+                    
+                    const originalValue = this.dataset.original;
+                    const displayValue = originalValue === 'null' ? '' : originalValue;
+                    
+                    this.classList.add('editing');
+                    const input = document.createElement('input');
+                    input.className = 'edit-input';
+                    input.value = displayValue;
+                    input.type = 'text';
+                    
+                    this.innerHTML = '';
+                    this.appendChild(input);
+                    input.focus();
+                    input.select();
+                    
+                    const saveEdit = () => {
+                        const newValue = input.value;
+                        const rowIndex = this.dataset.row;
+                        const columnName = this.dataset.column;
+                        
+                        updateCell(rowIndex, columnName, originalValue, newValue, this);
+                    };
+                    
+                    input.addEventListener('blur', saveEdit);
+                    input.addEventListener('keydown', (e) => {
+                        if (e.key === 'Enter') {
+                            saveEdit();
+                        } else if (e.key === 'Escape') {
+                            cancelEdit(this, originalValue);
+                        }
+                    });
+                });
+            });
+        }
+
+        function updateCell(rowIndex, columnName, originalValue, newValue, cellElement) {
+            if (!primaryKey) {
+                showError('Cannot edit: No primary key found in table');
+                cancelEdit(cellElement, originalValue);
+                return;
+            }
+            
+            try {
+                // Get the primary key value for this row
+                const offset = Math.floor(rowIndex / rowsPerPage) * rowsPerPage;
+                const localRowIndex = rowIndex % rowsPerPage;
+                
+                const pkStmt = db.prepare(`SELECT "${primaryKey}" FROM "${currentTable}" LIMIT ${rowsPerPage} OFFSET ${offset}`);
+                let pkValue = null;
+                let currentIndex = 0;
+                
+                while (pkStmt.step() && currentIndex <= localRowIndex) {
+                    if (currentIndex === localRowIndex) {
+                        pkValue = pkStmt.get()[0];
+                        break;
+                    }
+                    currentIndex++;
+                }
+                pkStmt.free();
+                
+                if (pkValue === null) {
+                    throw new Error('Could not find primary key value');
+                }
+                
+                // Update the database
+                const updateStmt = db.prepare(`UPDATE "${currentTable}" SET "${columnName}" = ? WHERE "${primaryKey}" = ?`);
+                updateStmt.run([newValue === '' ? null : newValue, pkValue]);
+                updateStmt.free();
+                
+                // Update the display
+                const displayValue = newValue === '' ? '<em>NULL</em>' : newValue;
+                cellElement.innerHTML = `${displayValue}<div class="save-indicator">Saved</div>`;
+                cellElement.classList.remove('editing');
+                cellElement.dataset.original = newValue === '' ? 'null' : newValue;
+                
+                // Show save indicator
+                const indicator = cellElement.querySelector('.save-indicator');
+                indicator.classList.add('show');
+                setTimeout(() => {
+                    indicator.classList.remove('show');
+                }, 2000);
+                
+            } catch (error) {
+                showError('Failed to update cell: ' + error.message);
+                cancelEdit(cellElement, originalValue);
+            }
+        }
+
+        function cancelEdit(cellElement, originalValue) {
+            const displayValue = originalValue === 'null' ? '<em>NULL</em>' : originalValue;
+            cellElement.innerHTML = `${displayValue}<div class="save-indicator">Saved</div>`;
+            cellElement.classList.remove('editing');
+        }
+
+        function interpretData(format) {
+            const input = document.getElementById('interpretInput').value.trim();
+            const results = document.getElementById('interpretResults');
+            
+            if (!input) {
+                results.innerHTML = '<div style="color: #888;">Please enter some data to interpret</div>';
+                return;
+            }
+            
+            try {
+                let bytes = [];
+                
+                // Parse input as comma-separated numbers
+                if (input.includes(',')) {
+                    bytes = input.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n) && n >= 0 && n <= 255);
+                } else if (input.match(/^[0-9\s]+$/)) {
+                    // Space-separated numbers
+                    bytes = input.split(/\s+/).map(s => parseInt(s.trim())).filter(n => !isNaN(n) && n >= 0 && n <= 255);
+                } else {
+                    // Try to parse as hex string
+                    const hexStr = input.replace(/[^0-9a-fA-F]/g, '');
+                    for (let i = 0; i < hexStr.length; i += 2) {
+                        const byte = parseInt(hexStr.substr(i, 2), 16);
+                        if (!isNaN(byte)) bytes.push(byte);
+                    }
+                }
+                
+                if (bytes.length === 0) {
+                    results.innerHTML = '<div style="color: #ff6b6b;">Could not parse input as byte data</div>';
+                    return;
+                }
+                
+                let output = '';
+                
+                switch (format) {
+                    case 'hex':
+                        const hexStr = bytes.map(b => b.toString(16).padStart(2, '0')).join(' ');
+                        output = `<div><strong>Hexadecimal (spaced):</strong></div><div style="font-family: monospace; margin-top: 8px; word-break: break-all; background: #2a2a2a; padding: 8px; border-radius: 4px;">${hexStr}</div>`;
+                        output += `<div style="margin-top: 12px;"><strong>Hex String (continuous):</strong></div><div style="font-family: monospace; margin-top: 8px; word-break: break-all; background: #2a2a2a; padding: 8px; border-radius: 4px;">${bytes.map(b => b.toString(16).padStart(2, '0')).join('')}</div>`;
+                        break;
+                        
+                    case 'text':
+                        const textStr = bytes.map(b => {
+                            if (b >= 32 && b <= 126) return String.fromCharCode(b);
+                            return `\\x${b.toString(16).padStart(2, '0')}`;
+                        }).join('');
+                        const cleanText = bytes.map(b => b >= 32 && b <= 126 ? String.fromCharCode(b) : '?').join('');
+                        const utf8Text = tryDecodeUTF8(bytes);
+                        
+                        output = `<div><strong>As ASCII Text:</strong></div><div style="font-family: monospace; margin-top: 8px; word-break: break-all; background: #2a2a2a; padding: 8px; border-radius: 4px;">${cleanText}</div>`;
+                        output += `<div style="margin-top: 12px;"><strong>With Escape Sequences:</strong></div><div style="font-family: monospace; margin-top: 8px; word-break: break-all; background: #2a2a2a; padding: 8px; border-radius: 4px; font-size: 12px;">${textStr}</div>`;
+                        
+                        if (utf8Text && utf8Text !== cleanText) {
+                            output += `<div style="margin-top: 12px;"><strong>As UTF-8:</strong></div><div style="font-family: monospace; margin-top: 8px; word-break: break-all; background: #2a2a2a; padding: 8px; border-radius: 4px;">${utf8Text}</div>`;
+                        }
+                        break;
+                        
+                    case 'base64':
+                        const base64Str = btoa(String.fromCharCode(...bytes));
+                        output = `<div><strong>Base64:</strong></div><div style="font-family: monospace; margin-top: 8px; word-break: break-all; background: #2a2a2a; padding: 8px; border-radius: 4px;">${base64Str}</div>`;
+                        break;
+                        
+                    case 'binary':
+                        const binaryStr = bytes.map(b => b.toString(2).padStart(8, '0')).join(' ');
+                        output = `<div><strong>Binary:</strong></div><div style="font-family: monospace; margin-top: 8px; word-break: break-all; font-size: 11px; background: #2a2a2a; padding: 8px; border-radius: 4px;">${binaryStr}</div>`;
+                        break;
+                        
+                    case 'hash':
+                        // Comprehensive analysis
+                        const length = bytes.length;
+                        const entropy = calculateEntropy(bytes);
+                        const isAscii = bytes.every(b => b >= 32 && b <= 126);
+                        const hasNulls = bytes.includes(0);
+                        const uniqueBytes = new Set(bytes).size;
+                        const avgValue = bytes.reduce((a, b) => a + b, 0) / bytes.length;
+                        const patterns = findPatterns(bytes);
+                        
+                        output = `<div><strong>📊 Data Analysis:</strong></div>`;
+                        output += `<div style="margin-top: 12px; background: #2a2a2a; padding: 12px; border-radius: 6px;">`;
+                        output += `<div><strong>Basic Properties:</strong></div>`;
+                        output += `<div style="margin: 8px 0;">• Length: ${length} bytes</div>`;
+                        output += `<div style="margin: 8px 0;">• Unique values: ${uniqueBytes}/256 possible</div>`;
+                        output += `<div style="margin: 8px 0;">• Average value: ${avgValue.toFixed(1)}</div>`;
+                        output += `<div style="margin: 8px 0;">• Entropy: ${entropy.toFixed(2)} bits/byte (max: 8.0)</div>`;
+                        output += `<div style="margin: 8px 0;">• Contains null bytes: ${hasNulls ? 'Yes' : 'No'}</div>`;
+                        output += `<div style="margin: 8px 0;">• All ASCII printable: ${isAscii ? 'Yes' : 'No'}</div>`;
+                        output += `</div>`;
+                        
+                        output += `<div style="margin-top: 12px; background: #2a2a2a; padding: 12px; border-radius: 6px;">`;
+                        output += `<div><strong>🔍 Possible Data Types:</strong></div>`;
+                        
+                        if (length === 16) output += `<div style="margin: 6px 0; color: #00aa00;">✓ MD5 hash (16 bytes)</div>`;
+                        if (length === 20) output += `<div style="margin: 6px 0; color: #00aa00;">✓ SHA-1 hash (20 bytes)</div>`;
+                        if (length === 32) output += `<div style="margin: 6px 0; color: #00aa00;">✓ SHA-256 hash or AES-256 key (32 bytes)</div>`;
+                        if (length === 64) output += `<div style="margin: 6px 0; color: #00aa00;">✓ SHA-512 hash (64 bytes)</div>`;
+                        if (length % 16 === 0) output += `<div style="margin: 6px 0; color: #0088ff;">• AES block size multiple (${length/16} blocks)</div>`;
+                        if (length === 51) output += `<div style="margin: 6px 0; color: #00aa00;">✓ Possible: Private key or signature data</div>`;
+                        
+                        if (entropy > 7.5) {
+                            output += `<div style="margin: 6px 0; color: #ff8800;">• High entropy: Likely encrypted/compressed data</div>`;
+                        } else if (entropy < 4.0) {
+                            output += `<div style="margin: 6px 0; color: #0088ff;">• Low entropy: Likely structured/text data</div>`;
+                        }
+                        
+                        if (patterns.length > 0) {
+                            output += `<div style="margin: 6px 0; color: #aa00aa;">• Patterns detected: ${patterns.join(', ')}</div>`;
+                        }
+                        
+                        output += `</div>`;
+                        
+                        // Show byte distribution
+                        const distribution = getByteDistribution(bytes);
+                        output += `<div style="margin-top: 12px; background: #2a2a2a; padding: 12px; border-radius: 6px;">`;
+                        output += `<div><strong>📈 Value Distribution:</strong></div>`;
+                        output += `<div style="margin-top: 8px; font-family: monospace; font-size: 11px;">`;
+                        output += distribution;
+                        output += `</div></div>`;
+                        
+                        break;
+                }
+                
+                results.innerHTML = output;
+                
+            } catch (error) {
+                results.innerHTML = `<div style="color: #ff6b6b;">Error interpreting data: ${error.message}</div>`;
+            }
+        }
+        
+        function tryDecodeUTF8(bytes) {
+            try {
+                const decoder = new TextDecoder('utf-8', { fatal: true });
+                return decoder.decode(new Uint8Array(bytes));
+            } catch {
+                return null;
+            }
+        }
+        
+        function findPatterns(bytes) {
+            const patterns = [];
+            
+            // Check for repeating sequences
+            for (let len = 2; len <= Math.min(8, bytes.length / 2); len++) {
+                for (let i = 0; i <= bytes.length - len * 2; i++) {
+                    const seq = bytes.slice(i, i + len);
+                    const next = bytes.slice(i + len, i + len * 2);
+                    if (seq.every((b, idx) => b === next[idx])) {
+                        patterns.push(`${len}-byte repeat at position ${i}`);
+                        break;
+                    }
+                }
+            }
+            
+            // Check for incrementing sequences
+            for (let i = 0; i < bytes.length - 3; i++) {
+                if (bytes[i+1] === bytes[i] + 1 && bytes[i+2] === bytes[i] + 2 && bytes[i+3] === bytes[i] + 3) {
+                    patterns.push(`Incrementing sequence at position ${i}`);
+                }
+            }
+            
+            return patterns;
+        }
+        
+        function getByteDistribution(bytes) {
+            const ranges = [
+                { name: 'Control (0-31)', min: 0, max: 31, count: 0 },
+                { name: 'Printable (32-126)', min: 32, max: 126, count: 0 },
+                { name: 'Extended (127-255)', min: 127, max: 255, count: 0 }
+            ];
+            
+            bytes.forEach(b => {
+                ranges.forEach(range => {
+                    if (b >= range.min && b <= range.max) range.count++;
+                });
+            });
+            
+            return ranges.map(r => 
+                `${r.name}: ${r.count} (${(r.count/bytes.length*100).toFixed(1)}%)`
+            ).join('<br>');
+        }
+        
+        function calculateEntropy(bytes) {
+            const freq = {};
+            bytes.forEach(b => freq[b] = (freq[b] || 0) + 1);
+            
+            let entropy = 0;
+            const length = bytes.length;
+            
+            Object.values(freq).forEach(count => {
+                const p = count / length;
+                entropy -= p * Math.log2(p);
+            });
+            
+            return entropy;
+        }
+
+        function showError(message) {
+            const display = document.getElementById('dataDisplay');
+            display.innerHTML = `<div class="error">${message}</div>`;
+        }
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'977d7809952fc987',t:'MTc1NjY1MzE3NS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
