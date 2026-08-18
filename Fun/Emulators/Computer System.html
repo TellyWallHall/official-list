@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<!-- by ImPot8o https://github.com/ImPot8o pot8o.dev -->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Virtual Computer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;500;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            touch-action: manipulation;
+            overscroll-behavior: none;
+        }
+        
+        .mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        
+        .computer-screen {
+            height: 40vh;
+            overflow: auto;
+        }
+        
+        .memory-cell {
+            transition: background-color 0.3s;
+        }
+        
+        .memory-cell.active {
+            background-color: #4ade80;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .btn {
+            transition: all 0.2s;
+        }
+        
+        .btn:active {
+            transform: scale(0.95);
+        }
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+        
+        /* Animation for CPU processing */
+        @keyframes pulse {
+            0% { opacity: 0.6; }
+            50% { opacity: 1; }
+            100% { opacity: 0.6; }
+        }
+        
+        .cpu-active {
+            animation: pulse 1.5s infinite;
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-white min-h-screen">
+    <div class="container mx-auto px-4 py-6">
+        <header class="mb-6">
+            <h1 class="text-2xl font-bold text-center text-cyan-400">Virtual Computer</h1>
+            <div class="flex justify-between items-center mt-2">
+                <div class="flex items-center">
+                    <div id="power-indicator" class="w-3 h-3 rounded-full bg-green-500 mr-2"></div>
+                    <span class="text-xs">POWER ON</span>
+                </div>
+                <div class="flex items-center">
+                    <span id="cpu-status" class="text-xs mr-2">CPU: Idle</span>
+                    <div id="cpu-indicator" class="w-3 h-3 rounded-full bg-blue-500"></div>
+                </div>
+            </div>
+        </header>
+        
+        <!-- Computer Display -->
+        <div class="bg-slate-800 rounded-lg border border-slate-700 shadow-lg overflow-hidden mb-4">
+            <div id="computer-display" class="computer-screen p-3 mono bg-slate-950 text-green-400 text-sm">
+                <div id="output">Welcome to Virtual Computer v1.0
+> System initialized
+> Type 'help' for commands
+</div>
+            </div>
+            
+            <div class="p-2 bg-slate-800 border-t border-slate-700">
+                <div class="flex">
+                    <input id="command-input" type="text" class="flex-1 bg-slate-900 text-white px-3 py-2 rounded-l-md border border-slate-700 mono text-sm focus:outline-none focus:ring-1 focus:ring-cyan-500" placeholder="Enter command...">
+                    <button id="run-btn" class="bg-cyan-600 hover:bg-cyan-700 text-white px-4 py-2 rounded-r-md font-medium text-sm btn">Run</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Tabs -->
+        <div class="mb-4">
+            <div class="flex border-b border-slate-700">
+                <button class="tab-btn px-4 py-2 text-sm font-medium text-cyan-400 border-b-2 border-cyan-400" data-tab="system">System</button>
+                <button class="tab-btn px-4 py-2 text-sm font-medium text-slate-400 hover:text-slate-200" data-tab="memory">Memory</button>
+                <button class="tab-btn px-4 py-2 text-sm font-medium text-slate-400 hover:text-slate-200" data-tab="program">Program</button>
+                <button class="tab-btn px-4 py-2 text-sm font-medium text-slate-400 hover:text-slate-200" data-tab="help">Help</button>
+            </div>
+            
+            <!-- System Tab -->
+            <div id="system-tab" class="tab-content active p-4 bg-slate-800 rounded-b-lg border-x border-b border-slate-700">
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-slate-900 p-3 rounded-lg">
+                        <h3 class="text-sm font-bold mb-2 text-cyan-400">CPU</h3>
+                        <div class="text-xs space-y-1">
+                            <div class="flex justify-between">
+                                <span>Status:</span>
+                                <span id="cpu-state">Idle</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>Registers:</span>
+                                <span id="cpu-registers">A:0 B:0 C:0 D:0</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>Program Counter:</span>
+                                <span id="program-counter">0</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-slate-900 p-3 rounded-lg">
+                        <h3 class="text-sm font-bold mb-2 text-cyan-400">Graphics</h3>
+                        <div class="text-xs space-y-1">
+                            <div class="flex justify-between">
+                                <span>Resolution:</span>
+                                <span>32x16 virtual</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>Buffer:</span>
+                                <span id="graphics-buffer">Empty</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>Mode:</span>
+                                <span>Text</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-slate-900 p-3 rounded-lg">
+                        <h3 class="text-sm font-bold mb-2 text-cyan-400">Memory</h3>
+                        <div class="text-xs space-y-1">
+                            <div class="flex justify-between">
+                                <span>Total:</span>
+                                <span>256 bytes</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>Used:</span>
+                                <span id="memory-used">0 bytes</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>Free:</span>
+                                <span id="memory-free">256 bytes</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-slate-900 p-3 rounded-lg">
+                        <h3 class="text-sm font-bold mb-2 text-cyan-400">System</h3>
+                        <div class="text-xs space-y-1">
+                            <div class="flex justify-between">
+                                <span>OS:</span>
+                                <span>VOS 1.3</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>Uptime:</span>
+                                <span id="uptime">00:00:00</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>Status:</span>
+                                <span class="text-green-400">Online</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Memory Tab -->
+            <div id="memory-tab" class="tab-content p-4 bg-slate-800 rounded-b-lg border-x border-b border-slate-700">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="text-sm font-bold text-cyan-400">Memory Viewer</h3>
+                    <button id="clear-memory-btn" class="text-xs bg-slate-700 hover:bg-slate-600 px-2 py-1 rounded btn">Clear Memory</button>
+                </div>
+                <div class="bg-slate-900 p-2 rounded-lg overflow-x-auto">
+                    <div id="memory-grid" class="grid grid-cols-8 gap-1 mono text-xs">
+                        <!-- Memory cells will be generated here -->
+                    </div>
+                </div>
+                <div class="mt-3 flex items-center">
+                    <label class="text-xs mr-2">Address:</label>
+                    <input id="memory-address" type="number" min="0" max="255" value="0" class="w-16 bg-slate-900 text-white px-2 py-1 rounded border border-slate-700 text-xs focus:outline-none focus:ring-1 focus:ring-cyan-500 mr-2">
+                    <label class="text-xs mr-2">Value:</label>
+                    <input id="memory-value" type="number" min="0" max="255" value="0" class="w-16 bg-slate-900 text-white px-2 py-1 rounded border border-slate-700 text-xs focus:outline-none focus:ring-1 focus:ring-cyan-500 mr-2">
+                    <button id="set-memory-btn" class="text-xs bg-cyan-600 hover:bg-cyan-700 px-2 py-1 rounded btn">Set</button>
+                </div>
+            </div>
+            
+            <!-- Program Tab -->
+            <div id="program-tab" class="tab-content p-4 bg-slate-800 rounded-b-lg border-x border-b border-slate-700">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="text-sm font-bold text-cyan-400">Program Editor</h3>
+                    <div>
+                        <button id="load-example-btn" class="text-xs bg-slate-700 hover:bg-slate-600 px-2 py-1 rounded mr-2 btn">Load Example</button>
+                        <button id="clear-program-btn" class="text-xs bg-slate-700 hover:bg-slate-600 px-2 py-1 rounded btn">Clear</button>
+                    </div>
+                </div>
+                <textarea id="program-editor" class="w-full h-32 bg-slate-900 text-white p-3 rounded-lg border border-slate-700 mono text-sm focus:outline-none focus:ring-1 focus:ring-cyan-500 mb-3" placeholder="Write your program here...
+Example:
+SET A 5
+SET B 10
+ADD A B
+PRINT"></textarea>
+                <div class="flex justify-between">
+                    <button id="load-program-btn" class="bg-cyan-600 hover:bg-cyan-700 text-white px-3 py-1 rounded text-sm font-medium btn">Load Program</button>
+                    <button id="run-program-btn" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm font-medium btn">Run Program</button>
+                </div>
+            </div>
+            
+            <!-- Help Tab -->
+            <div id="help-tab" class="tab-content p-4 bg-slate-800 rounded-b-lg border-x border-b border-slate-700">
+                <h3 class="text-sm font-bold mb-3 text-cyan-400">Help & Documentation</h3>
+                <div class="bg-slate-900 p-3 rounded-lg text-xs space-y-4 overflow-y-auto max-h-64">
+                    <div>
+                        <h4 class="font-bold text-green-400 mb-1">Getting Started</h4>
+                        <p>This is a virtual computer simulation that demonstrates basic computing concepts. You can write and run simple programs, view memory, and see how a CPU processes instructions.</p>
+                    </div>
+                    
+                    <div>
+                        <h4 class="font-bold text-green-400 mb-1">Basic Commands</h4>
+                        <ul class="list-disc pl-4 space-y-1">
+                            <li><span class="text-cyan-400">help</span> - Show available commands</li>
+                            <li><span class="text-cyan-400">clear</span> - Clear the display</li>
+                            <li><span class="text-cyan-400">memory</span> - Show memory contents</li>
+                            <li><span class="text-cyan-400">set [address] [value]</span> - Set memory at address to value</li>
+                            <li><span class="text-cyan-400">get [address]</span> - Get value at memory address</li>
+                            <li><span class="text-cyan-400">run</span> - Run loaded program</li>
+                            <li><span class="text-cyan-400">reset</span> - Reset the system</li>
+                        </ul>
+                    </div>
+                    
+                    <div>
+                        <h4 class="font-bold text-green-400 mb-1">Programming Language</h4>
+                        <p>The virtual computer uses a simple instruction set:</p>
+                        <ul class="list-disc pl-4 space-y-1 mt-1">
+                            <li><span class="text-cyan-400">SET [reg] [value]</span> - Set register to value</li>
+                            <li><span class="text-cyan-400">LOAD [reg] [address]</span> - Load from memory to register</li>
+                            <li><span class="text-cyan-400">STORE [reg] [address]</span> - Store register to memory</li>
+                            <li><span class="text-cyan-400">ADD [reg1] [reg2]</span> - Add reg2 to reg1</li>
+                            <li><span class="text-cyan-400">SUB [reg1] [reg2]</span> - Subtract reg2 from reg1</li>
+                            <li><span class="text-cyan-400">JUMP [line]</span> - Jump to line number/label (LABEL:)</li>
+                            <li><span class="text-cyan-400">JZ [reg] [line]</span> - Jump if register is zero</li>
+                            <li><span class="text-cyan-400">JL [reg1] [reg2] [line]</span> - Jump if reg1 is less than reg2</li>
+                            <li><span class="text-cyan-400">JG [reg1] [reg2] [line]</span> - Jump if reg1 is greater than reg2</li>
+                            <li><span class="text-cyan-400">JE [reg1] [reg2] [line]</span> - Jump if reg1 is equal to reg2</li>
+                            <li><span class="text-cyan-400">PRINT</span> - Print register A value</li>
+                            <li><span class="text-cyan-400">HALT</span> - Stop program execution</li>
+                        </ul>
+                    </div>
+                    
+                    <div>
+                        <h4 class="font-bold text-green-400 mb-1">Example Program</h4>
+                        <pre class="bg-slate-950 p-2 rounded mt-1">
+# count down
+SET A 38   # starting number
+SET B 5    # initial decrement
+SET C 3    # decrement amount
+SUB A B    # subtract b from a
+LOOP:
+PRINT      # print a
+JL A B END # if a not less then b
+JE A B END # if a not equal to b
+SUB A C    # subtract c from a
+JUMP LOOP  # loop
+
+
+END:
+HALT       # end program
+</pre>
+                    </div>
+                    
+                    <div>
+                        <h4 class="font-bold text-green-400 mb-1">About This Computer</h4>
+                        <p>This virtual computer is Turing-complete, meaning it can simulate any computation given enough time and memory. It features:</p>
+                        <ul class="list-disc pl-4 space-y-1 mt-1">
+                            <li>256 bytes of memory</li>
+                            <li>4 general-purpose registers (A, B, C, D)</li>
+                            <li>A simple instruction set</li>
+                            <li>Text-based display output</li>
+                            <li>Program counter and execution control</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Control Panel -->
+        <div class="grid grid-cols-3 gap-2">
+            <button id="reset-btn" class="bg-red-600 hover:bg-red-700 text-white py-2 rounded font-medium text-sm btn">Reset</button>
+            <button id="help-btn" class="bg-slate-600 hover:bg-slate-700 text-white py-2 rounded font-medium text-sm btn">Help</button>
+            <button id="power-btn" class="bg-green-600 hover:bg-green-700 text-white py-2 rounded font-medium text-sm btn">Power</button>
+        </div>
+    </div>
+
+    <script>
+localStorage.setItem('pot8o watermark', `${localStorage.getItem('pot8o watermark') || ''} computer-m4`);
+        // Virtual Computer Implementation
+        class VirtualComputer {
+            constructor() {
+                this.memory = new Uint8Array(256);
+                this.registers = { A: 0, B: 0, C: 0, D: 0};
+                this.programCounter = 0;
+                this.running = false;
+                this.program = [];
+                this.output = document.getElementById('output');
+                this.powerOn = true;
+                this.startTime = Date.now();
+                
+                // Initialize memory display
+                this.initMemoryDisplay();
+                this.updateMemoryUsage();
+                this.updateSystemInfo();
+                
+                // Start the uptime counter
+                setInterval(() => this.updateUptime(), 1000);
+            }
+            
+            reset() {
+                this.memory.fill(0);
+                this.registers = { A: 0, B: 0, C: 0, D: 0};
+                this.programCounter = 0;
+                this.running = false;
+                this.program = [];
+                this.startTime = Date.now();
+                this.updateMemoryDisplay();
+                this.updateMemoryUsage();
+                this.updateSystemInfo();
+                this.print("System reset complete.");
+            }
+            
+            print(text) {
+                this.output.innerHTML += "\n> " + text;
+                this.output.scrollTop = this.output.scrollHeight;
+            }
+            
+            clearScreen() {
+                this.output.innerHTML = "";
+            }
+            
+            togglePower() {
+                this.powerOn = !this.powerOn;
+                const powerIndicator = document.getElementById('power-indicator');
+                
+                if (this.powerOn) {
+                    powerIndicator.classList.remove('bg-red-500');
+                    powerIndicator.classList.add('bg-green-500');
+                    this.print("System powering on...");
+                    this.print("VOS v1.3 initialized");
+                    this.startTime = Date.now();
+                } else {
+                    this.running = false;
+                    powerIndicator.classList.remove('bg-green-500');
+                    powerIndicator.classList.add('bg-red-500');
+                    this.print("System shutting down...");
+                    setTimeout(() => {
+                        this.clearScreen();
+                        this.output.innerHTML = "POWER OFF";
+                    }, 1000);
+                }
+                
+                this.updateSystemInfo();
+            }
+            
+            loadProgram(code) {
+                if (!this.powerOn) {
+                    this.print("Error: System is powered off");
+                    return;
+                }
+                
+                this.program = [];
+                const lines = code.split('\n');
+                
+                for (let line of lines) {
+                    // Remove comments
+                    line = line.split('#')[0].trim();
+                    if (line === '') continue;
+                    
+                    // Handle labels
+                    if (line.endsWith(':')) {
+                        const label = line.slice(0, -1);
+                        this.program.push({ type: 'LABEL', label });
+                    } else {
+                        const parts = line.split(/\s+/);
+                        const instruction = parts[0].toUpperCase();
+                        const args = parts.slice(1);
+                        this.program.push({ instruction, args });
+                    }
+                }
+                
+                this.programCounter = 0;
+                this.print(`Program loaded: ${this.program.length} instructions`);
+                
+                // Store program in memory (simplified representation)
+                for (let i = 0; i < Math.min(this.program.length, 128); i++) {
+                    this.memory[i] = 1; // Just mark memory as used
+                }
+                
+                this.updateMemoryDisplay();
+                this.updateMemoryUsage();
+            }
+            
+            async runProgram() {
+                if (!this.powerOn) {
+                    this.print("Error: System is powered off");
+                    return;
+                }
+                
+                if (this.program.length === 0) {
+                    this.print("Error: No program loaded");
+                    return;
+                }
+                
+                this.running = true;
+                this.print("Program execution started");
+                document.getElementById('cpu-state').textContent = "Running";
+                document.getElementById('cpu-status').textContent = "CPU: Active";
+                document.getElementById('cpu-indicator').classList.add('cpu-active');
+                
+                // Create a map of labels to line numbers
+                const labels = {};
+                this.program.forEach((line, index) => {
+                    if (line.type === 'LABEL') {
+                        labels[line.label] = index;
+                    }
+                });
+                
+                this.programCounter = 0;
+                
+                while (this.running && this.programCounter < this.program.length) {
+                    const line = this.program[this.programCounter];
+                    document.getElementById('program-counter').textContent = this.programCounter;
+                    
+                    if (line.type === 'LABEL') {
+                        this.programCounter++;
+                        continue;
+                    }
+                    
+                    const { instruction, args } = line;
+                    
+                    // Execute the instruction
+                    switch (instruction) {
+                        case 'SET':
+                            const reg = args[0];
+                            const value = parseInt(args[1]);
+                            this.registers[reg] = value;
+                            break;
+                            
+                        case 'LOAD':
+                            const loadReg = args[0];
+                            const loadAddr = parseInt(args[1]);
+                            this.registers[loadReg] = this.memory[loadAddr];
+                            
+                            // Highlight the memory cell being accessed
+                            this.highlightMemoryCell(loadAddr);
+                            break;
+                            
+                        case 'STORE':
+                            const storeReg = args[0];
+                            const storeAddr = parseInt(args[1]);
+                            this.memory[storeAddr] = this.registers[storeReg];
+                            this.updateMemoryDisplay();
+                            
+                            // Highlight the memory cell being accessed
+                            this.highlightMemoryCell(storeAddr);
+                            break;
+                            
+                        case 'ADD':
+                            const addReg1 = args[0];
+                            const addReg2 = args[1];
+                            this.registers[addReg1] += this.registers[addReg2];
+                            break;
+                            
+                        case 'SUB':
+                            const subReg1 = args[0];
+                            const subReg2 = args[1];
+                            this.registers[subReg1] -= this.registers[subReg2];
+                            break;
+                            
+                        case 'JUMP':
+                            // Check if jumping to a label or line number
+                            if (isNaN(args[0]) && labels[args[0]] !== undefined) {
+                                this.programCounter = labels[args[0]];
+                            } else {
+                                this.programCounter = parseInt(args[0]);
+                            }
+                            continue; // Skip the increment at the end
+                            
+                        case 'JZ':
+                            const jzReg = args[0];
+                            const jzTarget = args[1];
+                            
+                            if (this.registers[jzReg] === 0) {
+                                if (isNaN(jzTarget) && labels[jzTarget] !== undefined) {
+                                    this.programCounter = labels[jzTarget];
+                                } else {
+                                    this.programCounter = parseInt(jzTarget);
+                                }
+                                continue; // Skip the increment at the end
+                            }
+                            break;
+                        case 'JL':
+                            const jlReg1 = args[0];
+                            const jlReg2 = args[1];
+                            const jlTarget = args[2];
+                            
+                            if (this.registers[jlReg1] < this.registers[jlReg2]) {
+                                if (isNaN(jlTarget) && labels[jlTarget] !== undefined) {
+                                    this.programCounter = labels[jlTarget];
+                                } else {
+                                    this.programCounter = parseInt(jlTarget);
+                                }
+                                continue; // Skip the increment at the end
+                            }
+                            break;
+                        case 'JG':
+                            const jgReg1 = args[0];
+                            const jgReg2 = args[1];
+                            const jgTarget = args[2];
+                            
+                            if (this.registers[jgReg1] > this.registers[jgReg2]) {
+                                if (isNaN(jgTarget) && labels[jgTarget] !== undefined) {
+                                    this.programCounter = labels[jgTarget];
+                                } else {
+                                    this.programCounter = parseInt(jgTarget);
+                                }
+                                continue; // Skip the increment at the end
+                            }
+                            break;
+                        case 'JE':
+                            const jeReg1 = args[0];
+                            const jeReg2 = args[1];
+                            const jeTarget = args[2];
+                            
+                            if (this.registers[jeReg1] === this.registers[jeReg2]) {
+                                if (isNaN(jeTarget) && labels[jeTarget] !== undefined) {
+                                    this.programCounter = labels[jeTarget];
+                                } else {
+                                    this.programCounter = parseInt(jeTarget);
+                                }
+                                continue; // Skip the increment at the end
+                            }
+                            break;
+                            
+                        case 'PRINT':
+                            this.print(`Output: ${this.registers.A}`);
+                            break;
+                            
+                        case 'HALT':
+                            this.running = false;
+                            this.print("Program halted");
+                            break;
+                            
+                        default:
+                            this.print(`Unknown instruction: ${instruction}`);
+                            this.running = false;
+                    }
+                    
+                    this.programCounter++;
+                    this.updateSystemInfo();
+                    
+                    // Add a small delay to visualize execution
+                    await new Promise(resolve => setTimeout(resolve, 300));
+                    
+                    if (!this.powerOn) {
+                        this.running = false;
+                    }
+                }
+                
+                document.getElementById('cpu-state').textContent = "Idle";
+                document.getElementById('cpu-status').textContent = "CPU: Idle";
+                document.getElementById('cpu-indicator').classList.remove('cpu-active');
+                
+                if (this.running) {
+                    this.running = false;
+                    this.print("Program execution completed");
+                }
+            }
+            
+            initMemoryDisplay() {
+                const memoryGrid = document.getElementById('memory-grid');
+                memoryGrid.innerHTML = '';
+                
+                for (let i = 0; i < 256; i++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'memory-cell text-center p-1 bg-slate-950 rounded';
+                    cell.textContent = '00';
+                    cell.dataset.address = i;
+                    memoryGrid.appendChild(cell);
+                }
+            }
+            
+            updateMemoryDisplay() {
+                const cells = document.querySelectorAll('.memory-cell');
+                cells.forEach((cell, i) => {
+                    const value = this.memory[i];
+                    cell.textContent = value.toString(16).padStart(2, '0').toUpperCase();
+                    
+                    // Color based on value
+                    if (value > 0) {
+                        cell.classList.add('bg-slate-800');
+                        cell.classList.remove('bg-slate-950');
+                    } else {
+                        cell.classList.add('bg-slate-950');
+                        cell.classList.remove('bg-slate-800');
+                    }
+                });
+            }
+            
+            highlightMemoryCell(address) {
+                const cells = document.querySelectorAll('.memory-cell');
+                cells.forEach(cell => cell.classList.remove('active'));
+                
+                if (address >= 0 && address < cells.length) {
+                    cells[address].classList.add('active');
+                    setTimeout(() => {
+                        cells[address].classList.remove('active');
+                    }, 500);
+                }
+            }
+            
+            updateMemoryUsage() {
+                const used = this.memory.reduce((sum, val) => sum + (val > 0 ? 1 : 0), 0);
+                document.getElementById('memory-used').textContent = `${used} bytes`;
+                document.getElementById('memory-free').textContent = `${256 - used} bytes`;
+            }
+            
+            updateSystemInfo() {
+                document.getElementById('cpu-registers').textContent = 
+                    `A:${this.registers.A} B:${this.registers.B} C:${this.registers.C} D:${this.registers.D}`;
+                
+                // Update graphics buffer status
+                const graphicsStatus = this.running ? "Active" : "Empty";
+                document.getElementById('graphics-buffer').textContent = graphicsStatus;
+            }
+            
+            updateUptime() {
+                if (!this.powerOn) return;
+                
+                const now = Date.now();
+                const diff = Math.floor((now - this.startTime) / 1000);
+                const hours = Math.floor(diff / 3600).toString().padStart(2, '0');
+                const minutes = Math.floor((diff % 3600) / 60).toString().padStart(2, '0');
+                const seconds = Math.floor(diff % 60).toString().padStart(2, '0');
+                
+                document.getElementById('uptime').textContent = `${hours}:${minutes}:${seconds}`;
+            }
+            
+            executeCommand(cmd) {
+                if (!this.powerOn && cmd !== 'power') {
+                    this.print("Error: System is powered off");
+                    return;
+                }
+                
+                const parts = cmd.trim().split(/\s+/);
+                const command = parts[0].toLowerCase();
+                const args = parts.slice(1);
+                
+                switch (command) {
+                    case 'help':
+                        this.print("Available commands:");
+                        this.print("  help - Show this help");
+                        this.print("  clear - Clear the screen");
+                        this.print("  memory - Show memory contents");
+                        this.print("  set [address] [value] - Set memory value");
+                        this.print("  get [address] - Get memory value");
+                        this.print("  run - Run loaded program");
+                        this.print("  reset - Reset the system");
+                        this.print("  power - Toggle power");
+                        break;
+                        
+                    case 'clear':
+                        this.clearScreen();
+                        break;
+                        
+                    case 'memory':
+                        this.print("Memory dump (first 32 bytes):");
+                        let memoryLine = "";
+                        for (let i = 0; i < 32; i++) {
+                            memoryLine += this.memory[i].toString(16).padStart(2, '0') + " ";
+                            if ((i + 1) % 8 === 0) {
+                                this.print(memoryLine);
+                                memoryLine = "";
+                            }
+                        }
+                        break;
+                        
+                    case 'set':
+                        if (args.length !== 2) {
+                            this.print("Usage: set [address] [value]");
+                            return;
+                        }
+                        
+                        const setAddr = parseInt(args[0]);
+                        const setValue = parseInt(args[1]);
+                        
+                        if (isNaN(setAddr) || setAddr < 0 || setAddr >= 256) {
+                            this.print("Error: Invalid address");
+                            return;
+                        }
+                        
+                        if (isNaN(setValue) || setValue < 0 || setValue > 255) {
+                            this.print("Error: Invalid value (must be 0-255)");
+                            return;
+                        }
+                        
+                        this.memory[setAddr] = setValue;
+                        this.print(`Memory at ${setAddr} set to ${setValue}`);
+                        this.updateMemoryDisplay();
+                        this.updateMemoryUsage();
+                        this.highlightMemoryCell(setAddr);
+                        break;
+                        
+                    case 'get':
+                        if (args.length !== 1) {
+                            this.print("Usage: get [address]");
+                            return;
+                        }
+                        
+                        const getAddr = parseInt(args[0]);
+                        
+                        if (isNaN(getAddr) || getAddr < 0 || getAddr >= 256) {
+                            this.print("Error: Invalid address");
+                            return;
+                        }
+                        
+                        this.print(`Memory at ${getAddr}: ${this.memory[getAddr]}`);
+                        this.highlightMemoryCell(getAddr);
+                        break;
+                        
+                    case 'run':
+                        if (this.running) {
+                            this.print("Program is already running");
+                        } else if (this.program.length === 0) {
+                            this.print("No program loaded");
+                        } else {
+                            this.runProgram();
+                        }
+                        break;
+                        
+                    case 'reset':
+                        this.reset();
+                        break;
+                        
+                    case 'power':
+                        this.togglePower();
+                        break;
+                        
+                    default:
+                        this.print(`Unknown command: ${command}`);
+                }
+            }
+        }
+        
+        // Initialize the virtual computer
+        const computer = new VirtualComputer();
+        
+        // Set up event listeners
+        document.addEventListener('DOMContentLoaded', () => {
+            // Command input
+            const commandInput = document.getElementById('command-input');
+            const runBtn = document.getElementById('run-btn');
+            
+            runBtn.addEventListener('click', () => {
+                const cmd = commandInput.value;
+                if (cmd.trim() !== '') {
+                    computer.print(`$ ${cmd}`);
+                    computer.executeCommand(cmd);
+                    commandInput.value = '';
+                }
+            });
+            
+            commandInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    runBtn.click();
+                }
+            });
+            
+            // Tab switching
+            const tabBtns = document.querySelectorAll('.tab-btn');
+            tabBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const tabId = btn.dataset.tab;
+                    
+                    // Update button styles
+                    tabBtns.forEach(b => {
+                        b.classList.remove('text-cyan-400', 'border-cyan-400');
+                        b.classList.add('text-slate-400');
+                    });
+                    btn.classList.remove('text-slate-400');
+                    btn.classList.add('text-cyan-400', 'border-cyan-400');
+                    
+                    // Show the selected tab
+                    document.querySelectorAll('.tab-content').forEach(tab => {
+                        tab.classList.remove('active');
+                    });
+                    document.getElementById(`${tabId}-tab`).classList.add('active');
+                });
+            });
+            
+            // Memory controls
+            const setMemoryBtn = document.getElementById('set-memory-btn');
+            const clearMemoryBtn = document.getElementById('clear-memory-btn');
+            
+            setMemoryBtn.addEventListener('click', () => {
+                const address = parseInt(document.getElementById('memory-address').value);
+                const value = parseInt(document.getElementById('memory-value').value);
+                
+                if (!isNaN(address) && !isNaN(value)) {
+                    computer.memory[address] = value;
+                    computer.updateMemoryDisplay();
+                    computer.updateMemoryUsage();
+                    computer.highlightMemoryCell(address);
+                }
+            });
+            
+            clearMemoryBtn.addEventListener('click', () => {
+                computer.memory.fill(0);
+                computer.updateMemoryDisplay();
+                computer.updateMemoryUsage();
+                computer.print("Memory cleared");
+            });
+            
+            // Program controls
+            const loadProgramBtn = document.getElementById('load-program-btn');
+            const runProgramBtn = document.getElementById('run-program-btn');
+            const clearProgramBtn = document.getElementById('clear-program-btn');
+            const loadExampleBtn = document.getElementById('load-example-btn');
+            
+            loadProgramBtn.addEventListener('click', () => {
+                const code = document.getElementById('program-editor').value;
+                computer.loadProgram(code);
+            });
+            
+            runProgramBtn.addEventListener('click', () => {
+                if (!computer.running) {
+                    computer.runProgram();
+                }
+            });
+            
+            clearProgramBtn.addEventListener('click', () => {
+                document.getElementById('program-editor').value = '';
+            });
+            
+            loadExampleBtn.addEventListener('click', () => {
+                document.getElementById('program-editor').value = 
+`# count down
+SET A 38   # starting number
+SET B 5    # initial decrement
+SET C 3    # decrement amount
+SUB A B    # subtract b from a
+LOOP:
+PRINT      # print a
+JL A B END # if a not less than b
+JE A B END # if a not equal to b
+SUB A C    # subtract c from a
+JUMP LOOP  # loop
+
+END:
+HALT       # end program`;
+            });
+            
+            // System controls
+            const resetBtn = document.getElementById('reset-btn');
+            const helpBtn = document.getElementById('help-btn');
+            const powerBtn = document.getElementById('power-btn');
+            
+            resetBtn.addEventListener('click', () => {
+                computer.reset();
+            });
+            
+            helpBtn.addEventListener('click', () => {
+                // Switch to help tab
+                tabBtns.forEach(b => {
+                    if (b.dataset.tab === 'help') {
+                        b.click();
+                    }
+                });
+            });
+            
+            powerBtn.addEventListener('click', () => {
+                computer.togglePower();
+            });
+        });
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'955649a7c2001d01',t:'MTc1MDg3MzYyMS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
+
+
