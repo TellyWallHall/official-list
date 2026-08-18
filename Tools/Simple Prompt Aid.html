@@ -1,0 +1,1820 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Prompt Engineer Studio</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://js.puter.com/v2/"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #0a0a0f;
+            color: #e2e8f0;
+            min-height: 100vh;
+            min-height: 100dvh;
+            overflow-x: hidden;
+        }
+
+        .mono { font-family: 'JetBrains Mono', monospace; }
+
+        .gradient-text {
+            background: linear-gradient(135deg, #818cf8, #c084fc, #f472b6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .glass {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .glass-strong {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .section-card { transition: all 0.2s ease; }
+        .section-card:hover { border-color: rgba(129, 140, 248, 0.2); }
+
+        textarea, input[type="text"], input[type="password"], select {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            color: #e2e8f0;
+            font-family: 'Inter', sans-serif;
+            transition: all 0.2s ease;
+            font-size: 16px; /* Prevents iOS zoom */
+        }
+
+        textarea:focus, input:focus, select:focus {
+            outline: none;
+            border-color: rgba(129, 140, 248, 0.5);
+            box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.1);
+        }
+
+        textarea::placeholder, input::placeholder { color: rgba(255, 255, 255, 0.25); }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            transition: all 0.2s ease;
+        }
+        .btn-primary:hover { box-shadow: 0 4px 20px rgba(99, 102, 241, 0.3); }
+        .btn-primary:active { transform: scale(0.98); }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.2s ease;
+        }
+        .btn-secondary:hover { background: rgba(255, 255, 255, 0.1); }
+
+        .btn-danger {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            color: #fca5a5;
+        }
+
+        .copy-btn {
+            background: linear-gradient(135deg, #10b981, #059669);
+            transition: all 0.2s ease;
+        }
+        .copy-btn:active { transform: scale(0.98); }
+        .copy-btn.copied { background: linear-gradient(135deg, #f59e0b, #d97706); }
+
+        .preview-area {
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            line-height: 1.6;
+            color: #cbd5e1;
+        }
+
+        .preview-area .section-header { color: #818cf8; font-weight: 600; }
+
+        .step-indicator {
+            width: 28px; height: 28px;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.7rem; font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        .step-complete {
+            background: rgba(16, 185, 129, 0.2);
+            border: 1px solid rgba(16, 185, 129, 0.4);
+            color: #34d399;
+        }
+
+        .step-pending {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.3);
+        }
+
+
+
+        .progress-bar {
+            height: 3px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #6366f1, #c084fc);
+            border-radius: 3px;
+            transition: width 0.4s ease;
+        }
+
+        /* AI Panel */
+        .ai-panel {
+            position: fixed;
+            top: 0; right: 0;
+            width: 100%;
+            max-width: 420px;
+            height: 100vh;
+            height: 100dvh;
+            background: rgba(10, 10, 18, 0.98);
+            border-left: 1px solid rgba(255, 255, 255, 0.08);
+            z-index: 100;
+            transform: translateX(100%);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .ai-panel.open { transform: translateX(0); }
+
+        .ai-panel-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 99;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .ai-panel-overlay.open { opacity: 1; pointer-events: auto; }
+
+        .ai-toggle-btn {
+            position: fixed;
+            bottom: 100px;
+            right: 16px;
+            z-index: 98;
+            background: linear-gradient(135deg, #ec4899, #8b5cf6);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 14px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 20px rgba(236, 72, 153, 0.3);
+        }
+
+        .ai-toggle-btn:hover { transform: scale(1.05); }
+        .ai-toggle-btn.panel-open { opacity: 0; pointer-events: none; }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .chat-msg {
+            max-width: 88%;
+            padding: 10px 14px;
+            border-radius: 14px;
+            font-size: 0.85rem;
+            line-height: 1.5;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .chat-msg.user {
+            align-self: flex-end;
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .chat-msg.assistant {
+            align-self: flex-start;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            color: #e2e8f0;
+            border-bottom-left-radius: 4px;
+        }
+
+        .chat-msg.assistant pre {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 8px 10px;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-size: 0.7rem;
+            margin: 6px 0;
+        }
+
+        .chat-msg.system {
+            align-self: center;
+            background: rgba(251, 191, 36, 0.1);
+            border: 1px solid rgba(251, 191, 36, 0.2);
+            color: #fbbf24;
+            font-size: 0.75rem;
+            padding: 8px 14px;
+            border-radius: 16px;
+            text-align: center;
+        }
+
+        .chat-msg.error {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            color: #fca5a5;
+        }
+
+        .typing-indicator {
+            display: flex;
+            gap: 4px;
+            padding: 12px 16px;
+        }
+
+        .typing-indicator span {
+            width: 8px; height: 8px;
+            background: #818cf8;
+            border-radius: 50%;
+            animation: bounce 1.4s infinite ease-in-out;
+        }
+        .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+        .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+            40% { transform: scale(1); opacity: 1; }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .quick-action {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            padding: 10px;
+            border-radius: 10px;
+            font-size: 0.7rem;
+            color: #a5b4fc;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: center;
+        }
+        .quick-action:hover { background: rgba(129, 140, 248, 0.1); border-color: rgba(129, 140, 248, 0.3); }
+        .quick-action:active { transform: scale(0.97); }
+
+        .model-info {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 10px 12px;
+            font-size: 0.7rem;
+            color: rgba(255, 255, 255, 0.5);
+            line-height: 1.5;
+        }
+
+        .model-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.6rem;
+            font-weight: 600;
+        }
+
+        .badge-free { background: rgba(16, 185, 129, 0.15); color: #34d399; }
+        .badge-fast { background: rgba(251, 191, 36, 0.15); color: #fbbf24; }
+        .badge-smart { background: rgba(139, 92, 246, 0.15); color: #a78bfa; }
+        .badge-code { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
+        .badge-reason { background: rgba(236, 72, 153, 0.15); color: #f472b6; }
+
+        .tip-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 12px;
+            padding: 14px;
+            transition: all 0.2s ease;
+        }
+        .tip-card:hover { border-color: rgba(129, 140, 248, 0.2); }
+
+        .tip-category {
+            font-size: 0.6rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            padding: 3px 8px;
+            border-radius: 4px;
+            display: inline-block;
+            margin-bottom: 8px;
+        }
+
+        .cat-structure { background: rgba(99, 102, 241, 0.15); color: #818cf8; }
+        .cat-clarity { background: rgba(16, 185, 129, 0.15); color: #34d399; }
+        .cat-context { background: rgba(251, 191, 36, 0.15); color: #fbbf24; }
+        .cat-advanced { background: rgba(236, 72, 153, 0.15); color: #f472b6; }
+        .cat-output { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
+
+        /* Mobile bottom nav */
+        .mobile-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(10, 10, 18, 0.95);
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            padding: 8px 16px;
+            padding-bottom: env(safe-area-inset-bottom);
+            z-index: 90;
+            display: none;
+        }
+
+        @media (max-width: 1024px) {
+            .mobile-nav { display: flex; justify-content: space-around; }
+            .desktop-preview { display: none; }
+        }
+
+        /* Ensure chat input isn't covered */
+        .mobile-nav-btn:last-of-type {
+            margin-right: env(safe-area-inset-right);
+        }
+
+        .mobile-nav-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 0.6rem;
+            color: rgba(255, 255, 255, 0.4);
+            transition: all 0.2s ease;
+        }
+        .mobile-nav-btn.active { color: #818cf8; background: rgba(129, 140, 248, 0.1); }
+        .mobile-nav-btn svg { width: 20px; height: 20px; }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 3px; }
+
+        .empty-state { color: rgba(255, 255, 255, 0.15); font-style: italic; }
+
+        /* Orbs - simplified for mobile */
+        .orb {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.05;
+            pointer-events: none;
+            z-index: 0;
+        }
+        .orb-1 { width: 400px; height: 400px; background: #6366f1; top: -150px; right: -150px; }
+        .orb-2 { width: 350px; height: 350px; background: #c084fc; bottom: -100px; left: -100px; }
+
+        /* Mobile sheet for preview */
+        .mobile-sheet {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            max-height: 85vh;
+            background: rgba(15, 15, 25, 0.98);
+            border-top-left-radius: 20px;
+            border-top-right-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-bottom: none;
+            z-index: 95;
+            transform: translateY(100%);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            flex-direction: column;
+        }
+        .mobile-sheet.open { transform: translateY(0); }
+        .mobile-sheet-handle {
+            width: 40px; height: 4px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 2px;
+            margin: 10px auto;
+        }
+    </style>
+</head>
+<body class="relative">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+
+    <!-- AI Toggle FAB -->
+    <button class="ai-toggle-btn" id="aiToggleBtn" onclick="toggleAIPanel()">
+        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
+        </svg>
+    </button>
+
+    <!-- AI Panel Overlay -->
+    <div class="ai-panel-overlay" id="aiOverlay" onclick="toggleAIPanel()"></div>
+
+    <!-- AI Assistant Panel -->
+    <div class="ai-panel" id="aiPanel">
+        <!-- Compact header -->
+        <div class="flex items-center justify-between px-4 py-2 border-b border-white/10">
+            <div class="flex items-center gap-2">
+                <span class="text-base">🤖</span>
+                <h3 class="font-semibold text-sm">AI Assistant</h3>
+                <span id="apiStatusDot" class="w-2 h-2 rounded-full bg-emerald-500" title="Ready"></span>
+            </div>
+            <div class="flex items-center gap-1">
+                <button onclick="toggleAISettings()" id="settingsToggle" class="p-1.5 text-white/40 hover:text-white/80 rounded-lg hover:bg-white/5" title="Settings">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                </button>
+                <button onclick="toggleAIPanel()" class="p-1.5 text-white/40 hover:text-white/80 rounded-lg hover:bg-white/5">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Collapsible Settings -->
+        <div id="aiSettings" class="hidden border-b border-white/10 px-4 py-3 space-y-2" style="max-height: 280px; overflow-y: auto;">
+            <div class="flex gap-2">
+                <select id="aiProvider" class="flex-1 px-3 py-2 rounded-lg text-sm" onchange="onProviderChange()">
+                    <!-- <option value="puter_gpt">⚡ Puter.js (Free, 8 models)</option> -->
+                    <option value="pollinations">🌸 Pollinations (Free)</option>
+                    <option value="pollinations_pro">🌸 Pollinations (Key)</option>
+                    <option value="openai">OpenAI</option>
+                    <option value="groq">Groq</option>
+                    <option value="openrouter">OpenRouter</option>
+                    <option value="custom">Custom</option>
+                </select>
+                <select id="aiModel" class="flex-1 px-3 py-2 rounded-lg text-sm" onchange="updateModelInfo()"></select>
+            </div>
+
+            <div id="apiKeyRow" class="hidden">
+                <div class="flex gap-2">
+                    <input type="password" id="apiKey" placeholder="Enter API Key..."
+                        class="flex-1 px-3 py-2 rounded-lg text-sm">
+                    <button onclick="saveAPIKey()" class="px-3 py-2 rounded-lg text-xs font-medium bg-indigo-600 text-white">Save</button>
+                </div>
+            </div>
+
+            <div id="customEndpointRow" class="hidden">
+                <input type="text" id="customEndpoint" placeholder="https://api.example.com/v1/chat/completions"
+                    class="w-full px-3 py-2 rounded-lg text-sm">
+            </div>
+
+            <div class="model-info" id="modelInfo">
+                <div class="flex items-center gap-2 mb-1">
+                    <span class="model-badge badge-free">FREE</span>
+                    <span class="model-badge badge-smart">SMART</span>
+                </div>
+                <p id="modelDescription">No API key needed.</p>
+            </div>
+
+            <div id="apiStatus" class="text-[0.65rem] text-emerald-400">✅ Ready — no API key needed!</div>
+        </div>
+
+        <!-- Compact Quick Actions -->
+        <div class="px-3 py-2 border-b border-white/5 flex gap-1 overflow-x-auto" style="-webkit-overflow-scrolling: touch;">
+            <button class="quick-action flex-shrink-0 !py-1.5 !px-2.5" onclick="quickAction('analyze')">🔍 Analyze</button>
+            <button class="quick-action flex-shrink-0 !py-1.5 !px-2.5" onclick="quickAction('improve')">✨ Improve</button>
+            <button class="quick-action flex-shrink-0 !py-1.5 !px-2.5" onclick="quickAction('examples')">📝 Examples</button>
+            <button class="quick-action flex-shrink-0 !py-1.5 !px-2.5" onclick="quickAction('constraints')">⛔ Rules</button>
+            <button class="quick-action flex-shrink-0 !py-1.5 !px-2.5" onclick="quickAction('clarify')">❓ Gaps</button>
+            <button class="quick-action flex-shrink-0 !py-1.5 !px-2.5" onclick="quickAction('rewrite')">🔄 Rewrite</button>
+        </div>
+
+        <!-- Chat (takes maximum space now) -->
+        <div class="chat-messages" id="chatMessages">
+            <div class="chat-msg system">
+                👋 Free AI ready, no key needed! Tap a quick action or type below.
+            </div>
+        </div>
+
+        <!-- Input -->
+        <div class="p-3 border-t border-white/10">
+            <div class="flex gap-2">
+                <input type="text" id="chatInput" placeholder="Ask about your prompt..."
+                    class="flex-1 px-4 py-3 rounded-xl text-sm"
+                    onkeydown="if(event.key==='Enter' && !event.shiftKey) sendChatMessage()">
+                <button onclick="sendChatMessage()" class="px-4 py-3 rounded-xl bg-gradient-to-r from-pink-500 to-purple-600 text-white font-medium text-sm">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
+                </button>
+            </div>
+            <button onclick="clearChat()" class="text-[0.65rem] text-white/30 hover:text-white/60 mt-1">Clear chat</button>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="relative z-10 min-h-screen">
+        <!-- Header -->
+        <header class="sticky top-0 z-50 border-b border-white/5 px-4 py-3 bg-[#0a0a0f]/90 backdrop-blur-md">
+            <div class="max-w-6xl mx-auto flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-xs">PE</div>
+                    <div>
+                        <h1 class="text-sm font-bold gradient-text">Prompt Studio</h1>
+                        <p class="text-[0.6rem] text-white/30 hidden sm:block">AI Planning Prompt Builder</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <div class="progress-bar w-24 sm:w-32">
+                        <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+                    </div>
+                    <span class="text-[0.65rem] text-white/30 hidden sm:inline" id="progressLabel">0%</span>
+                    <button onclick="resetAll()" class="btn-danger px-2 py-1 rounded text-[0.65rem] font-medium">Reset</button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Layout -->
+        <div class="max-w-6xl mx-auto px-4 py-4 flex flex-col lg:flex-row gap-4">
+            <!-- Left: Builder -->
+            <div class="flex-1 min-w-0 space-y-3">
+                <!-- Build Tab (default, always visible on desktop) -->
+                <div id="tab-build" class="space-y-3">
+                    <!-- Section 1: Agent Identity -->
+                    <div class="section-card glass rounded-xl p-4 space-y-2">
+                        <div class="flex items-center gap-2">
+                            <div class="step-indicator step-pending" data-step="1">1</div>
+                            <div class="flex-1 min-w-0">
+                                <h3 class="font-semibold text-sm">Agent Identity</h3>
+                                <p class="text-[0.65rem] text-white/30 truncate">Who is this AI agent?</p>
+                            </div>
+                        </div>
+                        <input type="text" id="agentName" placeholder="e.g., ProjectArchitect, CodeReviewer..."
+                            class="w-full px-3 py-2 rounded-lg text-sm" oninput="updatePreview()">
+                        <textarea id="agentRole" rows="2" placeholder="Describe role, expertise, and personality..."
+                            class="w-full px-3 py-2 rounded-lg text-sm resize-none" oninput="updatePreview()"></textarea>
+                    </div>
+
+                    <!-- Section 2: Objective -->
+                    <div class="section-card glass rounded-xl p-4 space-y-2">
+                        <div class="flex items-center gap-2">
+                            <div class="step-indicator step-pending" data-step="2">2</div>
+                            <div>
+                                <h3 class="font-semibold text-sm">Primary Objective</h3>
+                                <p class="text-[0.65rem] text-white/30">What should this agent accomplish?</p>
+                            </div>
+                        </div>
+                        <textarea id="objective" rows="2" placeholder="Define the main mission and expected outcome..."
+                            class="w-full px-3 py-2 rounded-lg text-sm resize-none" oninput="updatePreview()"></textarea>
+                    </div>
+
+                    <!-- Section 3: Context -->
+                    <div class="section-card glass rounded-xl p-4 space-y-2">
+                        <div class="flex items-center gap-2">
+                            <div class="step-indicator step-pending" data-step="3">3</div>
+                            <div>
+                                <h3 class="font-semibold text-sm">Context & Background</h3>
+                                <p class="text-[0.65rem] text-white/30">Project details, constraints, tech stack...</p>
+                            </div>
+                        </div>
+                        <textarea id="context" rows="3" placeholder="Provide relevant background information..."
+                            class="w-full px-3 py-2 rounded-lg text-sm resize-none" oninput="updatePreview()"></textarea>
+                    </div>
+
+                    <!-- Section 4: Language & Structure -->
+                    <div class="section-card glass rounded-xl p-4 space-y-2">
+                        <div class="flex items-center gap-2">
+                            <div class="step-indicator step-pending" data-step="4">4</div>
+                            <div>
+                                <h3 class="font-semibold text-sm">Language & Structure</h3>
+                                <p class="text-[0.65rem] text-white/30">Target language and file structure</p>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="text-[0.6rem] text-white/40 mb-1 block">Language</label>
+                                <select id="targetLanguage" class="w-full px-3 py-2 rounded-lg text-sm" onchange="updatePreview()">
+                                    <option value="">Select language...</option>
+                                    <option value="javascript">JavaScript</option>
+                                    <option value="typescript">TypeScript</option>
+                                    <option value="python">Python</option>
+                                    <option value="html">HTML/CSS/JS</option>
+                                    <option value="react">React</option>
+                                    <option value="vue">Vue</option>
+                                    <option value="svelte">Svelte</option>
+                                    <option value="nextjs">Next.js</option>
+                                    <option value="nodejs">Node.js</option>
+                                    <option value="rust">Rust</option>
+                                    <option value="go">Go</option>
+                                    <option value="java">Java</option>
+                                    <option value="csharp">C#</option>
+                                    <option value="cpp">C++</option>
+                                    <option value="swift">Swift</option>
+                                    <option value="kotlin">Kotlin</option>
+                                    <option value="ruby">Ruby</option>
+                                    <option value="php">PHP</option>
+                                    <option value="sql">SQL</option>
+                                    <option value="shell">Shell/Bash</option>
+                                    <option value="other">Other</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="text-[0.6rem] text-white/40 mb-1 block">Structure</label>
+                                <select id="fileStructure" class="w-full px-3 py-2 rounded-lg text-sm" onchange="updatePreview()">
+                                    <option value="">Select structure...</option>
+                                    <option value="single">Single File</option>
+                                    <option value="multi">Multi-File Project</option>
+                                    <option value="component">Component-Based</option>
+                                    <option value="modular">Modular/Package</option>
+                                    <option value="monorepo">Monorepo</option>
+                                    <option value="microservices">Microservices</option>
+                                    <option value="serverless">Serverless Functions</option>
+                                    <option value="library">Library/SDK</option>
+                                    <option value="cli">CLI Application</option>
+                                    <option value="api">REST/GraphQL API</option>
+                                    <option value="fullstack">Full-Stack App</option>
+                                    <option value="other">Other</option>
+                                </select>
+                            </div>
+                        </div>
+                        <input type="text" id="languageNotes" placeholder="Additional tech details (frameworks, versions, etc.)..."
+                            class="w-full px-3 py-2 rounded-lg text-sm" oninput="updatePreview()">
+                    </div>
+
+                    <!-- Section 5: Steps -->
+                    <div class="section-card glass rounded-xl p-4 space-y-2">
+                        <div class="flex items-center gap-2">
+                            <div class="step-indicator step-pending" data-step="5">5</div>
+                            <div>
+                                <h3 class="font-semibold text-sm">Planning Steps</h3>
+                                <p class="text-[0.65rem] text-white/30">Break down into phases or tasks</p>
+                            </div>
+                        </div>
+                        <div id="stepsContainer" class="space-y-1"></div>
+                        <div class="flex gap-2">
+                            <input type="text" id="newStepInput" placeholder="Add a step..."
+                                class="flex-1 px-3 py-2 rounded-lg text-sm" onkeydown="if(event.key==='Enter')addStep()">
+                            <button onclick="addStep()" class="btn-primary px-3 py-2 rounded-lg text-xs font-medium text-white">+</button>
+                        </div>
+                    </div>
+
+                    <!-- Section 6: Constraints -->
+                    <div class="section-card glass rounded-xl p-4 space-y-2">
+                        <div class="flex items-center gap-2">
+                            <div class="step-indicator step-pending" data-step="6">6</div>
+                            <div>
+                                <h3 class="font-semibold text-sm">Constraints & Rules</h3>
+                                <p class="text-[0.65rem] text-white/30">What must the agent always/never do?</p>
+                            </div>
+                        </div>
+                        <div id="constraintsContainer" class="space-y-1"></div>
+                        <div class="flex gap-2">
+                            <input type="text" id="newConstraintInput" placeholder="Add a constraint..."
+                                class="flex-1 px-3 py-2 rounded-lg text-sm" onkeydown="if(event.key==='Enter')addConstraint()">
+                            <button onclick="addConstraint()" class="btn-primary px-3 py-2 rounded-lg text-xs font-medium text-white">+</button>
+                        </div>
+                    </div>
+
+                    <!-- Section 7: Output Format -->
+                    <div class="section-card glass rounded-xl p-4 space-y-2">
+                        <div class="flex items-center gap-2">
+                            <div class="step-indicator step-pending" data-step="7">7</div>
+                            <div>
+                                <h3 class="font-semibold text-sm">Output Format</h3>
+                                <p class="text-[0.65rem] text-white/30">How should responses be structured?</p>
+                            </div>
+                        </div>
+                        <div class="flex flex-wrap gap-1 mb-2">
+                            <button onclick="selectFormat('markdown')" class="format-btn btn-secondary px-2 py-1 rounded text-[0.65rem]" data-format="markdown">📝 Markdown</button>
+                            <button onclick="selectFormat('json')" class="format-btn btn-secondary px-2 py-1 rounded text-[0.65rem]" data-format="json">🔧 JSON</button>
+                            <button onclick="selectFormat('numbered')" class="format-btn btn-secondary px-2 py-1 rounded text-[0.65rem]" data-format="numbered">🔢 List</button>
+                            <button onclick="selectFormat('table')" class="format-btn btn-secondary px-2 py-1 rounded text-[0.65rem]" data-format="table">📊 Table</button>
+                        </div>
+                        <textarea id="outputFormat" rows="2" placeholder="Describe output structure..."
+                            class="w-full px-3 py-2 rounded-lg text-sm resize-none" oninput="updatePreview()"></textarea>
+                    </div>
+
+                    <!-- Section 8: Examples -->
+                    <div class="section-card glass rounded-xl p-4 space-y-2">
+                        <div class="flex items-center gap-2">
+                            <div class="step-indicator step-pending" data-step="8">8</div>
+                            <div>
+                                <h3 class="font-semibold text-sm">Examples <span class="text-white/30 font-normal">(Optional)</span></h3>
+                                <p class="text-[0.65rem] text-white/30">Few-shot examples to guide behavior</p>
+                            </div>
+                        </div>
+                        <textarea id="examples" rows="3" placeholder="Input → Output examples..."
+                            class="w-full px-3 py-2 rounded-lg text-sm resize-none" oninput="updatePreview()"></textarea>
+                    </div>
+
+                    <!-- Section 9: Notes -->
+                    <div class="section-card glass rounded-xl p-4 space-y-2">
+                        <div class="flex items-center gap-2">
+                            <div class="step-indicator step-pending" data-step="9">9</div>
+                            <div>
+                                <h3 class="font-semibold text-sm">Additional Notes <span class="text-white/30 font-normal">(Optional)</span></h3>
+                                <p class="text-[0.65rem] text-white/30">Edge cases, priorities, tone...</p>
+                            </div>
+                        </div>
+                        <textarea id="additionalNotes" rows="2" placeholder="Anything else the agent should know..."
+                            class="w-full px-3 py-2 rounded-lg text-sm resize-none" oninput="updatePreview()"></textarea>
+                    </div>
+                </div>
+
+                <!-- Tips Tab -->
+                <div id="tab-tips" class="space-y-3 hidden">
+                    <!-- Quick Reference -->
+                    <div class="glass-strong rounded-xl p-4">
+                        <h3 class="font-semibold text-sm mb-3 flex items-center gap-2">📋 Prompt Structure Checklist</h3>
+                        <div class="grid grid-cols-2 gap-2 text-[0.7rem]">
+                            <label class="flex items-center gap-2 text-white/60">
+                                <input type="checkbox" class="rounded" disabled> Clear role definition
+                            </label>
+                            <label class="flex items-center gap-2 text-white/60">
+                                <input type="checkbox" class="rounded" disabled> Specific objective
+                            </label>
+                            <label class="flex items-center gap-2 text-white/60">
+                                <input type="checkbox" class="rounded" disabled> Relevant context
+                            </label>
+                            <label class="flex items-center gap-2 text-white/60">
+                                <input type="checkbox" class="rounded" disabled> Step-by-step tasks
+                            </label>
+                            <label class="flex items-center gap-2 text-white/60">
+                                <input type="checkbox" class="rounded" disabled> Constraints/guardrails
+                            </label>
+                            <label class="flex items-center gap-2 text-white/60">
+                                <input type="checkbox" class="rounded" disabled> Output format
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Structure Tips -->
+                    <div class="tip-card">
+                        <span class="tip-category cat-structure">Structure</span>
+                        <h4 class="font-medium text-sm text-white/90 mb-2">Use Clear Section Headers</h4>
+                        <p class="text-xs text-white/50 mb-2">Organize your prompt with explicit sections like "## ROLE", "## OBJECTIVE", "## CONSTRAINTS". This helps the AI parse instructions correctly.</p>
+                        <div class="bg-black/30 rounded p-2 text-[0.65rem] mono text-white/40">
+                            ## ROLE<br>
+                            You are a senior software architect...<br><br>
+                            ## OBJECTIVE<br>
+                            Design a scalable microservices architecture...
+                        </div>
+                    </div>
+
+                    <div class="tip-card">
+                        <span class="tip-category cat-clarity">Clarity</span>
+                        <h4 class="font-medium text-sm text-white/90 mb-2">Be Specific, Not Vague</h4>
+                        <p class="text-xs text-white/50 mb-2">Replace ambiguous words with precise instructions. Quantify when possible.</p>
+                        <div class="grid grid-cols-2 gap-2 text-[0.65rem]">
+                            <div class="bg-red-500/10 border border-red-500/20 rounded p-2">
+                                <span class="text-red-400">❌ Bad:</span><br>
+                                <span class="text-white/50">"Make it better"<br>"Add some details"<br>"Be thorough"</span>
+                            </div>
+                            <div class="bg-green-500/10 border border-green-500/20 rounded p-2">
+                                <span class="text-green-400">✅ Good:</span><br>
+                                <span class="text-white/50">"Reduce latency by 50%"<br>"Include 3 examples"<br>"Cover all 5 phases"</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tip-card">
+                        <span class="tip-category cat-context">Context</span>
+                        <h4 class="font-medium text-sm text-white/90 mb-2">Provide Rich Context</h4>
+                        <p class="text-xs text-white/50 mb-2">The more relevant context you give, the better the output. Include:</p>
+                        <ul class="text-xs text-white/50 space-y-1 ml-3">
+                            <li>• <strong class="text-white/70">Domain:</strong> Industry, project type, tech stack</li>
+                            <li>• <strong class="text-white/70">Audience:</strong> Who will read/use this output?</li>
+                            <li>• <strong class="text-white/70">Constraints:</strong> Budget, timeline, team size</li>
+                            <li>• <strong class="text-white/70">History:</strong> Previous decisions, existing systems</li>
+                        </ul>
+                    </div>
+
+                    <div class="tip-card">
+                        <span class="tip-category cat-output">Output</span>
+                        <h4 class="font-medium text-sm text-white/90 mb-2">Specify Output Format Exactly</h4>
+                        <p class="text-xs text-white/50 mb-2">Tell the AI exactly how you want the response structured:</p>
+                        <ul class="text-xs text-white/50 space-y-1 ml-3">
+                            <li>• <strong class="text-white/70">Markdown:</strong> Headers, bullets, bold for emphasis</li>
+                            <li>• <strong class="text-white/70">JSON:</strong> Specify schema with required fields</li>
+                            <li>• <strong class="text-white/70">Table:</strong> Define columns explicitly</li>
+                            <li>• <strong class="text-white/70">Length:</strong> "Keep under 500 words" or "Be comprehensive"</li>
+                        </ul>
+                    </div>
+
+                    <div class="tip-card">
+                        <span class="tip-category cat-advanced">Advanced</span>
+                        <h4 class="font-medium text-sm text-white/90 mb-2">Chain-of-Thought Prompting</h4>
+                        <p class="text-xs text-white/50 mb-2">Ask the AI to reason step-by-step before giving a final answer. This dramatically improves quality for complex tasks.</p>
+                        <div class="bg-black/30 rounded p-2 text-[0.65rem] mono text-white/40">
+                            "Think through this step-by-step:<br>
+                            1. First, analyze the requirements<br>
+                            2. Then, identify potential approaches<br>
+                            3. Evaluate trade-offs for each<br>
+                            4. Finally, recommend the best option with justification"
+                        </div>
+                    </div>
+
+                    <div class="tip-card">
+                        <span class="tip-category cat-advanced">Advanced</span>
+                        <h4 class="font-medium text-sm text-white/90 mb-2">Use Constraints as Guardrails</h4>
+                        <p class="text-xs text-white/50 mb-2">Good constraints prevent unwanted behavior:</p>
+                        <ul class="text-xs text-white/50 space-y-1 ml-3">
+                            <li>• "NEVER suggest solutions requiring more than 3 developers"</li>
+                            <li>• "ALWAYS include risk assessment for each recommendation"</li>
+                            <li>• "DO NOT exceed budget of $50,000"</li>
+                            <li>• "MUST be compatible with existing Python 3.9 codebase"</li>
+                        </ul>
+                    </div>
+
+                    <div class="tip-card">
+                        <span class="tip-category cat-clarity">Clarity</span>
+                        <h4 class="font-medium text-sm text-white/90 mb-2">Define Success Criteria</h4>
+                        <p class="text-xs text-white/50 mb-2">Tell the AI what a "good" response looks like:</p>
+                        <div class="bg-black/30 rounded p-2 text-[0.65rem] mono text-white/40">
+                            "A successful plan will:<br>
+                            ✓ Cover all 4 project phases<br>
+                            ✓ Include timeline estimates<br>
+                            ✓ Identify at least 3 risks per phase<br>
+                            ✓ Assign clear ownership<br>
+                            ✓ Be achievable within 6 months"
+                        </div>
+                    </div>
+
+                    <div class="tip-card">
+                        <span class="tip-category cat-context">Context</span>
+                        <h4 class="font-medium text-sm text-white/90 mb-2">Few-Shot Examples Work</h4>
+                        <p class="text-xs text-white/50 mb-2">Show 1-3 examples of input → output pairs. This is often more effective than lengthy instructions.</p>
+                        <div class="bg-black/30 rounded p-2 text-[0.65rem] mono text-white/40">
+                            "Example 1:<br>
+                            Input: 'Build a login page'<br>
+                            Output: { task: 'Login Page', priority: 'High', estimate: '2 days', dependencies: ['Auth API'] }<br><br>
+                            Now process: 'Build a dashboard'"
+                        </div>
+                    </div>
+
+                    <div class="tip-card">
+                        <span class="tip-category cat-structure">Structure</span>
+                        <h4 class="font-medium text-sm text-white/90 mb-2">Iterate & Refine</h4>
+                        <p class="text-xs text-white/50">Great prompts aren't written in one pass. Test your prompt, observe the output, then refine. Use the AI Assistant to help identify what's missing or unclear.</p>
+                    </div>
+                </div>
+
+                <!-- Mobile Preview Tab -->
+                <div id="tab-preview" class="space-y-3 hidden">
+                    <div class="glass-strong rounded-xl overflow-hidden">
+                        <div class="flex items-center justify-between px-4 py-3 border-b border-white/5">
+                            <div class="flex items-center gap-2">
+                                <div class="w-2 h-2 rounded-full bg-emerald-500/60"></div>
+                                <h3 class="font-semibold text-sm">Preview</h3>
+                            </div>
+                            <span class="text-[0.6rem] text-white/30 mono" id="charTotalMobile">0 chars</span>
+                        </div>
+                        <div class="preview-area p-4 max-h-[50vh] overflow-y-auto" id="previewContentMobile">
+                            <p class="empty-state text-center py-8">Fill in sections to see preview</p>
+                        </div>
+                    </div>
+                    <button onclick="copyToClipboard()" class="copy-btn w-full px-4 py-3 rounded-xl text-sm font-semibold text-white flex items-center justify-center gap-2" id="copyBtnMobile">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/></svg>
+                        Copy Plan to Clipboard
+                    </button>
+                    <div class="flex gap-2">
+                        <button onclick="downloadPlan()" class="btn-secondary flex-1 px-3 py-2 rounded-lg text-[0.65rem] font-medium text-white/60 flex items-center justify-center gap-1">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                            Download
+                        </button>
+                        <button onclick="saveDraft()" class="btn-secondary flex-1 px-3 py-2 rounded-lg text-[0.65rem] font-medium text-white/60 flex items-center justify-center gap-1">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>
+                            Save
+                        </button>
+                        <button onclick="loadDraft()" class="btn-secondary flex-1 px-3 py-2 rounded-lg text-[0.65rem] font-medium text-white/60 flex items-center justify-center gap-1">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                            Load
+                        </button>
+                    </div>
+                    <button onclick="copyCodebase()" id="codebaseBtnMobile"
+                        class="w-full px-3 py-2 rounded-lg text-[0.65rem] font-medium text-white/40 flex items-center justify-center gap-1 border border-white/5 hover:border-white/10 hover:text-white/60 transition-all">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+                        <span>Copy App Source Code</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Right: Desktop Preview -->
+            <div class="desktop-preview hidden lg:block lg:w-[400px] flex-shrink-0">
+                <div class="sticky top-20 space-y-3">
+                    <div class="glass-strong rounded-xl overflow-hidden">
+                        <div class="flex items-center justify-between px-4 py-3 border-b border-white/5">
+                            <div class="flex items-center gap-2">
+                                <div class="w-2 h-2 rounded-full bg-emerald-500/60"></div>
+                                <h3 class="font-semibold text-sm">Plan Preview</h3>
+                            </div>
+                            <span class="text-[0.6rem] text-white/30 mono" id="charTotal">0 chars</span>
+                        </div>
+                        <div class="preview-area p-4 max-h-[55vh] overflow-y-auto" id="previewContent">
+                            <p class="empty-state text-center py-12">Fill in sections above to see your plan preview</p>
+                        </div>
+                    </div>
+
+                    <button onclick="copyToClipboard()" class="copy-btn w-full px-4 py-3 rounded-xl text-sm font-semibold text-white flex items-center justify-center gap-2" id="copyBtn">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/></svg>
+                        <span id="copyBtnText">Copy Plan to Clipboard</span>
+                    </button>
+
+                    <div class="flex gap-2">
+                        <button onclick="downloadPlan()" class="btn-secondary flex-1 px-3 py-2 rounded-lg text-[0.65rem] font-medium text-white/60 flex items-center justify-center gap-1">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                            Download
+                        </button>
+                        <button onclick="saveDraft()" class="btn-secondary flex-1 px-3 py-2 rounded-lg text-[0.65rem] font-medium text-white/60 flex items-center justify-center gap-1">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>
+                            Save
+                        </button>
+                        <button onclick="loadDraft()" class="btn-secondary flex-1 px-3 py-2 rounded-lg text-[0.65rem] font-medium text-white/60 flex items-center justify-center gap-1">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                            Load
+                        </button>
+                    </div>
+
+                    <!-- Copy Codebase 
+                    <button onclick="copyCodebase()" id="codebaseBtn"
+                        class="w-full px-3 py-2 rounded-lg text-[0.65rem] font-medium text-white/40 flex items-center justify-center gap-1 border border-white/5 hover:border-white/10 hover:text-white/60 transition-all">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+                        <span id="codebaseBtnText">Copy App Source Code</span>
+                    </button> -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile Bottom Nav -->
+    <nav class="mobile-nav">
+        <button class="mobile-nav-btn active" onclick="switchMobileTab('build')" data-mobiletab="build">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 00-1-1H4a2 2 0 110-4h1a1 1 0 001-1V7a1 1 0 011-1h3a1 1 0 001-1V4z"/></svg>
+            Build
+        </button>
+        <button class="mobile-nav-btn" onclick="switchMobileTab('preview')" data-mobiletab="preview">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+            Preview
+        </button>
+        <button class="mobile-nav-btn" onclick="switchMobileTab('tips')" data-mobiletab="tips">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+            Tips
+        </button>
+        <button class="mobile-nav-btn" onclick="copyToClipboard()">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+            Copy Plan
+        </button>
+    </nav>
+
+    <!-- Toast -->
+    <div id="toast" class="fixed bottom-20 lg:bottom-6 left-1/2 -translate-x-1/2 z-[200] hidden">
+        <div class="glass-strong rounded-xl px-4 py-2 flex items-center gap-2 shadow-2xl">
+            <span id="toastIcon" class="text-base">✅</span>
+            <span id="toastMsg" class="text-sm font-medium"></span>
+        </div>
+    </div>
+
+    <script>
+        // State
+        let steps = [];
+        let constraints = [];
+        let selectedFormat = '';
+        let chatHistory = [];
+        let isAIPanelOpen = false;
+
+        // Model configurations with detailed info
+        const providers = {
+            puter_gpt: {
+                endpoint: 'puter',
+                models: {
+                    'gpt-4o-mini': { name: 'GPT-4o Mini', size: '~8B', badges: ['free', 'fast'], desc: 'Fast, free via Puter.js. Great all-rounder for prompt dev.' },
+                    'gpt-4o': { name: 'GPT-4o', size: '~200B', badges: ['free', 'smart'], desc: 'Full GPT-4o. Powerful for complex analysis. Free via Puter.' },
+                    'claude-3-5-sonnet': { name: 'Claude 3.5 Sonnet', size: '~175B', badges: ['free', 'smart'], desc: 'Anthropic Claude 3.5 Sonnet. Excellent at following complex instructions.' },
+                    'gemini-2.5-flash': { name: 'Gemini 2.5 Flash', size: '~340B', badges: ['free', 'fast'], desc: 'Google Gemini Flash. Very fast with 1M context.' },
+                    'llama-3.3-70b-instruct': { name: 'Llama 3.3 70B', size: '70B', badges: ['free', 'smart'], desc: 'Meta Llama 3.3. Open-weight, versatile.' },
+                    'deepseek-chat': { name: 'DeepSeek V3', size: '~670B', badges: ['free', 'smart', 'reason'], desc: 'DeepSeek reasoning model. Excellent for technical tasks.' },
+                    'mistral-small-latest': { name: 'Mistral Small', size: '~24B', badges: ['free', 'fast'], desc: 'Mistral Small. Fast and efficient.' },
+                    'o3-mini': { name: 'o3-mini', size: '~8B', badges: ['free', 'reason'], desc: 'OpenAI o3-mini reasoning model. Great for complex problem solving.' }
+                },
+                requiresKey: false
+            },
+            pollinations: {
+                endpoint: 'https://text.pollinations.ai/openai/chat/completions',
+                models: {
+                    'openai': { name: 'GPT-OSS 20B', size: '20B', badges: ['free', 'smart'], desc: 'Free GPT-OSS reasoning model. No key needed.' }
+                },
+                requiresKey: false
+            },
+            pollinations_pro: {
+                endpoint: 'https://gen.pollinations.ai/v1/chat/completions',
+                models: {
+                    'openai': { name: 'OpenAI GPT', size: '~200B', badges: ['smart'], desc: 'GPT-5.4 mini. Fast and capable all-rounder. 400k context.' },
+                    'openai-large': { name: 'OpenAI Large', size: '~600B', badges: ['smart', 'reason'], desc: 'GPT-5.4 flagship. Best quality. 1M context. Reasoning enabled.' },
+                    'mistral': { name: 'Mistral Large', size: '~24B', badges: ['fast', 'smart'], desc: 'Mistral reasoning model. Fast with vision support. 262k context.' },
+                    'deepseek': { name: 'DeepSeek V3', size: '~670B', badges: ['smart', 'reason'], desc: 'DeepSeek reasoning model. Excellent for technical and analytical tasks. 1M context.' },
+                    'gemini': { name: 'Gemini Flash', size: '~340B', badges: ['fast', 'smart'], desc: 'Google Gemini 3 Flash. Vision + audio. 1M context window.' },
+                    'qwen-coder': { name: 'Qwen Coder', size: '~32B', badges: ['code'], desc: 'Qwen coding model. Optimized for programming tasks. 262k context.' },
+                    'grok': { name: 'Grok', size: '~314B', badges: ['smart'], desc: 'xAI Grok. Vision support. Good for creative and analytical tasks. 262k context.' },
+                    'gemma': { name: 'Gemma 4', size: '~31B', badges: ['fast', 'reason'], desc: 'Google Gemma 4 31B. Fast reasoning with vision. 262k context.' }
+                },
+                requiresKey: true
+            },
+            openai: {
+                endpoint: 'https://api.openai.com/v1/chat/completions',
+                models: {
+                    'gpt-4o-mini': { name: 'GPT-4o Mini', size: '~8B', badges: ['fast'], desc: 'Fast & cheap. Great for most prompt dev tasks. Best cost/performance.' },
+                    'gpt-4o': { name: 'GPT-4o', size: '~200B', badges: ['smart'], desc: 'Most capable. Use for complex analysis or when quality matters most.' },
+                    'gpt-4-turbo': { name: 'GPT-4 Turbo', size: '~200B', badges: ['smart'], desc: 'Previous flagship. Still excellent for detailed work.' }
+                },
+                requiresKey: true
+            },
+            groq: {
+                endpoint: 'https://api.groq.com/openai/v1/chat/completions',
+                models: {
+                    'llama-3.1-70b-versatile': { name: 'Llama 3.1 70B', size: '70B', badges: ['fast', 'smart'], desc: 'Fast inference on Groq hardware. Great balance of speed and quality.' },
+                    'llama-3.1-8b-instant': { name: 'Llama 3.1 8B', size: '8B', badges: ['fast'], desc: 'Ultra-fast. Good for quick iterations. Free tier friendly.' },
+                    'mixtral-8x7b-32768': { name: 'Mixtral 8x7B', size: '47B', badges: ['fast', 'smart'], desc: 'MoE architecture. Fast with good quality. 32k context.' }
+                },
+                requiresKey: true
+            },
+            openrouter: {
+                endpoint: 'https://openrouter.ai/api/v1/chat/completions',
+                models: {
+                    'anthropic/claude-3.5-sonnet': { name: 'Claude 3.5 Sonnet', size: '~175B', badges: ['smart'], desc: 'Best for nuanced writing and analysis. Excellent at following complex instructions.' },
+                    'openai/gpt-4o-mini': { name: 'GPT-4o Mini', size: '~8B', badges: ['fast'], desc: 'Fast and affordable via OpenRouter. Good default choice.' },
+                    'google/gemini-pro-1.5': { name: 'Gemini 1.5 Pro', size: '~340B', badges: ['smart'], desc: 'Google\'s flagship. Massive context window (1M tokens).' },
+                    'meta-llama/llama-3.1-70b-instruct': { name: 'Llama 3.1 70B', size: '70B', badges: ['smart'], desc: 'Open-weight model. Great quality, often cheaper than proprietary.' }
+                },
+                requiresKey: true
+            },
+            custom: {
+                endpoint: '',
+                models: {
+                    'default': { name: 'Custom Model', size: '?', badges: [], desc: 'Your custom OpenAI-compatible endpoint.' }
+                },
+                requiresKey: true
+            }
+        };
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            initAIPanel();
+            autoLoadDraft();
+            updatePreview();
+        });
+
+        // Tab Switching (mobile only — desktop shows build + preview side-by-side)
+        function switchMobileTab(tab) {
+            document.querySelectorAll('.mobile-nav-btn').forEach(el => el.classList.remove('active'));
+            document.querySelector(`[data-mobiletab="${tab}"]`)?.classList.add('active');
+
+            // Hide all tabs
+            ['tab-build', 'tab-tips', 'tab-preview'].forEach(id => {
+                document.getElementById(id).classList.add('hidden');
+            });
+
+            // Show selected tab
+            if (tab === 'preview') {
+                document.getElementById('tab-preview').classList.remove('hidden');
+                updatePreview(); // refresh mobile preview
+            } else if (tab === 'tips') {
+                document.getElementById('tab-tips').classList.remove('hidden');
+            } else {
+                document.getElementById('tab-build').classList.remove('hidden');
+            }
+        }
+
+        // Steps
+        function addStep() {
+            const input = document.getElementById('newStepInput');
+            const val = input.value.trim();
+            if (!val) return;
+            steps.push(val);
+            input.value = '';
+            renderSteps();
+            updatePreview();
+        }
+
+        function removeStep(i) {
+            steps.splice(i, 1);
+            renderSteps();
+            updatePreview();
+        }
+
+        function renderSteps() {
+            const container = document.getElementById('stepsContainer');
+            container.innerHTML = steps.map((s, i) => `
+                <div class="flex items-center gap-2 glass-strong rounded-lg px-3 py-2">
+                    <span class="text-[0.6rem] text-indigo-400 font-bold mono">${String(i + 1).padStart(2, '0')}</span>
+                    <span class="flex-1 text-xs text-white/70 truncate">${escapeHtml(s)}</span>
+                    <button onclick="removeStep(${i})" class="text-red-400/50 hover:text-red-400 text-xs p-1">✕</button>
+                </div>
+            `).join('');
+        }
+
+        // Constraints
+        function addConstraint() {
+            const input = document.getElementById('newConstraintInput');
+            const val = input.value.trim();
+            if (!val) return;
+            constraints.push(val);
+            input.value = '';
+            renderConstraints();
+            updatePreview();
+        }
+
+        function removeConstraint(i) {
+            constraints.splice(i, 1);
+            renderConstraints();
+            updatePreview();
+        }
+
+        function renderConstraints() {
+            const container = document.getElementById('constraintsContainer');
+            container.innerHTML = constraints.map((c, i) => `
+                <div class="flex items-center gap-2 glass-strong rounded-lg px-3 py-2">
+                    <span class="text-[0.6rem] text-red-400/70">⛔</span>
+                    <span class="flex-1 text-xs text-white/70 truncate">${escapeHtml(c)}</span>
+                    <button onclick="removeConstraint(${i})" class="text-red-400/50 hover:text-red-400 text-xs p-1">✕</button>
+                </div>
+            `).join('');
+        }
+
+        // Format Selection
+        function selectFormat(fmt) {
+            selectedFormat = fmt;
+            document.querySelectorAll('.format-btn').forEach(btn => {
+                btn.classList.toggle('ring-1', btn.dataset.format === fmt);
+                btn.classList.toggle('ring-indigo-500/50', btn.dataset.format === fmt);
+            });
+
+            const templates = {
+                markdown: 'Use Markdown with ## headings, bullet points, and **bold** for emphasis.',
+                json: 'Return valid JSON with keys: phases, tasks, timeline, risks. Each task: {name, description, priority, duration}.',
+                numbered: 'Use numbered list with sub-items (1.1, 1.2). Add [HIGH], [MED], [LOW] priority tags.',
+                table: 'Use markdown table with columns: Phase | Task | Owner | Duration | Priority | Dependencies.'
+            };
+
+            if (templates[fmt]) {
+                document.getElementById('outputFormat').value = templates[fmt];
+                updatePreview();
+            }
+        }
+
+        // Build Plan Text
+        function buildPlanText() {
+            const agentName = document.getElementById('agentName').value.trim();
+            const agentRole = document.getElementById('agentRole').value.trim();
+            const objective = document.getElementById('objective').value.trim();
+            const context = document.getElementById('context').value.trim();
+            const targetLanguage = document.getElementById('targetLanguage').value;
+            const fileStructure = document.getElementById('fileStructure').value;
+            const languageNotes = document.getElementById('languageNotes').value.trim();
+            const outputFormat = document.getElementById('outputFormat').value.trim();
+            const examples = document.getElementById('examples').value.trim();
+            const additionalNotes = document.getElementById('additionalNotes').value.trim();
+
+            let parts = [];
+            const title = agentName ? `Planning Prompt: ${agentName}` : 'Planning Prompt';
+            parts.push(`${'='.repeat(Math.min(title.length + 4, 50))}`);
+            parts.push(`  ${title}`);
+            parts.push(`${'='.repeat(Math.min(title.length + 4, 50))}`);
+            parts.push('');
+
+            if (agentRole) {
+                parts.push(`## AGENT ROLE`);
+                parts.push(`You are ${agentName || 'an AI planning agent'}. ${agentRole}`);
+                parts.push('');
+            }
+
+            if (objective) {
+                parts.push(`## PRIMARY OBJECTIVE`);
+                parts.push(objective);
+                parts.push('');
+            }
+
+            if (context) {
+                parts.push(`## CONTEXT`);
+                parts.push(context);
+                parts.push('');
+            }
+
+            // Language & Structure section
+            if (targetLanguage || fileStructure || languageNotes) {
+                parts.push(`## TECHNICAL REQUIREMENTS`);
+                if (targetLanguage) {
+                    const langNames = {
+                        javascript: 'JavaScript', typescript: 'TypeScript', python: 'Python',
+                        html: 'HTML/CSS/JavaScript', react: 'React', vue: 'Vue.js', svelte: 'Svelte',
+                        nextjs: 'Next.js', nodejs: 'Node.js', rust: 'Rust', go: 'Go', java: 'Java',
+                        csharp: 'C#', cpp: 'C++', swift: 'Swift', kotlin: 'Kotlin', ruby: 'Ruby',
+                        php: 'PHP', sql: 'SQL', shell: 'Shell/Bash', other: 'Other'
+                    };
+                    parts.push(`  • Language: ${langNames[targetLanguage] || targetLanguage}`);
+                }
+                if (fileStructure) {
+                    const structNames = {
+                        single: 'Single File', multi: 'Multi-File Project', component: 'Component-Based',
+                        modular: 'Modular/Package', monorepo: 'Monorepo', microservices: 'Microservices',
+                        serverless: 'Serverless Functions', library: 'Library/SDK', cli: 'CLI Application',
+                        api: 'REST/GraphQL API', fullstack: 'Full-Stack Application', other: 'Other'
+                    };
+                    parts.push(`  • Structure: ${structNames[fileStructure] || fileStructure}`);
+                }
+                if (languageNotes) {
+                    parts.push(`  • Details: ${languageNotes}`);
+                }
+                parts.push('');
+            }
+
+            if (steps.length > 0) {
+                parts.push(`## PLANNING STEPS`);
+                steps.forEach((s, i) => parts.push(`  ${i + 1}. ${s}`));
+                parts.push('');
+            }
+
+            if (constraints.length > 0) {
+                parts.push(`## CONSTRAINTS`);
+                constraints.forEach(c => parts.push(`  • ${c}`));
+                parts.push('');
+            }
+
+            if (outputFormat) {
+                parts.push(`## OUTPUT FORMAT`);
+                parts.push(outputFormat);
+                parts.push('');
+            }
+
+            if (examples) {
+                parts.push(`## EXAMPLES`);
+                parts.push(examples);
+                parts.push('');
+            }
+
+            if (additionalNotes) {
+                parts.push(`## ADDITIONAL NOTES`);
+                parts.push(additionalNotes);
+                parts.push('');
+            }
+
+            if (parts.length <= 4) return '';
+            return parts.join('\n');
+        }
+
+        // Update Preview
+        function updatePreview() {
+            const text = buildPlanText();
+            const previews = [
+                document.getElementById('previewContent'),
+                document.getElementById('previewContentMobile')
+            ].filter(Boolean);
+
+            const charTotals = [
+                document.getElementById('charTotal'),
+                document.getElementById('charTotalMobile')
+            ].filter(Boolean);
+
+            if (!text) {
+                previews.forEach(p => p.innerHTML = '<p class="empty-state text-center py-8">Fill in sections to see preview</p>');
+                charTotals.forEach(c => c.textContent = '0 chars');
+                updateProgress(0);
+                return;
+            }
+
+            charTotals.forEach(c => c.textContent = `${text.length} chars`);
+
+            const highlighted = escapeHtml(text)
+                .replace(/^(={2,})$/gm, '<span class="text-white/20">$1</span>')
+                .replace(/^## (.+)$/gm, '<span class="section-header">## $1</span>')
+                .replace(/^(  \d+\.\s)/gm, '<span class="text-indigo-400">$1</span>')
+                .replace(/^(  •\s)/gm, '<span class="text-red-400">$1</span>');
+
+            previews.forEach(p => p.innerHTML = `<pre class="whitespace-pre-wrap text-[0.7rem] leading-relaxed">${highlighted}</pre>`);
+            updateStepIndicators();
+        }
+
+        function updateStepIndicators() {
+            const fields = [
+                { step: 1, check: () => document.getElementById('agentRole').value.trim() || document.getElementById('agentName').value.trim() },
+                { step: 2, check: () => document.getElementById('objective').value.trim() },
+                { step: 3, check: () => document.getElementById('context').value.trim() },
+                { step: 4, check: () => document.getElementById('targetLanguage').value || document.getElementById('fileStructure').value },
+                { step: 5, check: () => steps.length > 0 },
+                { step: 6, check: () => constraints.length > 0 },
+                { step: 7, check: () => document.getElementById('outputFormat').value.trim() },
+                { step: 8, check: () => document.getElementById('examples').value.trim() },
+                { step: 9, check: () => document.getElementById('additionalNotes').value.trim() }
+            ];
+
+            // Core fields are steps 1-7, optional are 8-9
+            let coreComplete = 0;
+            fields.slice(0, 7).forEach(f => {
+                const el = document.querySelector(`[data-step="${f.step}"]`);
+                if (f.check()) {
+                    el.className = 'step-indicator step-complete';
+                    el.innerHTML = '✓';
+                    coreComplete++;
+                } else {
+                    el.className = 'step-indicator step-pending';
+                    el.innerHTML = f.step;
+                }
+            });
+
+            fields.slice(7).forEach(f => {
+                const el = document.querySelector(`[data-step="${f.step}"]`);
+                if (f.check()) {
+                    el.className = 'step-indicator step-complete';
+                    el.innerHTML = '✓';
+                } else {
+                    el.className = 'step-indicator step-pending';
+                    el.innerHTML = f.step;
+                }
+            });
+
+            const pct = Math.round((coreComplete / 7) * 100);
+            updateProgress(pct);
+        }
+
+        function updateProgress(pct) {
+            document.getElementById('progressFill').style.width = `${pct}%`;
+            const label = document.getElementById('progressLabel');
+            if (label) label.textContent = `${pct}%`;
+        }
+
+        // Copy/Download/Save
+        async function copyToClipboard() {
+            const text = buildPlanText();
+            if (!text) {
+                showToast('⚠️', 'Nothing to copy yet');
+                return;
+            }
+            try {
+                await navigator.clipboard.writeText(text);
+                showToast('✅', 'Copied to clipboard!');
+            } catch {
+                fallbackCopy(text);
+            }
+        }
+
+        function fallbackCopy(text) {
+            const ta = document.createElement('textarea');
+            ta.value = text;
+            ta.style.cssText = 'position:fixed;left:-9999px';
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+            showToast('✅', 'Copied!');
+        }
+
+        function downloadPlan() {
+            const text = buildPlanText();
+            if (!text) { showToast('⚠️', 'Nothing to download'); return; }
+            const blob = new Blob([text], { type: 'text/plain' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `${(document.getElementById('agentName').value.trim() || 'plan').toLowerCase().replace(/\s+/g, '-')}-prompt.txt`;
+            a.click();
+            URL.revokeObjectURL(a.href);
+            showToast('📥', 'Downloaded!');
+        }
+
+        function saveDraft() {
+            const data = {
+                agentName: document.getElementById('agentName').value,
+                agentRole: document.getElementById('agentRole').value,
+                objective: document.getElementById('objective').value,
+                context: document.getElementById('context').value,
+                targetLanguage: document.getElementById('targetLanguage').value,
+                fileStructure: document.getElementById('fileStructure').value,
+                languageNotes: document.getElementById('languageNotes').value,
+                steps, constraints, selectedFormat,
+                outputFormat: document.getElementById('outputFormat').value,
+                examples: document.getElementById('examples').value,
+                additionalNotes: document.getElementById('additionalNotes').value,
+                savedAt: new Date().toISOString()
+            };
+            localStorage.setItem('promptStudioDraft', JSON.stringify(data));
+            showToast('💾', 'Draft saved!');
+        }
+
+        function loadDraft() {
+            const raw = localStorage.getItem('promptStudioDraft');
+            if (!raw) { showToast('📭', 'No saved draft'); return; }
+            try {
+                const data = JSON.parse(raw);
+                document.getElementById('agentName').value = data.agentName || '';
+                document.getElementById('agentRole').value = data.agentRole || '';
+                document.getElementById('objective').value = data.objective || '';
+                document.getElementById('context').value = data.context || '';
+                document.getElementById('targetLanguage').value = data.targetLanguage || '';
+                document.getElementById('fileStructure').value = data.fileStructure || '';
+                document.getElementById('languageNotes').value = data.languageNotes || '';
+                steps = data.steps || [];
+                constraints = data.constraints || [];
+                selectedFormat = data.selectedFormat || '';
+                document.getElementById('outputFormat').value = data.outputFormat || '';
+                document.getElementById('examples').value = data.examples || '';
+                document.getElementById('additionalNotes').value = data.additionalNotes || '';
+                renderSteps();
+                renderConstraints();
+                updatePreview();
+                showToast('📂', 'Draft loaded!');
+            } catch { showToast('❌', 'Failed to load draft'); }
+        }
+
+        function autoLoadDraft() {
+            const raw = localStorage.getItem('promptStudioDraft');
+            if (!raw) return;
+            try {
+                const data = JSON.parse(raw);
+                document.getElementById('agentName').value = data.agentName || '';
+                document.getElementById('agentRole').value = data.agentRole || '';
+                document.getElementById('objective').value = data.objective || '';
+                document.getElementById('context').value = data.context || '';
+                document.getElementById('targetLanguage').value = data.targetLanguage || '';
+                document.getElementById('fileStructure').value = data.fileStructure || '';
+                document.getElementById('languageNotes').value = data.languageNotes || '';
+                steps = data.steps || [];
+                constraints = data.constraints || [];
+                document.getElementById('outputFormat').value = data.outputFormat || '';
+                document.getElementById('examples').value = data.examples || '';
+                document.getElementById('additionalNotes').value = data.additionalNotes || '';
+                renderSteps();
+                renderConstraints();
+            } catch {}
+        }
+
+        function resetAll() {
+            if (!confirm('Reset everything?')) return;
+            ['agentName', 'agentRole', 'objective', 'context', 'languageNotes', 'outputFormat', 'examples', 'additionalNotes'].forEach(id => document.getElementById(id).value = '');
+            document.getElementById('targetLanguage').value = '';
+            document.getElementById('fileStructure').value = '';
+            steps = []; constraints = []; selectedFormat = '';
+            renderSteps(); renderConstraints();
+            document.querySelectorAll('.format-btn').forEach(b => b.classList.remove('ring-1', 'ring-indigo-500/50'));
+            updatePreview();
+            showToast('🗑️', 'Reset complete');
+        }
+
+        async function copyCodebase() {
+            const btn = document.getElementById('codebaseBtn');
+            const btnText = document.getElementById('codebaseBtnText');
+            try {
+                btnText.textContent = 'Copying...';
+                const res = await fetch(window.location.href);
+                const source = await res.text();
+                await navigator.clipboard.writeText(source).catch(() => fallbackCopy(source));
+                btnText.textContent = 'Copied!';
+                showToast('📋', 'Source code copied!');
+                setTimeout(() => btnText.textContent = 'Copy App Source Code', 2000);
+            } catch (err) {
+                btnText.textContent = 'Failed';
+                setTimeout(() => btnText.textContent = 'Copy App Source Code', 2000);
+            }
+        }
+
+        // AI Panel
+        function initAIPanel() {
+            const provider = localStorage.getItem('ai_provider') || 'puter_gpt';
+            document.getElementById('aiProvider').value = provider;
+            onProviderChange();
+        }
+
+        function onProviderChange() {
+            const provider = document.getElementById('aiProvider').value;
+            const modelSelect = document.getElementById('aiModel');
+            const apiKeyRow = document.getElementById('apiKeyRow');
+            const customRow = document.getElementById('customEndpointRow');
+            const apiStatus = document.getElementById('apiStatus');
+
+            // Validate provider exists
+            if (!providers[provider]) {
+                console.error('Unknown provider:', provider);
+                return;
+            }
+
+            // Populate model dropdown
+            modelSelect.innerHTML = '';
+            const models = providers[provider].models;
+            const modelKeys = Object.keys(models);
+
+            if (modelKeys.length === 0) {
+                console.error('No models for provider:', provider);
+                return;
+            }
+
+            modelKeys.forEach((key, i) => {
+                const opt = document.createElement('option');
+                opt.value = key;
+                opt.textContent = models[key].name;
+                modelSelect.appendChild(opt);
+            });
+
+            // Force-select first model using selectedIndex (more reliable)
+            modelSelect.selectedIndex = 0;
+
+            // Update model info after a microtask to ensure DOM is ready
+            setTimeout(() => updateModelInfo(), 0);
+
+            customRow.classList.toggle('hidden', provider !== 'custom');
+            apiKeyRow.classList.toggle('hidden', !providers[provider].requiresKey);
+
+            const dot = document.getElementById('apiStatusDot');
+            if (providers[provider].requiresKey) {
+                const savedKey = localStorage.getItem(`${provider}_api_key`);
+                document.getElementById('apiKey').value = savedKey || '';
+                apiStatus.textContent = savedKey ? '🔑 API key loaded' : '⚠️ API key required';
+                apiStatus.className = 'text-[0.65rem] ' + (savedKey ? 'text-emerald-400' : 'text-amber-400');
+                dot.className = 'w-2 h-2 rounded-full ' + (savedKey ? 'bg-emerald-500' : 'bg-amber-500');
+            } else {
+                apiStatus.textContent = '✅ Ready — no API key needed!';
+                apiStatus.className = 'text-[0.65rem] text-emerald-400';
+                dot.className = 'w-2 h-2 rounded-full bg-emerald-500';
+            }
+
+            localStorage.setItem('ai_provider', provider);
+        }
+
+        function updateModelInfo() {
+            const provider = document.getElementById('aiProvider').value;
+            let modelKey = document.getElementById('aiModel').value;
+            const providerData = providers[provider];
+            if (!providerData) return;
+
+            // Fallback to first model if no model selected
+            if (!modelKey) {
+                const modelKeys = Object.keys(providerData.models);
+                if (modelKeys.length > 0) {
+                    modelKey = modelKeys[0];
+                    document.getElementById('aiModel').value = modelKey;
+                }
+            }
+
+            const info = providerData.models[modelKey];
+            if (!info) return;
+
+            const badgeMap = { free: 'badge-free', fast: 'badge-fast', smart: 'badge-smart', code: 'badge-code', reason: 'badge-reason' };
+            const labelMap = { free: 'FREE', fast: 'FAST', smart: 'SMART', code: 'CODE', reason: 'REASONING' };
+
+            const badges = info.badges.map(b =>
+                `<span class="model-badge ${badgeMap[b] || ''}">${labelMap[b] || b.toUpperCase()}</span>`
+            ).join('');
+
+            document.getElementById('modelInfo').innerHTML = `
+                <div class="flex items-center gap-2 mb-1 flex-wrap">
+                    ${badges}
+                    <span class="text-[0.6rem] text-white/30">${info.size} params</span>
+                </div>
+                <p class="text-[0.7rem] text-white/50 leading-relaxed">${info.desc}</p>
+            `;
+        }
+
+        function saveAPIKey() {
+            const provider = document.getElementById('aiProvider').value;
+            const apiKey = document.getElementById('apiKey').value.trim();
+            if (!apiKey) { showToast('⚠️', 'Enter an API key'); return; }
+            localStorage.setItem(`${provider}_api_key`, apiKey);
+            const customEndpoint = document.getElementById('customEndpoint').value.trim();
+            if (provider === 'custom' && customEndpoint) {
+                localStorage.setItem('custom_endpoint', customEndpoint);
+            }
+            document.getElementById('apiStatus').textContent = '✅ API key saved!';
+            document.getElementById('apiStatus').className = 'text-[0.65rem] text-emerald-400';
+            showToast('🔑', 'API key saved!');
+        }
+
+        function toggleAIPanel() {
+            isAIPanelOpen = !isAIPanelOpen;
+            document.getElementById('aiPanel').classList.toggle('open', isAIPanelOpen);
+            document.getElementById('aiOverlay').classList.toggle('open', isAIPanelOpen);
+            document.getElementById('aiToggleBtn').classList.toggle('panel-open', isAIPanelOpen);
+        }
+
+        function toggleAISettings() {
+            const settings = document.getElementById('aiSettings');
+            settings.classList.toggle('hidden');
+        }
+
+        const SYSTEM_PROMPT = `You are an expert prompt engineer assistant. Help users develop high-quality planning prompts for AI agents.
+
+Your role:
+- Analyze prompts for clarity, specificity, and completeness
+- Suggest specific, actionable improvements
+- Identify missing context, constraints, or instructions
+- Help structure prompts with clear sections
+- Generate examples when requested
+
+Best practices you follow:
+- Be specific, not vague
+- Define clear success criteria
+- Use structured sections with headers
+- Add appropriate constraints
+- Include relevant context
+- Consider chain-of-thought prompting
+
+Keep responses concise but thorough. Use markdown formatting. Always explain WHY a change helps.`;
+
+        const quickActionPrompts = {
+            analyze: "Analyze my current prompt. Rate it on clarity (1-10), completeness (1-10), and effectiveness (1-10). What's working? What needs improvement? Be specific.",
+            improve: "Suggest 3-5 specific improvements for my prompt. For each: what to change, why it helps, and an example of the improved text.",
+            examples: "Generate 2-3 high-quality few-shot examples I could add to my prompt. Make them realistic input→output pairs that demonstrate expected behavior.",
+            constraints: "Suggest 5-7 specific constraints/rules I should add. Consider: edge cases, guardrails, quality requirements, scope limits, behavioral boundaries.",
+            clarify: "What's missing or unclear in my prompt? What questions would the AI agent have? List the top 5 things I should clarify.",
+            rewrite: "Rewrite my prompt to be clearer and more effective. Keep the same intent but improve structure, specificity, and formatting. Show the improved version."
+        };
+
+        async function quickAction(action) {
+            document.getElementById('chatInput').value = quickActionPrompts[action];
+            await sendChatMessage();
+        }
+
+        async function sendChatMessage() {
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
+            if (!message) return;
+
+            const provider = document.getElementById('aiProvider').value;
+            const apiKey = document.getElementById('apiKey').value.trim();
+
+            if (providers[provider].requiresKey && !apiKey) {
+                showToast('⚠️', 'API key required');
+                return;
+            }
+
+            addChatMessage('user', message);
+            input.value = '';
+
+            const currentPrompt = buildPlanText();
+            const contextMessage = currentPrompt 
+                ? `\n\n---\n**USER'S CURRENT PROMPT:**\n\`\`\`\n${currentPrompt}\n\`\`\`\n---\n\n`
+                : '\n\n(User has not created any prompt content yet)\n\n';
+
+            const messages = [
+                { role: 'system', content: SYSTEM_PROMPT },
+                { role: 'user', content: `Context:${contextMessage}` },
+                ...chatHistory.slice(-8),
+                { role: 'user', content: message }
+            ];
+
+            const typingDiv = document.createElement('div');
+            typingDiv.className = 'chat-msg assistant typing-indicator';
+            typingDiv.innerHTML = '<span></span><span></span><span></span>';
+            document.getElementById('chatMessages').appendChild(typingDiv);
+            scrollChatToBottom();
+
+            try {
+                let assistantMessage = '';
+                const modelValue = document.getElementById('aiModel').value;
+
+                if (provider === 'puter_gpt') {
+                    // Puter.js SDK — free, no key, browser-native
+                    if (typeof puter === 'undefined') {
+                        throw new Error('Puter.js failed to load. Check your internet connection and try refreshing the page.');
+                    }
+
+                    const TIMEOUT_MS = 30000;
+                    const timeoutPromise = new Promise((_, reject) =>
+                        setTimeout(() => reject(new Error('Request timed out after 30s. Puter may need you to sign in — check for a popup, or try a different model.')), TIMEOUT_MS)
+                    );
+
+                    // stream: false ensures we get a plain response object, not an async iterator
+                    const chatPromise = puter.ai.chat(messages, { model: modelValue, stream: false });
+                    const result = await Promise.race([chatPromise, timeoutPromise]);
+
+                    // Puter.js response can arrive in several shapes depending on the model/version
+                    if (typeof result === 'string') {
+                        assistantMessage = result;
+                    } else if (result?.message?.content) {
+                        assistantMessage = result.message.content;
+                    } else if (result?.choices?.[0]?.message?.content) {
+                        assistantMessage = result.choices[0].message.content;
+                    } else if (result?.text) {
+                        assistantMessage = result.text;
+                    } else if (result?.content) {
+                        assistantMessage = Array.isArray(result.content)
+                            ? result.content.map(c => c?.text || '').join('')
+                            : String(result.content);
+                    } else {
+                        assistantMessage = 'Received an empty response. The model may be unavailable — try switching models.';
+                    }
+                } else {
+                    // Standard OpenAI-compatible fetch
+                    let endpoint = providers[provider].endpoint;
+                    if (provider === 'custom') {
+                        endpoint = document.getElementById('customEndpoint').value.trim();
+                        if (!endpoint) throw new Error('Enter custom endpoint URL');
+                    }
+
+                    const headers = { 'Content-Type': 'application/json' };
+
+                    if (provider === 'pollinations') {
+                        headers['Authorization'] = 'Bearer pollinations';
+                    } else if (apiKey) {
+                        headers['Authorization'] = `Bearer ${apiKey}`;
+                    }
+
+                    if (provider === 'openrouter') {
+                        headers['HTTP-Referer'] = window.location.href;
+                        headers['X-Title'] = 'Prompt Engineer Studio';
+                    }
+
+                    if (provider === 'pollinations_pro') {
+                        headers['HTTP-Referer'] = window.location.href;
+                    }
+
+                    const response = await fetch(endpoint, {
+                        method: 'POST',
+                        headers,
+                        body: JSON.stringify({
+                            model: modelValue,
+                            messages,
+                            temperature: 0.7,
+                            max_tokens: 1500
+                        })
+                    }).catch(err => {
+                        throw new Error(`Network error: ${err.message || err}`);
+                    });
+
+                    if (!response.ok) {
+                        const err = await response.json().catch(() => ({}));
+                        throw new Error(err.error?.message || err.message || `API error: ${response.status}`);
+                    }
+
+                    const data = await response.json();
+                    assistantMessage = data.choices?.[0]?.message?.content || 'No response';
+                }
+
+                typingDiv.remove();
+                chatHistory.push({ role: 'user', content: message });
+                chatHistory.push({ role: 'assistant', content: assistantMessage });
+                addChatMessage('assistant', assistantMessage);
+            } catch (error) {
+                typingDiv.remove();
+                addChatMessage('error', `Error: ${error.message}`);
+            }
+        }
+
+        function addChatMessage(type, content) {
+            const container = document.getElementById('chatMessages');
+            const div = document.createElement('div');
+            div.className = `chat-msg ${type}`;
+
+            if (type === 'assistant') {
+                let html = escapeHtml(content)
+                    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+                    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+                    .replace(/`([^`]+)`/g, '<code class="bg-black/30 px-1 py-0.5 rounded text-pink-300 text-[0.75rem]">$1</code>')
+                    .replace(/```(\w*)\n?([\s\S]*?)```/g, '<pre class="bg-black/30 p-2 rounded my-2 text-[0.7rem] overflow-x-auto"><code>$2</code></pre>')
+                    .replace(/^### (.+)$/gm, '<h4 class="font-bold text-white mt-2 mb-1 text-sm">$1</h4>')
+                    .replace(/^## (.+)$/gm, '<h3 class="font-bold text-white mt-2 mb-1">$1</h3>')
+                    .replace(/^- (.+)$/gm, '<div class="ml-2">• $1</div>')
+                    .replace(/^(\d+)\. (.+)$/gm, '<div class="ml-2">$1. $2</div>')
+                    .replace(/\n\n/g, '<br><br>')
+                    .replace(/\n/g, '<br>');
+                div.innerHTML = html;
+            } else if (type === 'error') {
+                div.classList.add('error');
+                div.textContent = content;
+            } else {
+                div.textContent = content;
+            }
+
+            container.appendChild(div);
+            scrollChatToBottom();
+        }
+
+        function scrollChatToBottom() {
+            const c = document.getElementById('chatMessages');
+            c.scrollTop = c.scrollHeight;
+        }
+
+        function clearChat() {
+            chatHistory = [];
+            document.getElementById('chatMessages').innerHTML = '<div class="chat-msg system">👋 Chat cleared. How can I help?</div>';
+        }
+
+        function showToast(icon, msg) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toastIcon').textContent = icon;
+            document.getElementById('toastMsg').textContent = msg;
+            toast.classList.remove('hidden');
+            setTimeout(() => toast.classList.add('hidden'), 2500);
+        }
+
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>
+
