@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<!-- by ImPot8o - github.com/ImPot8o -->
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" type="image/png" href="https://example.com/favicon.png">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Document</title>
+</head>
+<style>/* style.css */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  color: white;
+  background-color: black;
+  padding: 10px;
+}
+
+.stopwatch-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+}
+
+.stopwatch-display {
+  font-size: 48px;
+  margin-bottom: 20px;
+}
+
+.stopwatch-button {
+  padding: 10px 20px;
+  font-size: 18px;
+  cursor: pointer;
+}
+
+</style>
+
+<body>
+  <div class="stopwatch-container">
+    <div id="stopwatch-display" class="stopwatch-display">00:00:00.00</div> 
+    <button id="start-button" class="stopwatch-button">Start</button> 
+    <button id="stop-button" class="stopwatch-button" disabled>Stop</button> 
+    <button id="reset-button" class="stopwatch-button" disabled>Reset</button>
+  </div>
+  <script>/* script.js */
+let startTime = 0;
+let elapsedTime = 0; // total time accumulated from previous runs
+let timerInterval = null;
+let running = false;
+
+const display = document.getElementById('stopwatch-display');
+const startButton = document.getElementById('start-button');
+const stopButton = document.getElementById('stop-button');
+const resetButton = document.getElementById('reset-button');
+
+function updateTime() {
+  const currentTime = Date.now();
+  const runTime = currentTime - startTime; // time for current run only
+  const totalTime = elapsedTime + runTime; // add to previous total
+  display.textContent = formatTime(totalTime);
+}
+
+function formatTime(time) {
+  const hours = Math.floor(time / 3600000);
+  const minutes = Math.floor((time % 3600000) / 60000);
+  const seconds = Math.floor((time % 60000) / 1000);
+  const milliseconds = Math.floor((time % 1000) / 10);
+  return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}.${milliseconds.toString().padStart(2, '0')}`;
+}
+
+function startStopwatch() {
+  if (running) return;
+  running = true;
+  startTime = Date.now(); // mark when this run started
+  timerInterval = setInterval(updateTime, 10);
+  startButton.disabled = true;
+  stopButton.disabled = false;
+  resetButton.disabled = true;
+}
+
+function stopStopwatch() {
+  if (!running) return;
+  running = false;
+  clearInterval(timerInterval);
+  elapsedTime += Date.now() - startTime; // save the time from this run
+  startButton.disabled = false;
+  stopButton.disabled = true;
+  resetButton.disabled = false;
+}
+
+function resetStopwatch() {
+  clearInterval(timerInterval);
+  running = false;
+  elapsedTime = 0;
+  display.textContent = '00:00:00.00';
+  startButton.disabled = false;
+  stopButton.disabled = true;
+  resetButton.disabled = true;
+}
+
+startButton.addEventListener('click', startStopwatch);
+stopButton.addEventListener('click', stopStopwatch);
+resetButton.addEventListener('click', resetStopwatch);
+
+</script>
+</body>
+
+</html>
