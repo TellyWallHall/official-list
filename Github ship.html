@@ -1,0 +1,1218 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ship It — HTML to GitHub</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+  :root {
+    --bg: #0a0a0c;
+    --bg-elevated: #111115;
+    --bg-card: #16161b;
+    --border: #2a2a32;
+    --border-focus: #e8a83e;
+    --fg: #e8e6e1;
+    --fg-muted: #7a7872;
+    --fg-dim: #4a4944;
+    --accent: #e8a83e;
+    --accent-dim: rgba(232,168,62,0.12);
+    --accent-glow: rgba(232,168,62,0.25);
+    --success: #3dd68c;
+    --success-dim: rgba(61,214,140,0.12);
+    --error: #f05e5e;
+    --error-dim: rgba(240,94,94,0.12);
+    --radius: 10px;
+    --radius-sm: 6px;
+  }
+
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+
+  body {
+    font-family: 'Space Grotesk', sans-serif;
+    background: var(--bg);
+    color: var(--fg);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+
+  /* Ambient background */
+  body::before {
+    content: '';
+    position: fixed;
+    top: -40%; left: -20%;
+    width: 80%; height: 80%;
+    background: radial-gradient(ellipse, rgba(232,168,62,0.04) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+  body::after {
+    content: '';
+    position: fixed;
+    bottom: -30%; right: -10%;
+    width: 60%; height: 60%;
+    background: radial-gradient(ellipse, rgba(61,214,140,0.03) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+
+  .app {
+    position: relative;
+    z-index: 1;
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 40px 24px 80px;
+  }
+
+
+  /* Header */
+  .header {
+    text-align: center;
+    margin-bottom: 48px;
+  }
+  .header-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 56px; height: 56px;
+    background: var(--accent-dim);
+    border: 1px solid rgba(232,168,62,0.2);
+    border-radius: 14px;
+    font-size: 24px;
+    color: var(--accent);
+    margin-bottom: 20px;
+    animation: float 3s ease-in-out infinite;
+  }
+  @keyframes float {
+    0%,100% { transform: translateY(0); }
+    50% { transform: translateY(-4px); }
+  }
+  .header h1 {
+    font-size: 32px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    margin-bottom: 8px;
+  }
+  .header h1 span { color: var(--accent); }
+  .header p {
+    color: var(--fg-muted);
+    font-size: 15px;
+    font-weight: 300;
+  }
+
+
+  /* Cards / Steps */
+  .step {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 28px;
+    margin-bottom: 20px;
+    transition: border-color 0.3s, box-shadow 0.3s;
+  }
+  .step.active {
+    border-color: var(--border-focus);
+    box-shadow: 0 0 30px var(--accent-glow), inset 0 0 30px rgba(232,168,62,0.02);
+  }
+  .step.completed {
+    border-color: rgba(61,214,140,0.3);
+  }
+  .step-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--fg-muted);
+    margin-bottom: 18px;
+  }
+  .step-label .num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: var(--border);
+    font-size: 10px;
+    color: var(--fg-muted);
+    transition: all 0.3s;
+  }
+  .step.active .step-label .num {
+    background: var(--accent);
+    color: var(--bg);
+  }
+  .step.completed .step-label .num {
+    background: var(--success);
+    color: var(--bg);
+  }
+
+
+  /* Inputs */
+  label.field-label {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--fg-muted);
+    margin-bottom: 8px;
+  }
+  input[type="text"], input[type="password"] {
+    width: 100%;
+    padding: 12px 14px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--fg);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-dim);
+  }
+  input::placeholder { color: var(--fg-dim); }
+
+
+  .input-row {
+    display: flex;
+    gap: 10px;
+    align-items: flex-end;
+  }
+  .input-row > *:first-child { flex: 1; }
+
+
+  /* Buttons */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 20px;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .btn:active { transform: scale(0.97); }
+  .btn-primary {
+    background: var(--accent);
+    color: var(--bg);
+  }
+  .btn-primary:hover { background: #d49a35; box-shadow: 0 4px 16px var(--accent-glow); }
+  .btn-primary:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    box-shadow: none;
+  }
+  .btn-secondary {
+    background: var(--bg-elevated);
+    color: var(--fg);
+    border: 1px solid var(--border);
+  }
+  .btn-secondary:hover { border-color: var(--fg-muted); }
+  .btn-ghost {
+    background: transparent;
+    color: var(--accent);
+    padding: 8px 12px;
+  }
+  .btn-ghost:hover { background: var(--accent-dim); }
+
+
+  /* PAT row */
+  .pat-section { margin-bottom: 0; }
+  .pat-hint {
+    font-size: 11px;
+    color: var(--fg-dim);
+    margin-top: 6px;
+  }
+  .pat-hint a { color: var(--accent); text-decoration: none; }
+  .pat-hint a:hover { text-decoration: underline; }
+
+
+  /* User badge */
+  .user-badge {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    background: var(--success-dim);
+    border: 1px solid rgba(61,214,140,0.2);
+    border-radius: var(--radius-sm);
+    margin-bottom: 20px;
+    animation: slideIn 0.3s ease;
+  }
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .user-badge img {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    border: 2px solid rgba(61,214,140,0.3);
+  }
+  .user-badge .user-info { flex: 1; }
+  .user-badge .user-name { font-weight: 600; font-size: 14px; }
+  .user-badge .user-login { font-size: 12px; color: var(--fg-muted); font-family: 'JetBrains Mono', monospace; }
+
+
+  /* Repo list */
+  .repo-list {
+    max-height: 260px;
+    overflow-y: auto;
+    margin-bottom: 16px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+  .repo-list::-webkit-scrollbar { width: 6px; }
+  .repo-list::-webkit-scrollbar-track { background: transparent; }
+  .repo-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+
+  .repo-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    cursor: pointer;
+    transition: background 0.15s;
+    border-bottom: 1px solid var(--border);
+  }
+  .repo-item:last-child { border-bottom: none; }
+  .repo-item:hover { background: var(--accent-dim); }
+  .repo-item.selected {
+    background: var(--accent-dim);
+    border-left: 3px solid var(--accent);
+    padding-left: 13px;
+  }
+  .repo-item .repo-icon {
+    color: var(--fg-dim);
+    font-size: 14px;
+    width: 20px;
+    text-align: center;
+  }
+  .repo-item.selected .repo-icon { color: var(--accent); }
+  .repo-item .repo-name {
+    font-size: 13px;
+    font-weight: 500;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .repo-item .repo-visibility {
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 20px;
+    background: var(--bg-elevated);
+    color: var(--fg-muted);
+    border: 1px solid var(--border);
+    margin-left: auto;
+  }
+
+
+  .repo-list-empty {
+    padding: 32px;
+    text-align: center;
+    color: var(--fg-dim);
+    font-size: 13px;
+  }
+
+
+  /* New repo section */
+  .new-repo-section {
+    padding: 16px;
+    background: var(--bg-elevated);
+    border: 1px dashed var(--border);
+    border-radius: var(--radius-sm);
+    margin-bottom: 16px;
+    animation: slideIn 0.3s ease;
+  }
+  .new-repo-section .nr-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--accent);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .new-repo-section .nr-fields {
+    display: flex;
+    gap: 10px;
+    align-items: flex-end;
+  }
+  .new-repo-section .nr-fields > div { flex: 1; }
+  .new-repo-section .nr-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+  }
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--fg-muted);
+    margin-top: 10px;
+  }
+  .toggle-row input[type="checkbox"] {
+    accent-color: var(--accent);
+  }
+
+
+  /* File upload area */
+  .drop-zone {
+    border: 2px dashed var(--border);
+    border-radius: var(--radius);
+    padding: 40px 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.25s;
+    position: relative;
+  }
+  .drop-zone:hover, .drop-zone.dragover {
+    border-color: var(--accent);
+    background: var(--accent-dim);
+  }
+  .drop-zone .dz-icon {
+    font-size: 32px;
+    color: var(--fg-dim);
+    margin-bottom: 12px;
+    transition: color 0.25s;
+  }
+  .drop-zone:hover .dz-icon, .drop-zone.dragover .dz-icon { color: var(--accent); }
+  .drop-zone .dz-text { font-size: 14px; color: var(--fg-muted); margin-bottom: 4px; }
+  .drop-zone .dz-sub { font-size: 12px; color: var(--fg-dim); }
+  .drop-zone input[type="file"] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+  }
+
+
+  .file-preview {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    background: var(--accent-dim);
+    border: 1px solid rgba(232,168,62,0.2);
+    border-radius: var(--radius-sm);
+    margin-top: 14px;
+    animation: slideIn 0.3s ease;
+  }
+  .file-preview .fp-icon { color: var(--accent); font-size: 18px; }
+  .file-preview .fp-name { font-size: 13px; font-weight: 500; }
+  .file-preview .fp-size { font-size: 11px; color: var(--fg-muted); }
+  .file-preview .fp-remove {
+    margin-left: auto;
+    color: var(--fg-dim);
+    cursor: pointer;
+    padding: 4px;
+    transition: color 0.2s;
+  }
+  .file-preview .fp-remove:hover { color: var(--error); }
+
+
+  /* Deploy path input */
+  .deploy-path-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+    margin-top: 16px;
+  }
+  .deploy-path-row > div { flex: 1; }
+
+
+  /* Deploy button */
+  .deploy-section {
+    text-align: center;
+    padding-top: 8px;
+  }
+  .btn-deploy {
+    padding: 16px 40px;
+    font-size: 15px;
+    border-radius: var(--radius);
+  }
+
+
+  /* Result */
+  .result-card {
+    padding: 24px;
+    background: var(--success-dim);
+    border: 1px solid rgba(61,214,140,0.2);
+    border-radius: var(--radius);
+    text-align: center;
+    animation: slideIn 0.4s ease;
+  }
+  .result-card .result-icon {
+    font-size: 36px;
+    color: var(--success);
+    margin-bottom: 12px;
+  }
+  .result-card .result-title {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 16px;
+  }
+  .result-links {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-items: center;
+  }
+  .result-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--fg);
+    text-decoration: none;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    transition: all 0.2s;
+    max-width: 100%;
+    word-break: break-all;
+  }
+  .result-link:hover {
+    border-color: var(--success);
+    background: rgba(61,214,140,0.08);
+  }
+  .result-link i { color: var(--success); }
+
+
+  /* Toast */
+  .toast-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .toast {
+    padding: 12px 18px;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    animation: toastIn 0.3s ease, toastOut 0.3s ease 3s forwards;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  }
+  .toast-error { background: var(--error-dim); border: 1px solid rgba(240,94,94,0.3); color: var(--error); }
+  .toast-success { background: var(--success-dim); border: 1px solid rgba(61,214,140,0.3); color: var(--success); }
+  .toast-info { background: var(--accent-dim); border: 1px solid rgba(232,168,62,0.3); color: var(--accent); }
+  @keyframes toastIn { from { opacity: 0; transform: translateX(30px); } to { opacity: 1; transform: translateX(0); } }
+  @keyframes toastOut { to { opacity: 0; transform: translateX(30px); } }
+
+
+  /* Spinner */
+  .spinner {
+    display: inline-block;
+    width: 16px; height: 16px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+
+  /* Loading state for repos */
+  .repo-loading {
+    padding: 24px;
+    text-align: center;
+    color: var(--fg-muted);
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+  }
+
+
+  /* Status text */
+  .status-text {
+    font-size: 12px;
+    color: var(--fg-muted);
+    margin-top: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+
+  /* Pages note */
+  .pages-note {
+    font-size: 11px;
+    color: var(--fg-dim);
+    margin-top: 10px;
+    padding: 10px 14px;
+    background: var(--bg-elevated);
+    border-radius: var(--radius-sm);
+    border-left: 3px solid var(--accent);
+  }
+
+
+  /* Responsive */
+  @media (max-width: 600px) {
+    .app { padding: 24px 16px 60px; }
+    .header h1 { font-size: 26px; }
+    .step { padding: 20px; }
+    .new-repo-section .nr-fields { flex-direction: column; }
+    .input-row { flex-direction: column; }
+  }
+
+
+  /* Particles */
+  .particles {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    overflow: hidden;
+  }
+  .particle {
+    position: absolute;
+    width: 2px; height: 2px;
+    background: var(--accent);
+    border-radius: 50%;
+    opacity: 0;
+    animation: drift linear infinite;
+  }
+  @keyframes drift {
+    0% { opacity: 0; transform: translateY(0) translateX(0); }
+    10% { opacity: 0.4; }
+    90% { opacity: 0.4; }
+    100% { opacity: 0; transform: translateY(-100vh) translateX(40px); }
+  }
+</style>
+</head>
+<body>
+
+
+<!-- Ambient particles -->
+<div class="particles" id="particles"></div>
+
+
+<!-- Toast container -->
+<div class="toast-container" id="toastContainer"></div>
+
+
+<div class="app">
+
+
+  <!-- Header -->
+  <header class="header">
+    <div class="header-icon"><i class="fa-solid fa-rocket"></i></div>
+    <h1>Ship <span>It</span></h1>
+    <p>Upload any HTML file straight to a GitHub repo</p>
+  </header>
+
+
+  <!-- Step 1: Authenticate -->
+  <section class="step active" id="step1">
+    <div class="step-label">
+      <span class="num">1</span>
+      Authenticate
+    </div>
+    <div class="pat-section">
+      <label class="field-label">GitHub Personal Access Token</label>
+      <div class="input-row">
+        <input type="password" id="patInput" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" autocomplete="off">
+        <button class="btn btn-primary" id="connectBtn" onclick="connect()">
+          <i class="fa-solid fa-plug"></i> Connect
+        </button>
+      </div>
+      <div class="pat-hint">
+        Needs <code>repo</code> scope. <a href="https://github.com/settings/tokens/new" target="_blank">Create one here &rarr;</a>
+      </div>
+    </div>
+    <div id="userBadge"></div>
+  </section>
+
+
+  <!-- Step 2: Choose repo -->
+  <section class="step" id="step2">
+    <div class="step-label">
+      <span class="num">2</span>
+      Choose Repository
+    </div>
+    <div id="repoListContainer"></div>
+    <div id="newRepoSection"></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <button class="btn btn-ghost" id="showNewRepoBtn" style="display:none" onclick="showNewRepo()">
+        <i class="fa-solid fa-plus"></i> Create new repo
+      </button>
+    </div>
+  </section>
+
+
+  <!-- Step 3: Upload file -->
+  <section class="step" id="step3">
+    <div class="step-label">
+      <span class="num">3</span>
+      Upload HTML
+    </div>
+    <div class="drop-zone" id="dropZone">
+      <input type="file" id="fileInput" accept=".html,.htm" onchange="handleFileSelect(event)">
+      <div class="dz-icon"><i class="fa-solid fa-file-code"></i></div>
+      <div class="dz-text">Drop your HTML file here or click to browse</div>
+      <div class="dz-sub">.html files only</div>
+    </div>
+    <div id="filePreview"></div>
+    <div class="deploy-path-row">
+      <div>
+        <label class="field-label">Deploy path in repo</label>
+        <input type="text" id="deployPath" value="index.html" placeholder="e.g. index.html or pages/demo.html">
+      </div>
+    </div>
+    <div class="pages-note">
+      <i class="fa-solid fa-circle-info"></i>
+      The file will be committed to the default branch. GitHub Pages will serve it at <strong>username.github.io/repo/</strong> if enabled in repo settings.
+    </div>
+  </section>
+
+
+  <!-- Step 4: Deploy -->
+  <section class="step" id="step4">
+    <div class="step-label">
+      <span class="num">4</span>
+      Deploy
+    </div>
+    <div class="deploy-section">
+      <button class="btn btn-primary btn-deploy" id="deployBtn" onclick="deploy()" disabled>
+        <i class="fa-solid fa-rocket"></i> Ship It
+      </button>
+      <div class="status-text" id="deployStatus"></div>
+    </div>
+    <div id="resultCard" style="margin-top:20px;"></div>
+  </section>
+
+
+</div>
+
+
+<script>
+  // --- State ---
+  let pat = '';
+  let user = null;
+  let repos = [];
+  let selectedRepo = null;
+  let uploadedFile = null;
+  let isNewRepo = false;
+  let newRepoData = { name: '', private: false };
+
+
+  // --- Particles ---
+  (function initParticles() {
+    const container = document.getElementById('particles');
+    for (let i = 0; i < 20; i++) {
+      const p = document.createElement('div');
+      p.className = 'particle';
+      p.style.left = Math.random() * 100 + '%';
+      p.style.bottom = '-10px';
+      p.style.animationDuration = (8 + Math.random() * 12) + 's';
+      p.style.animationDelay = (Math.random() * 10) + 's';
+      p.style.width = p.style.height = (1 + Math.random() * 2) + 'px';
+      container.appendChild(p);
+    }
+  })();
+
+
+  // --- Toast ---
+  function showToast(message, type = 'info') {
+    const container = document.getElementById('toastContainer');
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    const icons = { error: 'fa-circle-xmark', success: 'fa-circle-check', info: 'fa-circle-info' };
+    toast.innerHTML = `<i class="fa-solid ${icons[type] || icons.info}"></i> ${message}`;
+    container.appendChild(toast);
+    setTimeout(() => toast.remove(), 3500);
+  }
+
+
+  // --- GitHub API helper ---
+  async function githubAPI(endpoint, method = 'GET', body = null) {
+    const opts = {
+      method,
+      headers: {
+        'Authorization': `token ${pat}`,
+        'Accept': 'application/vnd.github.v3+json',
+      }
+    };
+    if (body) {
+      opts.headers['Content-Type'] = 'application/json';
+      opts.body = JSON.stringify(body);
+    }
+    const res = await fetch(`https://api.github.com${endpoint}`, opts);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || `GitHub API error: ${res.status}`);
+    }
+    // For 204 No Content
+    if (res.status === 204) return null;
+    return res.json();
+  }
+
+
+  // --- Step 1: Connect ---
+  async function connect() {
+    const input = document.getElementById('patInput');
+    pat = input.value.trim();
+    if (!pat) {
+      showToast('Please enter your Personal Access Token', 'error');
+      return;
+    }
+
+
+    const btn = document.getElementById('connectBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Connecting';
+
+
+    try {
+      user = await githubAPI('/user');
+      // Show user badge
+      document.getElementById('userBadge').innerHTML = `
+        <div class="user-badge">
+          <img src="${user.avatar_url}" alt="${user.login}">
+          <div class="user-info">
+            <div class="user-name">${user.name || user.login}</div>
+            <div class="user-login">@${user.login}</div>
+          </div>
+          <button class="btn btn-ghost" onclick="disconnect()" style="font-size:11px;">
+            <i class="fa-solid fa-xmark"></i> Disconnect
+          </button>
+        </div>
+      `;
+      // Mark step 1 complete, activate step 2
+      document.getElementById('step1').classList.remove('active');
+      document.getElementById('step1').classList.add('completed');
+      document.getElementById('step2').classList.add('active');
+
+
+      showToast(`Connected as @${user.login}`, 'success');
+      loadRepos();
+    } catch (e) {
+      showToast('Invalid token or connection failed', 'error');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fa-solid fa-plug"></i> Connect';
+    }
+  }
+
+
+  function disconnect() {
+    pat = '';
+    user = null;
+    repos = [];
+    selectedRepo = null;
+    uploadedFile = null;
+    isNewRepo = false;
+    document.getElementById('patInput').value = '';
+    document.getElementById('userBadge').innerHTML = '';
+    document.getElementById('step1').classList.add('active');
+    document.getElementById('step1').classList.remove('completed');
+    document.getElementById('step2').classList.remove('active');
+    document.getElementById('step2').classList.remove('completed');
+    document.getElementById('step3').classList.remove('active');
+    document.getElementById('step3').classList.remove('completed');
+    document.getElementById('step4').classList.remove('active');
+    document.getElementById('repoListContainer').innerHTML = '';
+    document.getElementById('newRepoSection').innerHTML = '';
+    document.getElementById('showNewRepoBtn').style.display = 'none';
+    document.getElementById('filePreview').innerHTML = '';
+    document.getElementById('deployBtn').disabled = true;
+    document.getElementById('resultCard').innerHTML = '';
+    document.getElementById('deployStatus').innerHTML = '';
+  }
+
+
+  // --- Step 2: Load repos ---
+  async function loadRepos() {
+    const container = document.getElementById('repoListContainer');
+    container.innerHTML = '<div class="repo-loading"><span class="spinner"></span> Loading repositories...</div>';
+
+
+    try {
+      // Get user repos (sorted by updated), paginate up to 100
+      repos = await githubAPI('/user/repos?sort=updated&per_page=100&type=all');
+
+
+      if (repos.length === 0) {
+        container.innerHTML = '<div class="repo-list-empty"><i class="fa-regular fa-folder-open" style="font-size:24px;display:block;margin-bottom:8px;"></i>No repositories found. Create one below.</div>';
+      } else {
+        let html = '<div class="repo-list">';
+        repos.forEach(r => {
+          html += `
+            <div class="repo-item" data-repo="${r.full_name}" onclick="selectRepo('${r.full_name}', this)">
+              <span class="repo-icon"><i class="fa-solid fa-book"></i></span>
+              <span class="repo-name">${r.name}</span>
+              <span class="repo-visibility">${r.private ? 'Private' : 'Public'}</span>
+            </div>
+          `;
+        });
+        html += '</div>';
+        container.innerHTML = html;
+      }
+
+
+      document.getElementById('showNewRepoBtn').style.display = 'inline-flex';
+    } catch (e) {
+      container.innerHTML = `<div class="repo-list-empty" style="color:var(--error);">Failed to load repos: ${e.message}</div>`;
+      showToast('Failed to load repositories', 'error');
+    }
+  }
+
+
+  function selectRepo(fullName, el) {
+    // Deselect all
+    document.querySelectorAll('.repo-item').forEach(i => i.classList.remove('selected'));
+    el.classList.add('selected');
+    selectedRepo = fullName;
+    isNewRepo = false;
+
+
+    // Hide new repo section if shown
+    document.getElementById('newRepoSection').innerHTML = '';
+
+
+    // Activate step 3
+    document.getElementById('step2').classList.remove('active');
+    document.getElementById('step2').classList.add('completed');
+    document.getElementById('step3').classList.add('active');
+
+
+    checkDeployReady();
+  }
+
+
+  function showNewRepo() {
+    isNewRepo = true;
+    selectedRepo = null;
+    document.querySelectorAll('.repo-item').forEach(i => i.classList.remove('selected'));
+
+
+    document.getElementById('newRepoSection').innerHTML = `
+      <div class="new-repo-section">
+        <div class="nr-title"><i class="fa-solid fa-plus"></i> New Repository</div>
+        <div>
+          <label class="field-label">Repository name</label>
+          <input type="text" id="newRepoName" placeholder="my-awesome-site" oninput="onNewRepoNameChange()">
+        </div>
+        <div class="toggle-row">
+          <input type="checkbox" id="newRepoPrivate" onchange="newRepoData.private=this.checked">
+          <label for="newRepoPrivate">Private repository</label>
+        </div>
+        <div class="toggle-row">
+          <input type="checkbox" id="newRepoAutoPages" checked>
+          <label for="newRepoAutoPages">Enable GitHub Pages after creation</label>
+        </div>
+        <div class="nr-actions">
+          <button class="btn btn-primary" id="createRepoBtn" onclick="createNewRepo()" disabled>
+            <i class="fa-solid fa-plus"></i> Create
+          </button>
+          <button class="btn btn-secondary" onclick="cancelNewRepo()">Cancel</button>
+        </div>
+      </div>
+    `;
+  }
+
+
+  function onNewRepoNameChange() {
+    const name = document.getElementById('newRepoName').value.trim();
+    newRepoData.name = name;
+    document.getElementById('createRepoBtn').disabled = !name;
+  }
+
+
+  function cancelNewRepo() {
+    isNewRepo = false;
+    document.getElementById('newRepoSection').innerHTML = '';
+  }
+
+
+  async function createNewRepo() {
+    const name = newRepoData.name;
+    if (!name) return;
+
+
+    const btn = document.getElementById('createRepoBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Creating';
+
+
+    try {
+      const created = await githubAPI('/user/repos', 'POST', {
+        name: name,
+        private: newRepoData.private,
+        auto_init: true  // Initialize with README so default branch exists
+      });
+
+
+      selectedRepo = created.full_name;
+      isNewRepo = false;
+
+
+      // Optionally enable Pages
+      const autoPages = document.getElementById('newRepoAutoPages').checked;
+      if (autoPages) {
+        try {
+          await githubAPI(`/repos/${selectedRepo}/pages`, 'POST', {
+            build_type: 'workflow'
+          });
+          showToast('GitHub Pages enabled', 'success');
+        } catch (e) {
+          // Pages may not be available for private repos on free tier, etc.
+          showToast('Could not auto-enable Pages — you can enable it manually in Settings', 'info');
+        }
+      }
+
+
+      // Add to repo list UI
+      const list = document.querySelector('.repo-list');
+      if (list) {
+        const item = document.createElement('div');
+        item.className = 'repo-item selected';
+        item.setAttribute('data-repo', created.full_name);
+        item.onclick = function() { selectRepo(created.full_name, this); };
+        item.innerHTML = `
+          <span class="repo-icon"><i class="fa-solid fa-book"></i></span>
+          <span class="repo-name">${created.name}</span>
+          <span class="repo-visibility">${created.private ? 'Private' : 'Public'}</span>
+        `;
+        list.prepend(item);
+      }
+
+
+      // Clear new repo section
+      document.getElementById('newRepoSection').innerHTML = '';
+
+
+      // Advance to step 3
+      document.getElementById('step2').classList.remove('active');
+      document.getElementById('step2').classList.add('completed');
+      document.getElementById('step3').classList.add('active');
+
+
+      showToast(`Repository "${name}" created`, 'success');
+      checkDeployReady();
+    } catch (e) {
+      showToast(`Failed to create repo: ${e.message}`, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fa-solid fa-plus"></i> Create';
+    }
+  }
+
+
+  // --- Step 3: File upload ---
+  const dropZone = document.getElementById('dropZone');
+
+
+  dropZone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    dropZone.classList.add('dragover');
+  });
+  dropZone.addEventListener('dragleave', () => {
+    dropZone.classList.remove('dragover');
+  });
+  dropZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropZone.classList.remove('dragover');
+    const file = e.dataTransfer.files[0];
+    if (file && (file.name.endsWith('.html') || file.name.endsWith('.htm'))) {
+      processFile(file);
+    } else {
+      showToast('Please drop an .html file', 'error');
+    }
+  });
+
+
+  function handleFileSelect(e) {
+    const file = e.target.files[0];
+    if (file) processFile(file);
+  }
+
+
+  function processFile(file) {
+    uploadedFile = file;
+
+
+    // Set deploy path to the filename if it's index.html, otherwise keep default
+    const pathInput = document.getElementById('deployPath');
+    if (file.name === 'index.html' || !pathInput.value || pathInput.value === 'index.html') {
+      pathInput.value = file.name;
+    }
+
+
+    const sizeKB = (file.size / 1024).toFixed(1);
+    document.getElementById('filePreview').innerHTML = `
+      <div class="file-preview">
+        <span class="fp-icon"><i class="fa-solid fa-file-code"></i></span>
+        <div>
+          <div class="fp-name">${file.name}</div>
+          <div class="fp-size">${sizeKB} KB</div>
+        </div>
+        <span class="fp-remove" onclick="removeFile()"><i class="fa-solid fa-trash-can"></i></span>
+      </div>
+    `;
+
+
+    // Activate step 4
+    document.getElementById('step3').classList.remove('active');
+    document.getElementById('step3').classList.add('completed');
+    document.getElementById('step4').classList.add('active');
+
+
+    checkDeployReady();
+  }
+
+
+  function removeFile() {
+    uploadedFile = null;
+    document.getElementById('fileInput').value = '';
+    document.getElementById('filePreview').innerHTML = '';
+    document.getElementById('step3').classList.add('active');
+    document.getElementById('step3').classList.remove('completed');
+    document.getElementById('step4').classList.remove('active');
+    checkDeployReady();
+  }
+
+
+  // --- Deploy readiness check ---
+  function checkDeployReady() {
+    const ready = selectedRepo && uploadedFile;
+    document.getElementById('deployBtn').disabled = !ready;
+  }
+
+
+  // --- Step 4: Deploy ---
+  async function deploy() {
+    if (!selectedRepo || !uploadedFile) return;
+
+
+    const btn = document.getElementById('deployBtn');
+    const status = document.getElementById('deployStatus');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Deploying...';
+    status.innerHTML = '<span class="spinner"></span> Reading file...';
+
+
+    try {
+      // Read file as base64
+      const content = await readFileAsBase64(uploadedFile);
+
+
+      status.innerHTML = '<span class="spinner"></span> Uploading to GitHub...';
+
+
+      const deployPath = document.getElementById('deployPath').value.trim() || 'index.html';
+
+
+      // Try to get existing file SHA (for updating)
+      let sha = null;
+      try {
+        const existing = await githubAPI(`/repos/${selectedRepo}/contents/${deployPath}`);
+        sha = existing.sha;
+      } catch (e) {
+        // File doesn't exist yet, that's fine
+      }
+
+
+      // Upload/create file
+      const payload = {
+        message: `Deploy ${uploadedFile.name} via Ship It`,
+        content: content
+      };
+      if (sha) payload.sha = sha;
+
+
+      await githubAPI(`/repos/${selectedRepo}/contents/${deployPath}`, 'PUT', payload);
+
+
+      status.innerHTML = '';
+
+
+      // Build links
+      const [owner, repo] = selectedRepo.split('/');
+      const repoUrl = `https://github.com/${selectedRepo}`;
+      const pagesUrl = `https://${owner}.github.io/${repo}/${deployPath === 'index.html' ? '' : deployPath}`;
+      const settingsPagesUrl = `https://github.com/${selectedRepo}/settings/pages`;
+
+
+      document.getElementById('resultCard').innerHTML = `
+        <div class="result-card">
+          <div class="result-icon"><i class="fa-solid fa-circle-check"></i></div>
+          <div class="result-title">Deployed Successfully</div>
+          <div class="result-links">
+            <a class="result-link" href="${repoUrl}" target="_blank">
+              <i class="fa-brands fa-github"></i> ${selectedRepo}
+            </a>
+            <a class="result-link" href="${pagesUrl}" target="_blank">
+              <i class="fa-solid fa-arrow-up-right-from-square"></i> ${pagesUrl}
+            </a>
+            <a class="result-link" href="${settingsPagesUrl}" target="_blank" style="color:var(--fg-muted);font-size:11px;">
+              <i class="fa-solid fa-gear"></i> Pages Settings
+            </a>
+          </div>
+          <div class="pages-note" style="margin-top:14px;text-align:left;">
+            If the Pages link doesn't work yet, make sure GitHub Pages is enabled in <strong>Settings &rarr; Pages</strong> with the correct branch and folder. It may take 1-2 minutes after deployment for the page to go live.
+          </div>
+        </div>
+      `;
+
+
+      showToast('Deployed successfully!', 'success');
+    } catch (e) {
+      status.innerHTML = '';
+      showToast(`Deploy failed: ${e.message}`, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fa-solid fa-rocket"></i> Ship It';
+    }
+  }
+
+
+  function readFileAsBase64(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        // Data URL is "data:mime;base64,ACTUALDATA" — extract the base64 part
+        const base64 = reader.result.split(',')[1];
+        resolve(base64);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+
+  // --- Enter key on PAT input ---
+  document.getElementById('patInput').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') connect();
+  });
+</script>
+
+
+</body>
+</html>
