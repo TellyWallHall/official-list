@@ -1,0 +1,584 @@
+<!doctype html>
+<!-- by ImPot8o https://github.com/ImPot8o pot8o.dev -->
+<html lang="en" class="h-full">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Classic Sudoku</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      box-sizing: border-box;
+    }
+    
+    * {
+      box-sizing: border-box;
+    }
+
+    .sudoku-cell {
+      aspect-ratio: 1;
+      transition: all 0.2s ease;
+    }
+
+    .sudoku-cell:active {
+      transform: scale(0.95);
+    }
+
+    .sudoku-cell.selected {
+      box-shadow: 0 0 0 3px inset;
+    }
+
+    .sudoku-cell.error {
+      animation: shake 0.3s;
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-4px); }
+      75% { transform: translateX(4px); }
+    }
+
+    .number-btn {
+      aspect-ratio: 1;
+      transition: all 0.15s ease;
+    }
+
+    .number-btn:active {
+      transform: scale(0.9);
+    }
+
+    .toast {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-100px);
+      opacity: 0;
+      transition: all 0.3s ease;
+      z-index: 1000;
+    }
+
+    .toast.show {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
+  </style>
+  <style>@view-transition { navigation: auto; }</style>
+ </head>
+ <body class="h-full">
+  <div id="app" class="h-full w-full overflow-auto"></div>
+  <script>
+localStorage.setItem('pot8o watermark', `${localStorage.getItem('pot8o watermark') || ''} sudoku`);
+    const defaultConfig = {
+      game_title: "Classic Sudoku",
+      new_game_text: "New Game",
+      check_text: "Check",
+      hint_text: "Hint",
+      background_color: "#f0f4f8",
+      surface_color: "#ffffff",
+      text_color: "#1a202c",
+      primary_action_color: "#4299e1",
+      secondary_action_color: "#48bb78",
+      font_family: "system-ui",
+      font_size: 16
+    };
+
+    let gameState = {
+      puzzle: [],
+      solution: [],
+      userInput: [],
+      selectedCell: null,
+      prefilled: []
+    };
+
+    function generateSudoku() {
+      const base = 3;
+      const side = base * base;
+      
+      function pattern(r, c) {
+        return (base * (r % base) + Math.floor(r / base) + c) % side;
+      }
+      
+      function shuffle(arr) {
+        for (let i = arr.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [arr[i], arr[j]] = [arr[j], arr[i]];
+        }
+        return arr;
+      }
+      
+      const rows = [...Array(side).keys()];
+      const cols = [...Array(side).keys()];
+      const nums = shuffle([...Array(side).keys()].map(n => n + 1));
+      
+      const board = [];
+      for (let r of rows) {
+        const row = [];
+        for (let c of cols) {
+          row.push(nums[pattern(r, c)]);
+        }
+        board.push(row);
+      }
+      
+      shuffle(rows);
+      
+      const solution = [];
+      for (let r of rows) {
+        solution.push([...board[r]]);
+      }
+      
+      const puzzle = solution.map(row => [...row]);
+      const prefilled = Array(9).fill().map(() => Array(9).fill(false));
+      
+      const cellsToRemove = 40;
+      let removed = 0;
+      
+      while (removed < cellsToRemove) {
+        const r = Math.floor(Math.random() * 9);
+        const c = Math.floor(Math.random() * 9);
+        
+        if (puzzle[r][c] !== 0) {
+          puzzle[r][c] = 0;
+          removed++;
+        } else {
+          prefilled[r][c] = true;
+        }
+      }
+      
+      for (let r = 0; r < 9; r++) {
+        for (let c = 0; c < 9; c++) {
+          if (puzzle[r][c] !== 0) {
+            prefilled[r][c] = true;
+          }
+        }
+      }
+      
+      return { puzzle, solution, prefilled };
+    }
+
+    function showToast(message, duration = 2000) {
+      const config = window.elementSdk?.config || defaultConfig;
+      const customFont = config.font_family || defaultConfig.font_family;
+      const baseSize = config.font_size || defaultConfig.font_size;
+      const baseFontStack = 'system-ui, -apple-system, sans-serif';
+      const backgroundColor = config.surface_color || defaultConfig.surface_color;
+      const textColor = config.text_color || defaultConfig.text_color;
+      
+      const existingToast = document.querySelector('.toast');
+      if (existingToast) {
+        existingToast.remove();
+      }
+      
+      const toast = document.createElement('div');
+      toast.className = 'toast';
+      toast.style.backgroundColor = backgroundColor;
+      toast.style.color = textColor;
+      toast.style.padding = '12px 24px';
+      toast.style.borderRadius = '8px';
+      toast.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+      toast.style.fontFamily = `${customFont}, ${baseFontStack}`;
+      toast.style.fontSize = `${baseSize * 0.9}px`;
+      toast.style.fontWeight = '500';
+      toast.textContent = message;
+      
+      document.body.appendChild(toast);
+      
+      setTimeout(() => toast.classList.add('show'), 10);
+      
+      setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 300);
+      }, duration);
+    }
+
+    function newGame() {
+      const { puzzle, solution, prefilled } = generateSudoku();
+      gameState.puzzle = puzzle;
+      gameState.solution = solution;
+      gameState.userInput = puzzle.map(row => [...row]);
+      gameState.prefilled = prefilled;
+      gameState.selectedCell = null;
+      render();
+    }
+
+    function selectCell(row, col) {
+      if (gameState.prefilled[row][col]) return;
+      
+      if (gameState.selectedCell && 
+          gameState.selectedCell.row === row && 
+          gameState.selectedCell.col === col) {
+        gameState.selectedCell = null;
+      } else {
+        gameState.selectedCell = { row, col };
+      }
+      
+      render();
+    }
+
+    function inputNumber(num) {
+      if (!gameState.selectedCell) {
+        showToast('Please select a cell first');
+        return;
+      }
+      
+      const { row, col } = gameState.selectedCell;
+      
+      if (gameState.prefilled[row][col]) return;
+      
+      gameState.userInput[row][col] = num;
+      
+      if (num !== 0 && num !== gameState.solution[row][col]) {
+        const cell = document.querySelector(`[data-row="${row}"][data-col="${col}"]`);
+        if (cell) {
+          cell.classList.add('error');
+          setTimeout(() => cell.classList.remove('error'), 300);
+        }
+      }
+      
+      render();
+      checkWin();
+    }
+
+    function clearCell() {
+      if (!gameState.selectedCell) return;
+      
+      const { row, col } = gameState.selectedCell;
+      if (gameState.prefilled[row][col]) return;
+      
+      gameState.userInput[row][col] = 0;
+      render();
+    }
+
+    function checkSolution() {
+      let errors = 0;
+      
+      for (let r = 0; r < 9; r++) {
+        for (let c = 0; c < 9; c++) {
+          if (gameState.userInput[r][c] !== 0 && 
+              gameState.userInput[r][c] !== gameState.solution[r][c]) {
+            errors++;
+          }
+        }
+      }
+      
+      if (errors === 0) {
+        const filled = gameState.userInput.flat().filter(n => n !== 0).length;
+        if (filled === 81) {
+          showToast('🎉 Perfect! You solved it!', 3000);
+        } else {
+          showToast('✓ All entries are correct!');
+        }
+      } else {
+        showToast(`✗ Found ${errors} error${errors > 1 ? 's' : ''}`);
+      }
+    }
+
+    function giveHint() {
+      const emptyCells = [];
+      
+      for (let r = 0; r < 9; r++) {
+        for (let c = 0; c < 9; c++) {
+          if (gameState.userInput[r][c] === 0) {
+            emptyCells.push({ r, c });
+          }
+        }
+      }
+      
+      if (emptyCells.length === 0) {
+        showToast('Puzzle is complete!');
+        return;
+      }
+      
+      const randomCell = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+      gameState.userInput[randomCell.r][randomCell.c] = gameState.solution[randomCell.r][randomCell.c];
+      gameState.selectedCell = null;
+      
+      render();
+      showToast('💡 Hint added!');
+      checkWin();
+    }
+
+    function checkWin() {
+      for (let r = 0; r < 9; r++) {
+        for (let c = 0; c < 9; c++) {
+          if (gameState.userInput[r][c] !== gameState.solution[r][c]) {
+            return;
+          }
+        }
+      }
+      
+      showToast('🎉 Congratulations! Puzzle solved!', 3000);
+    }
+
+    async function onConfigChange(config) {
+      const customFont = config.font_family || defaultConfig.font_family;
+      const baseSize = config.font_size || defaultConfig.font_size;
+      const baseFontStack = 'system-ui, -apple-system, sans-serif';
+      const backgroundColor = config.background_color || defaultConfig.background_color;
+      const surfaceColor = config.surface_color || defaultConfig.surface_color;
+      const textColor = config.text_color || defaultConfig.text_color;
+      const primaryColor = config.primary_action_color || defaultConfig.primary_action_color;
+      const secondaryColor = config.secondary_action_color || defaultConfig.secondary_action_color;
+      
+      const app = document.getElementById('app');
+      if (!app) return;
+      
+      app.style.backgroundColor = backgroundColor;
+      app.style.fontFamily = `${customFont}, ${baseFontStack}`;
+      
+      const title = document.getElementById('game-title');
+      if (title) {
+        title.textContent = config.game_title || defaultConfig.game_title;
+        title.style.fontSize = `${baseSize * 1.75}px`;
+        title.style.color = textColor;
+      }
+      
+      const newGameBtn = document.getElementById('new-game-btn');
+      if (newGameBtn) {
+        newGameBtn.textContent = config.new_game_text || defaultConfig.new_game_text;
+        newGameBtn.style.backgroundColor = primaryColor;
+        newGameBtn.style.fontSize = `${baseSize * 0.9}px`;
+      }
+      
+      const checkBtn = document.getElementById('check-btn');
+      if (checkBtn) {
+        checkBtn.textContent = config.check_text || defaultConfig.check_text;
+        checkBtn.style.backgroundColor = secondaryColor;
+        checkBtn.style.fontSize = `${baseSize * 0.9}px`;
+      }
+      
+      const hintBtn = document.getElementById('hint-btn');
+      if (hintBtn) {
+        hintBtn.textContent = config.hint_text || defaultConfig.hint_text;
+        hintBtn.style.backgroundColor = secondaryColor;
+        hintBtn.style.fontSize = `${baseSize * 0.9}px`;
+      }
+      
+      const cells = document.querySelectorAll('.sudoku-cell');
+      cells.forEach(cell => {
+        cell.style.backgroundColor = surfaceColor;
+        cell.style.color = textColor;
+        cell.style.fontSize = `${baseSize * 1.25}px`;
+        
+        if (cell.classList.contains('selected')) {
+          cell.style.boxShadow = `0 0 0 3px ${primaryColor} inset`;
+        }
+      });
+      
+      const numberBtns = document.querySelectorAll('.number-btn');
+      numberBtns.forEach(btn => {
+        btn.style.backgroundColor = surfaceColor;
+        btn.style.color = textColor;
+        btn.style.fontSize = `${baseSize * 1.125}px`;
+      });
+      
+      const clearBtn = document.getElementById('clear-btn');
+      if (clearBtn) {
+        clearBtn.style.backgroundColor = surfaceColor;
+        clearBtn.style.color = textColor;
+        clearBtn.style.fontSize = `${baseSize * 0.9}px`;
+      }
+    }
+
+    function render() {
+      const config = window.elementSdk?.config || defaultConfig;
+      const customFont = config.font_family || defaultConfig.font_family;
+      const baseSize = config.font_size || defaultConfig.font_size;
+      const baseFontStack = 'system-ui, -apple-system, sans-serif';
+      const backgroundColor = config.background_color || defaultConfig.background_color;
+      const surfaceColor = config.surface_color || defaultConfig.surface_color;
+      const textColor = config.text_color || defaultConfig.text_color;
+      const primaryColor = config.primary_action_color || defaultConfig.primary_action_color;
+      const secondaryColor = config.secondary_action_color || defaultConfig.secondary_action_color;
+      
+      const app = document.getElementById('app');
+      
+      app.innerHTML = `
+        <div style="max-width: 500px; margin: 0 auto; padding: 16px; font-family: ${customFont}, ${baseFontStack};">
+          <header style="text-align: center; margin-bottom: 20px;">
+            <h1 id="game-title" style="font-size: ${baseSize * 1.75}px; font-weight: 700; color: ${textColor}; margin: 0 0 16px 0;">
+              ${config.game_title || defaultConfig.game_title}
+            </h1>
+            <div style="display: flex; gap: 8px; justify-content: center;">
+              <button id="new-game-btn" style="background-color: ${primaryColor}; color: white; padding: 10px 20px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: ${baseSize * 0.9}px;">
+                ${config.new_game_text || defaultConfig.new_game_text}
+              </button>
+              <button id="check-btn" style="background-color: ${secondaryColor}; color: white; padding: 10px 20px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: ${baseSize * 0.9}px;">
+                ${config.check_text || defaultConfig.check_text}
+              </button>
+              <button id="hint-btn" style="background-color: ${secondaryColor}; color: white; padding: 10px 20px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: ${baseSize * 0.9}px;">
+                ${config.hint_text || defaultConfig.hint_text}
+              </button>
+            </div>
+          </header>
+          
+          <div style="background-color: ${surfaceColor}; border-radius: 12px; padding: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); margin-bottom: 20px;">
+            <div style="display: grid; grid-template-columns: repeat(9, 1fr); gap: 1px; background-color: ${textColor};">
+              ${gameState.userInput.map((row, r) => 
+                row.map((cell, c) => {
+                  const isSelected = gameState.selectedCell && 
+                                   gameState.selectedCell.row === r && 
+                                   gameState.selectedCell.col === c;
+                  const isPrefilled = gameState.prefilled[r][c];
+                  const borderRight = (c + 1) % 3 === 0 && c !== 8 ? `2px solid ${textColor}` : 'none';
+                  const borderBottom = (r + 1) % 3 === 0 && r !== 8 ? `2px solid ${textColor}` : 'none';
+                  
+                  return `
+                    <button 
+                      class="sudoku-cell ${isSelected ? 'selected' : ''}" 
+                      data-row="${r}" 
+                      data-col="${c}"
+                      style="
+                        background-color: ${surfaceColor};
+                        border: none;
+                        border-right: ${borderRight};
+                        border-bottom: ${borderBottom};
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        font-size: ${baseSize * 1.25}px;
+                        font-weight: ${isPrefilled ? '700' : '500'};
+                        color: ${textColor};
+                        cursor: ${isPrefilled ? 'default' : 'pointer'};
+                        opacity: ${isPrefilled ? '1' : '0.8'};
+                        ${isSelected ? `box-shadow: 0 0 0 3px ${primaryColor} inset;` : ''}
+                      "
+                    >
+                      ${cell !== 0 ? cell : ''}
+                    </button>
+                  `;
+                }).join('')
+              ).join('')}
+            </div>
+          </div>
+          
+          <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 12px;">
+            ${[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => `
+              <button 
+                class="number-btn" 
+                data-number="${num}"
+                style="
+                  background-color: ${surfaceColor};
+                  border: 2px solid ${textColor};
+                  border-radius: 8px;
+                  font-size: ${baseSize * 1.125}px;
+                  font-weight: 600;
+                  color: ${textColor};
+                  cursor: pointer;
+                  padding: 16px;
+                "
+              >
+                ${num}
+              </button>
+            `).join('')}
+            <button 
+              id="clear-btn"
+              style="
+                background-color: ${surfaceColor};
+                border: 2px solid ${textColor};
+                border-radius: 8px;
+                font-size: ${baseSize * 0.9}px;
+                font-weight: 600;
+                color: ${textColor};
+                cursor: pointer;
+                padding: 16px;
+                grid-column: span 2;
+              "
+            >
+              Clear
+            </button>
+          </div>
+        </div>
+      `;
+      
+      document.getElementById('new-game-btn').addEventListener('click', newGame);
+      document.getElementById('check-btn').addEventListener('click', checkSolution);
+      document.getElementById('hint-btn').addEventListener('click', giveHint);
+      document.getElementById('clear-btn').addEventListener('click', clearCell);
+      
+      document.querySelectorAll('.sudoku-cell').forEach(cell => {
+        cell.addEventListener('click', (e) => {
+          const row = parseInt(e.target.dataset.row);
+          const col = parseInt(e.target.dataset.col);
+          selectCell(row, col);
+        });
+      });
+      
+      document.querySelectorAll('.number-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const num = parseInt(e.target.dataset.number);
+          inputNumber(num);
+        });
+      });
+    }
+
+    if (window.elementSdk) {
+      window.elementSdk.init({
+        defaultConfig,
+        onConfigChange,
+        mapToCapabilities: (config) => ({
+          recolorables: [
+            {
+              get: () => config.background_color || defaultConfig.background_color,
+              set: (value) => {
+                config.background_color = value;
+                window.elementSdk.setConfig({ background_color: value });
+              }
+            },
+            {
+              get: () => config.surface_color || defaultConfig.surface_color,
+              set: (value) => {
+                config.surface_color = value;
+                window.elementSdk.setConfig({ surface_color: value });
+              }
+            },
+            {
+              get: () => config.text_color || defaultConfig.text_color,
+              set: (value) => {
+                config.text_color = value;
+                window.elementSdk.setConfig({ text_color: value });
+              }
+            },
+            {
+              get: () => config.primary_action_color || defaultConfig.primary_action_color,
+              set: (value) => {
+                config.primary_action_color = value;
+                window.elementSdk.setConfig({ primary_action_color: value });
+              }
+            },
+            {
+              get: () => config.secondary_action_color || defaultConfig.secondary_action_color,
+              set: (value) => {
+                config.secondary_action_color = value;
+                window.elementSdk.setConfig({ secondary_action_color: value });
+              }
+            }
+          ],
+          borderables: [],
+          fontEditable: {
+            get: () => config.font_family || defaultConfig.font_family,
+            set: (value) => {
+              config.font_family = value;
+              window.elementSdk.setConfig({ font_family: value });
+            }
+          },
+          fontSizeable: {
+            get: () => config.font_size || defaultConfig.font_size,
+            set: (value) => {
+              config.font_size = value;
+              window.elementSdk.setConfig({ font_size: value });
+            }
+          }
+        }),
+        mapToEditPanelValues: (config) => new Map([
+          ['game_title', config.game_title || defaultConfig.game_title],
+          ['new_game_text', config.new_game_text || defaultConfig.new_game_text],
+          ['check_text', config.check_text || defaultConfig.check_text],
+          ['hint_text', config.hint_text || defaultConfig.hint_text]
+        ])
+      });
+    }
+
+    newGame();
+  </script>
+</body>
+</html>
