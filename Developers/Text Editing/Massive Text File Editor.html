@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mobile HTML Editor with File System Access</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            line-height: 1.6;
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
+            color: #333;
+            min-height: 100vh;
+            padding: 10px;
+            max-width: 100%;
+            overflow-x: hidden;
+        }
+        
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+            background-color: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+        
+        header {
+            background: linear-gradient(to right, #4a6fa5, #2c3e50);
+            color: white;
+            padding: 20px 15px;
+            border-radius: 12px 12px 0 0;
+            margin-bottom: 0;
+            text-align: center;
+        }
+        
+        h1 {
+            font-size: 1.8rem;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+        
+        .subtitle {
+            font-size: 1rem;
+            opacity: 0.9;
+            font-weight: 300;
+        }
+        
+        .api-status {
+            background: #ffd700;
+            color: #000;
+            padding: 8px;
+            font-size: 0.9rem;
+            text-align: center;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .controls {
+            background-color: #f8f9fa;
+            padding: 15px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        button {
+            background: linear-gradient(to bottom, #5a7fbd, #4a6fa5);
+            color: white;
+            border: none;
+            padding: 12px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1rem;
+            flex: 1;
+            min-width: 140px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        button:hover {
+            background: linear-gradient(to bottom, #4a6fa5, #3a5a8a);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        button:disabled {
+            background: #a0a0a0;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .file-info {
+            background-color: #e9ecef;
+            padding: 12px 15px;
+            font-size: 0.9rem;
+            color: #555;
+            border-bottom: 1px solid #ddd;
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+        }
+        
+        .editor-container {
+            position: relative;
+            height: 60vh;
+            border: 1px solid #ddd;
+            background-color: #fefefe;
+            overflow: hidden;
+        }
+        
+        #editor {
+            width: 100%;
+            height: 100%;
+            border: none;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 16px;
+            line-height: 1.5;
+            resize: none;
+            outline: none;
+            white-space: pre;
+            overflow-wrap: normal;
+            overflow-x: auto;
+            background-color: #f8f9fa;
+            color: #333;
+            tab-size: 4;
+        }
+        
+        .navigation {
+            display: flex;
+            justify-content: space-between;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-top: 1px solid #ddd;
+        }
+        
+        .navigation button {
+            flex: 0 0 auto;
+            min-width: 150px;
+        }
+        
+        .chunk-slider {
+            flex: 1;
+            margin: 0 15px;
+            min-width: 100px;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background-color: #e0e0e0;
+            border-radius: 4px;
+            margin: 10px 0;
+            overflow: hidden;
+        }
+        
+        .progress {
+            height: 100%;
+            background: linear-gradient(to right, #4CAF50, #8BC34A);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        
+        .status-bar {
+            padding: 10px 15px;
+            background-color: #e9ecef;
+            font-size: 0.85rem;
+            color: #666;
+            border-top: 1px solid #ddd;
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.6);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(5px);
+        }
+        
+        .modal-content {
+            background-color: white;
+            padding: 25px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+        
+        .modal h2 {
+            margin-bottom: 20px;
+            color: #2c3e50;
+            font-size: 1.5rem;
+        }
+        
+        .modal input {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 20px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 1rem;
+        }
+        
+        .modal-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+        
+        .save-status {
+            padding: 8px 12px;
+            border-radius: 4px;
+            margin: 5px 0;
+            font-size: 0.9rem;
+        }
+        
+        .save-status.saving {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        
+        .save-status.saved {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        
+        .save-status.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        @media (max-width: 768px) {
+            .controls {
+                flex-direction: column;
+            }
+            
+            button {
+                width: 100%;
+            }
+            
+            .navigation {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .navigation button {
+                width: 100%;
+            }
+            
+            .chunk-slider {
+                margin: 10px 0;
+                order: -1;
+            }
+            
+            .file-info {
+                flex-direction: column;
+                gap: 5px;
+            }
+            
+            .status-bar {
+                flex-direction: column;
+                gap: 5px;
+            }
+            
+            h1 {
+                font-size: 1.5rem;
+            }
+        }
+        
+        .icon {
+            font-size: 1.2rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Mobile HTML Editor</h1>
+            <div class="subtitle">With File System Access API Support</div>
+        </header>
+        
+        <div class="api-status" id="apiStatus">
+            Checking File System Access API availability...
+        </div>
+        
+        <div class="controls">
+            <button id="openBtn"><span class="icon">📁</span> Open File</button>
+            <button id="saveBtn" disabled><span class="icon">💾</span> Save Changes</button>
+            <button id="saveAsBtn" disabled><span class="icon">💾</span> Save As</button>
+            <button id="findBtn"><span class="icon">🔍</span> Find</button>
+        </div>
+        
+        <div class="file-info">
+            <span id="fileName">No file opened</span>
+            <span id="fileSize"></span>
+            <span id="modifiedStatus"></span>
+        </div>
+        
+        <div id="saveStatus"></div>
+        
+        <div class="editor-container">
+            <textarea id="editor" placeholder="Open a file to begin editing..."></textarea>
+        </div>
+        
+        <div class="navigation">
+            <button id="prevBtn" disabled><span class="icon">◀</span> Previous</button>
+            <input type="range" id="chunkSlider" class="chunk-slider" min="0" value="0" disabled>
+            <button id="nextBtn" disabled><span class="icon">▶</span> Next</button>
+        </div>
+        
+        <div class="progress-bar">
+            <div class="progress" id="progress"></div>
+        </div>
+        
+        <div class="status-bar">
+            <span id="positionInfo">Line: 1, Column: 1</span>
+            <span id="chunkInfo">Chunk 0/0</span>
+            <span id="saveInfo">No changes</span>
+        </div>
+    </div>
+
+    <script>
+        // State variables
+        let currentFileHandle = null;
+        let currentFile = null;
+        let currentChunk = 0;
+        let totalChunks = 0;
+        let chunkSize = 4 * 1024 * 1024; // 4MB chunks for better performance
+        let fileSize = 0;
+        let modifiedChunks = new Map();
+        let originalChunks = new Map();
+        let isFileSystemAccessSupported = false;
+        
+        // DOM elements
+        const editor = document.getElementById('editor');
+        const openBtn = document.getElementById('openBtn');
+        const saveBtn = document.getElementById('saveBtn');
+        const saveAsBtn = document.getElementById('saveAsBtn');
+        const findBtn = document.getElementById('findBtn');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const chunkSlider = document.getElementById('chunkSlider');
+        const fileName = document.getElementById('fileName');
+        const fileSizeSpan = document.getElementById('fileSize');
+        const modifiedStatus = document.getElementById('modifiedStatus');
+        const positionInfo = document.getElementById('positionInfo');
+        const chunkInfo = document.getElementById('chunkInfo');
+        const saveInfo = document.getElementById('saveInfo');
+        const progress = document.getElementById('progress');
+        const apiStatus = document.getElementById('apiStatus');
+        const saveStatus = document.getElementById('saveStatus');
+        
+        // Check File System Access API support
+        async function checkFileSystemAccess() {
+            try {
+                if ('showOpenFilePicker' in window) {
+                    isFileSystemAccessSupported = true;
+                    apiStatus.innerHTML = '✅ File System Access API is supported! You can save changes back to the original file.';
+                    apiStatus.style.background = '#d4edda';
+                    apiStatus.style.color = '#155724';
+                    apiStatus.style.border = '1px solid #c3e6cb';
+                    return true;
+                } else {
+                    isFileSystemAccessSupported = false;
+                    apiStatus.innerHTML = '⚠️ File System Access API not supported. You can only download modified files.';
+                    apiStatus.style.background = '#fff3cd';
+                    apiStatus.style.color = '#856404';
+                    apiStatus.style.border = '1px solid #ffeaa7';
+                    return false;
+                }
+            } catch (error) {
+                console.error('Error checking File System Access API:', error);
+                isFileSystemAccessSupported = false;
+                return false;
+            }
+        }
+        
+        // Event listeners
+        openBtn.addEventListener('click', openFileWithPicker);
+        saveBtn.addEventListener('click', saveFile);
+        saveAsBtn.addEventListener('click', saveFileAs);
+        findBtn.addEventListener('click', showFindModal);
+        prevBtn.addEventListener('click', loadPreviousChunk);
+        nextBtn.addEventListener('click', loadNextChunk);
+        chunkSlider.addEventListener('input', onChunkSliderChange);
+        
+        editor.addEventListener('input', function() {
+            updatePositionInfo();
+            modifiedChunks.set(currentChunk, editor.value);
+            updateSaveButtons();
+            updateSaveInfo();
+        });
+        
+        // File System Access API functions
+        async function openFileWithPicker() {
+            try {
+                if (!isFileSystemAccessSupported) {
+                    // Fallback to traditional file input
+                    const input = document.createElement('input');
+                    input.type = 'file';
+                    input.accept = '.html,.htm,.txt,.js,.css,.xml,.json';
+                    input.onchange = e => openFile(e.target.files[0]);
+                    input.click();
+                    return;
+                }
+                
+                const [fileHandle] = await window.showOpenFilePicker({
+                    types: [{
+                        description: 'Text Files',
+                        accept: {
+                            'text/*': ['.html', '.htm', '.txt', '.js', '.css', '.xml', '.json']
+                        }
+                    }],
+                    multiple: false
+                });
+                
+                currentFileHandle = fileHandle;
+                const file = await fileHandle.getFile();
+                await openFile(file);
+                
+            } catch (error) {
+                if (error.name !== 'AbortError') {
+                    console.error('Error opening file:', error);
+                    alert('Error opening file: ' + error.message);
+                }
+            }
+        }
+        
+        async function openFile(file) {
+            try {
+                currentFile = file;
+                fileSize = file.size;
+                fileName.textContent = file.name;
+                fileSizeSpan.textContent = formatFileSize(fileSize);
+                modifiedStatus.textContent = '';
+                
+                // Reset state
+                modifiedChunks.clear();
+                originalChunks.clear();
+                currentChunk = 0;
+                
+                // Calculate chunks
+                totalChunks = Math.ceil(fileSize / chunkSize);
+                
+                // Update UI
+                chunkSlider.max = totalChunks - 1;
+                chunkSlider.value = 0;
+                chunkSlider.disabled = totalChunks <= 1;
+                
+                // Load first chunk
+                await loadChunk(currentChunk);
+                
+                updateNavigationButtons();
+                updateSaveButtons();
+                updateChunkInfo();
+                updateProgress();
+                updateSaveInfo();
+                
+                showSaveStatus('File opened successfully', 'saved');
+                
+            } catch (error) {
+                console.error('Error opening file:', error);
+                alert('Error opening file: ' + error.message);
+            }
+        }
+        
+        async function loadChunk(chunkIndex) {
+            if (!currentFile) return;
+            
+            try {
+                const start = chunkIndex * chunkSize;
+                const end = Math.min(start + chunkSize, fileSize);
+                
+                // Store original chunk if not already stored
+                if (!originalChunks.has(chunkIndex)) {
+                    const chunk = currentFile.slice(start, end);
+                    const text = await chunk.text();
+                    originalChunks.set(chunkIndex, text);
+                }
+                
+                // Load modified or original chunk
+                editor.value = modifiedChunks.has(chunkIndex) 
+                    ? modifiedChunks.get(chunkIndex) 
+                    : originalChunks.get(chunkIndex);
+                
+                updatePositionInfo();
+            } catch (error) {
+                console.error('Error loading chunk:', error);
+                alert('Error loading file chunk');
+            }
+        }
+        
+        async function saveFile() {
+            if (!currentFileHandle || modifiedChunks.size === 0) return;
+            
+            try {
+                showSaveStatus('Saving changes...', 'saving');
+                
+                // Get writable stream
+                const writable = await currentFileHandle.createWritable();
+                
+                // Reconstruct entire file from chunks
+                let position = 0;
+                
+                for (let i = 0; i < totalChunks; i++) {
+                    let chunkContent;
+                    
+                    if (modifiedChunks.has(i)) {
+                        chunkContent = modifiedChunks.get(i);
+                    } else if (originalChunks.has(i)) {
+                        chunkContent = originalChunks.get(i);
+                    } else {
+                        // Load chunk if not in memory
+                        const start = i * chunkSize;
+                        const end = Math.min(start + chunkSize, fileSize);
+                        const chunk = currentFile.slice(start, end);
+                        chunkContent = await chunk.text();
+                    }
+                    
+                    // Write chunk to file
+                    await writable.write({ type: 'write', position, data: chunkContent });
+                    position += chunkContent.length;
+                }
+                
+                await writable.close();
+                
+                // Update file reference
+                currentFile = await currentFileHandle.getFile();
+                fileSize = currentFile.size;
+                
+                // Clear modified chunks
+                modifiedChunks.clear();
+                
+                updateSaveButtons();
+                updateSaveInfo();
+                showSaveStatus('Changes saved successfully!', 'saved');
+                
+                // Reload current chunk to reflect saved state
+                await loadChunk(currentChunk);
+                
+            } catch (error) {
+                console.error('Error saving file:', error);
+                showSaveStatus('Error saving file: ' + error.message, 'error');
+            }
+        }
+        
+        async function saveFileAs() {
+            try {
+                if (!isFileSystemAccessSupported) {
+                    // Fallback: download file
+                    await downloadModifiedFile();
+                    return;
+                }
+                
+                const fileHandle = await window.showSaveFilePicker({
+                    suggestedName: currentFile.name,
+                    types: [{
+                        description: 'Text Files',
+                        accept: { 'text/*': ['.html', '.htm', '.txt'] }
+                    }]
+                });
+                
+                showSaveStatus('Saving file...', 'saving');
+                
+                const writable = await fileHandle.createWritable();
+                
+                // Reconstruct and write file
+                for (let i = 0; i < totalChunks; i++) {
+                    let chunkContent = modifiedChunks.has(i) 
+                        ? modifiedChunks.get(i) 
+                        : (originalChunks.has(i) ? originalChunks.get(i) : await loadChunkContent(i));
+                    
+                    await writable.write(chunkContent);
+                }
+                
+                await writable.close();
+                showSaveStatus('File saved successfully!', 'saved');
+                
+            } catch (error) {
+                if (error.name !== 'AbortError') {
+                    console.error('Error saving file as:', error);
+                    showSaveStatus('Error saving file: ' + error.message, 'error');
+                }
+            }
+        }
+        
+        async function loadChunkContent(chunkIndex) {
+            const start = chunkIndex * chunkSize;
+            const end = Math.min(start + chunkSize, fileSize);
+            const chunk = currentFile.slice(start, end);
+            return await chunk.text();
+        }
+        
+        async function downloadModifiedFile() {
+            try {
+                showSaveStatus('Preparing download...', 'saving');
+                
+                // Reconstruct file content
+                let fullContent = '';
+                for (let i = 0; i < totalChunks; i++) {
+                    if (modifiedChunks.has(i)) {
+                        fullContent += modifiedChunks.get(i);
+                    } else if (originalChunks.has(i)) {
+                        fullContent += originalChunks.get(i);
+                    } else {
+                        fullContent += await loadChunkContent(i);
+                    }
+                }
+                
+                const blob = new Blob([fullContent], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `modified_${currentFile.name}`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+                showSaveStatus('File downloaded successfully!', 'saved');
+                
+            } catch (error) {
+                console.error('Error downloading file:', error);
+                showSaveStatus('Error downloading file: ' + error.message, 'error');
+            }
+        }
+        
+        // UI update functions
+        function updateSaveButtons() {
+            const hasChanges = modifiedChunks.size > 0;
+            saveBtn.disabled = !hasChanges || !isFileSystemAccessSupported || !currentFileHandle;
+            saveAsBtn.disabled = !currentFile;
+        }
+        
+        function updateSaveInfo() {
+            if (modifiedChunks.size === 0) {
+                saveInfo.textContent = 'No changes';
+                saveInfo.style.color = '#666';
+                modifiedStatus.textContent = '';
+            } else {
+                saveInfo.textContent = `${modifiedChunks.size} chunk(s) modified`;
+                saveInfo.style.color = '#d35400';
+                modifiedStatus.textContent = `${modifiedChunks.size} chunk(s) modified`;
+            }
+        }
+        
+        function showSaveStatus(message, type) {
+            saveStatus.textContent = message;
+            saveStatus.className = `save-status ${type}`;
+            setTimeout(() => {
+                saveStatus.textContent = '';
+                saveStatus.className = 'save-status';
+            }, 5000);
+        }
+        
+        // Navigation functions (same as before)
+        function onChunkSliderChange() {
+            const newChunk = parseInt(chunkSlider.value);
+            if (newChunk !== currentChunk) {
+                currentChunk = newChunk;
+                loadChunk(currentChunk);
+                updateNavigationButtons();
+                updateChunkInfo();
+                updateProgress();
+            }
+        }
+        
+        async function loadPreviousChunk() {
+            if (currentChunk > 0) {
+                currentChunk--;
+                await loadChunk(currentChunk);
+                chunkSlider.value = currentChunk;
+                updateNavigationButtons();
+                updateChunkInfo();
+                updateProgress();
+            }
+        }
+        
+        async function loadNextChunk() {
+            if (currentChunk < totalChunks - 1) {
+                currentChunk++;
+                await loadChunk(currentChunk);
+                chunkSlider.value = currentChunk;
+                updateNavigationButtons();
+                updateChunkInfo();
+                updateProgress();
+            }
+        }
+        
+        function updateNavigationButtons() {
+            prevBtn.disabled = currentChunk === 0;
+            nextBtn.disabled = currentChunk >= totalChunks - 1;
+        }
+        
+        function updateChunkInfo() {
+            chunkInfo.textContent = `Chunk ${currentChunk + 1}/${totalChunks}`;
+        }
+        
+        function updateProgress() {
+            const progressPercent = ((currentChunk + 1) / totalChunks) * 100;
+            progress.style.width = `${progressPercent}%`;
+        }
+        
+        function updatePositionInfo() {
+            const content = editor.value;
+            const cursorPos = editor.selectionStart;
+            const textUpToCursor = content.substring(0, cursorPos);
+            const lines = textUpToCursor.split('\n');
+            const line = lines.length;
+            const column = lines[lines.length - 1].length + 1;
+            positionInfo.textContent = `Line: ${line}, Column: ${column}`;
+        }
+        
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' bytes';
+            else if (bytes < 1048576) return (bytes / 1024).toFixed(2) + ' KB';
+            else if (bytes < 1073741824) return (bytes / 1048576).toFixed(2) + ' MB';
+            else return (bytes / 1073741824).toFixed(2) + ' GB';
+        }
+        
+        function showFindModal() {
+            // Simplified find functionality for demo
+            const searchText = prompt('Enter text to find:');
+            if (searchText) {
+                const content = editor.value;
+                const index = content.indexOf(searchText);
+                if (index !== -1) {
+                    editor.focus();
+                    editor.setSelectionRange(index, index + searchText.length);
+                } else {
+                    alert('Text not found in current chunk.');
+                }
+            }
+        }
+        
+        // Initialize
+        async function init() {
+            await checkFileSystemAccess();
+            updateSaveButtons();
+            
+            // Demo content
+            let sampleContent = '<!DOCTYPE html>\n<html>\n<head>\n<title>Large HTML File</title>\n</head>\n<body>\n<h1>File System Access API Demo</h1>\n';
+            for (let i = 0; i < 1000; i++) {
+                sampleContent += `<p>Paragraph ${i} - Edit this content and try saving!</p>\n`;
+            }
+            sampleContent += '</body>\n</html>';
+            
+            const blob = new Blob([sampleContent], { type: 'text/html' });
+            const file = new File([blob], 'demo-large-file.html', { type: 'text/html' });
+            await openFile(file);
+        }
+        
+        // Start the application
+        init();
+    </script>
+</body>
+</html>
