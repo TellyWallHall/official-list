@@ -1,0 +1,1598 @@
+<!DOCTYPE html> 
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HTML Block Organizer</title>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=DM+Sans:wght@0,400;0,500;0,700;0,900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    :root {
+      --bg: #0d0d0d;
+      --surface: #161616;
+      --card: #1e1e1e;
+      --card-hover: #262626;
+      --border: #2e2e2e;
+      --border-light: #3a3a3a;
+      --accent: #10b981;
+      --accent-dim: rgba(16, 185, 129, 0.12);
+      --accent-hover: #059669;
+      --text: #e4e4e4;
+      --text-sec: #a3a3a3;
+      --muted: #636363;
+      --danger: #ef4444;
+      --danger-dim: rgba(239, 68, 68, 0.12);
+      --css-clr: #38bdf8;
+      --css-dim: rgba(56, 189, 248, 0.1);
+      --js-clr: #facc15;
+      --js-dim: rgba(250, 204, 21, 0.1);
+      --radius: 10px;
+      --radius-sm: 6px;
+      --shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    ::selection {
+      background: var(--accent);
+      color: #000;
+    }
+
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: var(--surface);
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--border-light);
+      border-radius: 3px;
+    }
+
+    #app {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 24px 20px 80px;
+    }
+
+    /* Header */
+    .app-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 32px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .app-header .logo {
+      width: 38px;
+      height: 38px;
+      background: var(--accent);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      font-size: 18px;
+      color: #000;
+      flex-shrink: 0;
+    }
+
+    .app-header h1 {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+
+    .app-header h1 span {
+      color: var(--accent);
+    }
+
+    .app-header .file-info {
+      margin-left: auto;
+      font-size: 13px;
+      color: var(--text-sec);
+      display: none;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .app-header .file-info.visible {
+      display: flex;
+    }
+
+    .app-header .file-info .fname {
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    /* Upload */
+    #upload-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+      padding: 60px 20px;
+    }
+
+    .upload-zone {
+      width: 100%;
+      max-width: 600px;
+      border: 2px dashed var(--border-light);
+      border-radius: 16px;
+      padding: 60px 40px;
+      text-align: center;
+      cursor: pointer;
+      transition: all .25s ease;
+      background: var(--surface);
+    }
+
+    .upload-zone:hover,
+    .upload-zone.dragover {
+      border-color: var(--accent);
+      background: var(--accent-dim);
+    }
+
+    .upload-zone i {
+      font-size: 40px;
+      color: var(--muted);
+      margin-bottom: 16px;
+      transition: color .25s;
+    }
+
+    .upload-zone:hover i,
+    .upload-zone.dragover i {
+      color: var(--accent);
+    }
+
+    .upload-zone p {
+      color: var(--text-sec);
+      font-size: 15px;
+      line-height: 1.6;
+    }
+
+    .upload-zone p strong {
+      color: var(--text);
+    }
+
+    .upload-zone .hint {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 8px;
+    }
+
+    /* Editor */
+    #editor-section {
+      display: none;
+    }
+
+    .stats-bar {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .stat-chip {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .stat-chip.css-chip {
+      background: var(--css-dim);
+      color: var(--css-clr);
+    }
+
+    .stat-chip.js-chip {
+      background: var(--js-dim);
+      color: var(--js-clr);
+    }
+
+    .stat-chip.total-chip {
+      background: var(--accent-dim);
+      color: var(--accent);
+    }
+
+    .stat-chip i {
+      font-size: 11px;
+    }
+
+    /* Block cards */
+    #block-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      min-height: 100px;
+    }
+
+    .block-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      transition: all .2s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .block-card::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 3px;
+    }
+
+    .block-card.css-block::before {
+      background: var(--css-clr);
+    }
+
+    .block-card.js-block::before {
+      background: var(--js-clr);
+    }
+
+    .block-card:hover {
+      border-color: var(--border-light);
+      background: var(--card-hover);
+    }
+
+    .block-card.dragging {
+      opacity: 0.4;
+      transform: scale(0.98);
+    }
+
+    .block-card.drag-over {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px var(--accent);
+    }
+
+    .block-top {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 14px 12px 18px;
+      cursor: default;
+    }
+
+    .drag-handle {
+      cursor: grab;
+      color: var(--muted);
+      font-size: 14px;
+      padding: 2px;
+      transition: color .15s;
+    }
+
+    .drag-handle:hover {
+      color: var(--text);
+    }
+
+    .drag-handle:active {
+      cursor: grabbing;
+    }
+
+    .type-badge {
+      padding: 3px 10px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      flex-shrink: 0;
+    }
+
+    .type-badge.css-badge {
+      background: var(--css-dim);
+      color: var(--css-clr);
+    }
+
+    .type-badge.js-badge {
+      background: var(--js-dim);
+      color: var(--js-clr);
+    }
+
+    .block-label {
+      font-size: 13px;
+      color: var(--text-sec);
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .block-label .url-text {
+      color: var(--muted);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+    }
+
+    .block-label .inline-tag {
+      color: var(--accent);
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .attr-chips {
+      display: flex;
+      gap: 4px;
+      flex-wrap: wrap;
+    }
+
+    .attr-chip {
+      padding: 2px 7px;
+      border-radius: 3px;
+      font-size: 10px;
+      font-weight: 600;
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--muted);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .block-actions {
+      display: flex;
+      gap: 4px;
+      flex-shrink: 0;
+      margin-left: auto;
+    }
+
+    .block-actions button {
+      width: 30px;
+      height: 30px;
+      border: none;
+      border-radius: var(--radius-sm);
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 13px;
+      transition: all .15s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .block-actions button:hover {
+      background: rgba(255, 255, 255, 0.07);
+      color: var(--text);
+    }
+
+    .block-actions button.del-btn:hover {
+      background: var(--danger-dim);
+      color: var(--danger);
+    }
+
+    .block-actions button.fetch-btn {
+      color: var(--accent);
+    }
+
+    .block-actions button.fetch-btn:hover {
+      background: var(--accent-dim);
+    }
+
+    .placement-btn {
+      font-size: 10px !important;
+      width: auto !important;
+      padding: 0 8px !important;
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+    }
+
+    .placement-btn.is-head {
+      color: var(--css-clr);
+    }
+
+    .placement-btn.is-body {
+      color: var(--js-clr);
+    }
+
+    /* Content preview */
+    .block-preview {
+      border-top: 1px solid var(--border);
+      padding: 10px 14px 10px 18px;
+      display: none;
+    }
+
+    .block-preview.visible {
+      display: block;
+    }
+
+    .block-preview pre {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      line-height: 1.6;
+      color: var(--text-sec);
+      white-space: pre-wrap;
+      word-break: break-all;
+      max-height: 240px;
+      overflow-y: auto;
+      margin: 0;
+    }
+
+    .expand-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      color: var(--muted);
+      cursor: pointer;
+      padding: 4px 0 0;
+      border: none;
+      background: none;
+      transition: color .15s;
+    }
+
+    .expand-toggle:hover {
+      color: var(--accent);
+    }
+
+    /* Action bar */
+    .action-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 20px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 9px 18px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: var(--card);
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all .15s;
+      font-family: 'DM Sans', sans-serif;
+    }
+
+    .btn:hover {
+      background: var(--card-hover);
+      border-color: var(--border-light);
+    }
+
+    .btn-accent {
+      background: var(--accent);
+      color: #000;
+      border-color: var(--accent);
+    }
+
+    .btn-accent:hover {
+      background: var(--accent-hover);
+      border-color: var(--accent-hover);
+    }
+
+    .btn-danger {
+      color: var(--danger);
+    }
+
+    .btn-danger:hover {
+      background: var(--danger-dim);
+    }
+
+    .btn i {
+      font-size: 12px;
+    }
+
+    .action-bar .spacer {
+      flex: 1;
+    }
+
+    /* Add dropdown */
+    .add-dropdown {
+      position: relative;
+      display: inline-block;
+    }
+
+    .add-menu {
+      display: none;
+      position: absolute;
+      bottom: calc(100% + 6px);
+      left: 0;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 6px;
+      min-width: 180px;
+      z-index: 50;
+      box-shadow: var(--shadow);
+    }
+
+    .add-menu.visible {
+      display: block;
+    }
+
+    .add-menu button {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      width: 100%;
+      padding: 8px 12px;
+      border: none;
+      background: none;
+      color: var(--text);
+      font-size: 13px;
+      cursor: pointer;
+      border-radius: var(--radius-sm);
+      font-family: 'DM Sans', sans-serif;
+      transition: background .12s;
+    }
+
+    .add-menu button:hover {
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    .add-menu button .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .add-menu button .dot.css-dot {
+      background: var(--css-clr);
+    }
+
+    .add-menu button .dot.js-dot {
+      background: var(--js-clr);
+    }
+
+    /* Modal overlay */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.65);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(4px);
+    }
+
+    .modal-overlay.visible {
+      display: flex;
+    }
+
+    .modal-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 28px;
+      width: 90%;
+      max-width: 560px;
+      max-height: 80vh;
+      overflow-y: auto;
+      box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5);
+    }
+
+    .modal-box h2 {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .modal-box .modal-sub {
+      font-size: 13px;
+      color: var(--text-sec);
+      margin-bottom: 20px;
+    }
+
+    .modal-box .modal-footer {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+      margin-top: 20px;
+    }
+
+    /* Fetch modal */
+    .fetch-url-box {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 12px 14px;
+      margin-bottom: 16px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: var(--text-sec);
+      word-break: break-all;
+      line-height: 1.5;
+    }
+
+    .fetch-url-box .fetch-type {
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    .fetch-progress {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .fetch-progress .prog-bar {
+      flex: 1;
+      height: 4px;
+      background: var(--border);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .fetch-progress .prog-bar .prog-fill {
+      height: 100%;
+      background: var(--accent);
+      border-radius: 2px;
+      transition: width .3s ease;
+    }
+
+    .fetch-progress .prog-text {
+      font-size: 12px;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    /* Edit modal */
+    .edit-textarea {
+      width: 100%;
+      min-height: 320px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 14px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      line-height: 1.6;
+      color: var(--text);
+      resize: vertical;
+      outline: none;
+      transition: border-color .2s;
+    }
+
+    .edit-textarea:focus {
+      border-color: var(--accent);
+    }
+
+    /* Preview modal */
+    .preview-textarea {
+      width: 100%;
+      min-height: 400px;
+      max-height: 60vh;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 14px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      line-height: 1.6;
+      color: var(--text-sec);
+      resize: none;
+      outline: none;
+    }
+
+    /* Toast */
+    #toast-container {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 200;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .toast {
+      padding: 12px 18px;
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      animation: toastIn .3s ease;
+      box-shadow: var(--shadow);
+      max-width: 340px;
+    }
+
+    .toast.success {
+      background: #065f46;
+      color: #6ee7b7;
+      border: 1px solid #10b981;
+    }
+
+    .toast.error {
+      background: #7f1d1d;
+      color: #fca5a5;
+      border: 1px solid #ef4444;
+    }
+
+    .toast.info {
+      background: #1e3a5f;
+      color: #93c5fd;
+      border: 1px solid #3b82f6;
+    }
+
+    @keyframes toastIn {
+      from {
+        opacity: 0;
+        transform: translateX(40px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    @keyframes toastOut {
+      from {
+        opacity: 1;
+        transform: translateX(0);
+      }
+
+      to {
+        opacity: 0;
+        transform: translateX(40px);
+      }
+    }
+
+    /* Empty state */
+    .empty-state {
+      text-align: center;
+      padding: 48px 20px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    /* Responsive */
+    @media(max-width:640px) {
+      #app {
+        padding: 16px 12px 80px;
+      }
+
+      .block-top {
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+
+      .block-label {
+        order: 10;
+        flex-basis: 100%;
+      }
+
+      .block-actions {
+        order: 5;
+        margin-left: 0;
+      }
+
+      .modal-box {
+        padding: 20px;
+        width: 95%;
+      }
+    }
+
+  </style>
+</head>
+
+<body>
+  <div id="app">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="logo"><i class="fa-solid fa-layer-group" style="font-size:16px"></i></div>
+      <h1>Block <span>Organizer</span></h1>
+      <div class="file-info" id="fileInfo">
+        <i class="fa-solid fa-file-code" style="color:var(--muted)"></i>
+        <span class="fname" id="fileName"></span>
+        <button class="btn" style="padding:4px 10px;font-size:11px;" onclick="resetApp()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+    </header>
+
+    <!-- Upload -->
+    <section id="upload-section">
+      <div class="upload-zone" id="uploadZone">
+        <i class="fa-solid fa-cloud-arrow-up"></i>
+        <p><strong>Drop your HTML file here</strong><br>or click to browse</p>
+        <p class="hint">Style and script blocks will be extracted for organizing</p>
+      </div>
+      <input type="file" id="fileInput" accept=".html,.htm" hidden>
+    </section>
+
+    <!-- Editor -->
+    <section id="editor-section">
+      <div class="stats-bar" id="statsBar"></div>
+      <div id="block-list"></div>
+      <div class="action-bar">
+        <div class="add-dropdown">
+          <button class="btn" id="addBtn"><i class="fa-solid fa-plus"></i> Add Block</button>
+          <div class="add-menu" id="addMenu">
+            <button onclick="addBlock('css','inline')"><span class="dot css-dot"></span> CSS (inline)</button>
+            <button onclick="addBlock('css','external')"><span class="dot css-dot"></span> CSS (external URL)</button>
+            <button onclick="addBlock('js','inline')"><span class="dot js-dot"></span> JS (inline)</button>
+            <button onclick="addBlock('js','external')"><span class="dot js-dot"></span> JS (external URL)</button>
+          </div>
+        </div>
+        <button class="btn" onclick="showPreview()"><i class="fa-solid fa-eye"></i> Preview</button>
+        <div class="spacer"></div>
+        <button class="btn btn-accent" onclick="exportFile()"><i class="fa-solid fa-download"></i> Export File</button>
+      </div>
+    </section>
+
+    <!-- Fetch Modal -->
+    <div class="modal-overlay" id="fetchModal">
+      <div class="modal-box">
+        <h2>Fetch External Resources</h2>
+        <p class="modal-sub" id="fetchSub">Want to inline the content of these resources?</p>
+        <div class="fetch-progress" id="fetchProgress">
+          <div class="prog-bar">
+            <div class="prog-fill" id="progFill"></div>
+          </div>
+          <span class="prog-text" id="progText">0/0</span>
+        </div>
+        <div class="fetch-url-box" id="fetchUrlBox"></div>
+        <div class="modal-footer">
+          <button class="btn" onclick="skipAllRemaining()">Skip All</button>
+          <button class="btn" onclick="skipCurrent()">Skip</button>
+          <button class="btn btn-accent" onclick="fetchCurrent()"><i class="fa-solid fa-arrow-down"></i> Fetch</button>
+          <button class="btn btn-accent" onclick="fetchAllRemaining()"><i class="fa-solid fa-angles-down"></i> Fetch All</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Edit Modal -->
+    <div class="modal-overlay" id="editModal">
+      <div class="modal-box" style="max-width:720px;">
+        <h2 id="editTitle">Edit Block</h2>
+        <p class="modal-sub" id="editSub"></p>
+        <textarea class="edit-textarea" id="editTextarea" spellcheck="false"></textarea>
+        <div class="modal-footer">
+          <button class="btn" onclick="closeEditModal()">Cancel</button>
+          <button class="btn btn-accent" onclick="saveEdit()"><i class="fa-solid fa-check"></i> Save</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Preview Modal -->
+    <div class="modal-overlay" id="previewModal">
+      <div class="modal-box" style="max-width:800px;">
+        <h2>Output Preview</h2>
+        <p class="modal-sub">This is the reconstructed HTML that will be exported</p>
+        <textarea class="preview-textarea" id="previewTextarea" readonly spellcheck="false"></textarea>
+        <div class="modal-footer">
+          <button class="btn" onclick="copyPreview()"><i class="fa-solid fa-copy"></i> Copy</button>
+          <button class="btn" onclick="closePreviewModal()">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-container"></div>
+
+  <script>
+    /* ===================== State ===================== */
+    let blocks = [];
+    let htmlShell = '';
+    let originalFileName = 'organized.html';
+    let fetchQueue = [];
+    let fetchIdx = 0;
+    let editingBlockId = null;
+
+    /* ===================== DOM Refs ===================== */
+    const uploadSection = document.getElementById('upload-section');
+    const editorSection = document.getElementById('editor-section');
+    const uploadZone = document.getElementById('uploadZone');
+    const fileInput = document.getElementById('fileInput');
+    const blockList = document.getElementById('block-list');
+    const statsBar = document.getElementById('statsBar');
+    const fileInfoEl = document.getElementById('fileInfo');
+    const fileNameEl = document.getElementById('fileName');
+    const fetchModal = document.getElementById('fetchModal');
+    const editModal = document.getElementById('editModal');
+    const previewModal = document.getElementById('previewModal');
+    const addMenu = document.getElementById('addMenu');
+
+    /* ===================== Upload ===================== */
+    uploadZone.addEventListener('click', () => fileInput.click());
+    uploadZone.addEventListener('dragover', e => {
+      e.preventDefault();
+      uploadZone.classList.add('dragover');
+    });
+    uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
+    uploadZone.addEventListener('drop', e => {
+      e.preventDefault();
+      uploadZone.classList.remove('dragover');
+      const file = e.dataTransfer.files[0];
+      if (file) handleFile(file);
+    });
+    fileInput.addEventListener('change', e => {
+      if (e.target.files[0]) handleFile(e.target.files[0]);
+    });
+
+    function handleFile(file) {
+      if (!file.name.match(/\.html?$/i)) {
+        showToast('Please upload an HTML file', 'error');
+        return;
+      }
+      originalFileName = file.name;
+      const reader = new FileReader();
+      reader.onload = e => {
+        const html = e.target.result;
+        const result = parseHTML(html);
+        blocks = result.blocks;
+        htmlShell = result.shell;
+        fileNameEl.textContent = file.name;
+        fileInfoEl.classList.add('visible');
+
+        /* Check for fetchable resources */
+        const fetchable = blocks.filter(b => b.source === 'external' || b.source === 'dataurl');
+        if (fetchable.length > 0) {
+          startFetchQueue(fetchable);
+        } else {
+          showEditor();
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    /* ===================== Parsing ===================== */
+    function parseHTML(htmlString) {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(htmlString, 'text/html');
+      const blocks = [];
+
+      /* Gather block elements in document order */
+      const selectors = 'style, link[rel="stylesheet"], script';
+      const headEls = doc.head ? doc.head.querySelectorAll(selectors) : [];
+      const bodyEls = doc.body ? doc.body.querySelectorAll(selectors) : [];
+
+      /* Avoid double-counting nested elements (e.g., style inside SVG) */
+      function isMainFlow(el) {
+        if (el.closest('svg, template, noscript')) return false;
+        return true;
+      }
+
+      headEls.forEach(el => {
+        if (isMainFlow(el)) extractBlock(el, 'head', blocks);
+      });
+      bodyEls.forEach(el => {
+        if (isMainFlow(el)) extractBlock(el, 'body', blocks);
+      });
+
+      /* Remove extracted elements from DOM for the shell */
+      doc.querySelectorAll(selectors).forEach(el => {
+        if (isMainFlow(el)) el.remove();
+      });
+
+      /* Build shell string */
+      const hadDoctype = /<!doctype/i.test(htmlString);
+      let shell = (hadDoctype ? '<!DOCTYPE html>\n' : '') + doc.documentElement.outerHTML;
+      /* Clean up excessive blank lines left by removals */
+      shell = shell.replace(/\n\s*\n\s*\n/g, '\n\n');
+
+      return {
+        blocks,
+        shell
+      };
+    }
+
+    function extractBlock(el, placement, blocks) {
+      const tag = el.tagName.toLowerCase();
+      const attrs = getAttrs(el);
+
+      if (tag === 'style') {
+        blocks.push({
+          id: uid(),
+          type: 'css',
+          source: 'inline',
+          content: el.textContent,
+          url: '',
+          attributes: filterAttrs(attrs, ['rel', 'href', 'src']),
+          placement,
+          fetched: false,
+          expanded: false
+        });
+      } else if (tag === 'link') {
+        const href = el.getAttribute('href') || '';
+        blocks.push({
+          id: uid(),
+          type: 'css',
+          source: href.startsWith('data:') ? 'dataurl' : 'external',
+          content: '',
+          url: href,
+          attributes: filterAttrs(attrs, ['rel', 'href']),
+          placement,
+          fetched: false,
+          expanded: false
+        });
+      } else if (tag === 'script') {
+        const src = el.getAttribute('src') || '';
+        if (src) {
+          blocks.push({
+            id: uid(),
+            type: 'js',
+            source: src.startsWith('data:') ? 'dataurl' : 'external',
+            content: '',
+            url: src,
+            attributes: filterAttrs(attrs, ['src']),
+            placement,
+            fetched: false,
+            expanded: false
+          });
+        } else {
+          blocks.push({
+            id: uid(),
+            type: 'js',
+            source: 'inline',
+            content: el.textContent,
+            url: '',
+            attributes: filterAttrs(attrs, ['src']),
+            placement,
+            fetched: false,
+            expanded: false
+          });
+        }
+      }
+    }
+
+    function getAttrs(el) {
+      const o = {};
+      for (const a of el.attributes) o[a.name] = a.value;
+      return o;
+    }
+
+    function filterAttrs(attrs, exclude) {
+      const o = {};
+      for (const k in attrs) {
+        if (!exclude.includes(k)) o[k] = attrs[k];
+      }
+      return o;
+    }
+
+    /* ===================== Fetch Queue ===================== */
+    function startFetchQueue(fetchable) {
+      fetchQueue = fetchable;
+      fetchIdx = 0;
+      fetchModal.classList.add('visible');
+      showFetchItem();
+    }
+
+    function showFetchItem() {
+      if (fetchIdx >= fetchQueue.length) {
+        fetchModal.classList.remove('visible');
+        showEditor();
+        return;
+      }
+      const block = fetchQueue[fetchIdx];
+      const total = fetchQueue.length;
+      const pct = ((fetchIdx) / total * 100).toFixed(0);
+
+      document.getElementById('progFill').style.width = pct + '%';
+      document.getElementById('progText').textContent = `${fetchIdx + 1} / ${total}`;
+      document.getElementById('fetchSub').textContent = `Do you want to fetch and inline this resource?`;
+
+      const typeLabel = block.type === 'css' ? 'CSS' : 'JS';
+      const sourceLabel = block.source === 'dataurl' ? 'Data URL' : 'External';
+      const urlDisplay = block.source === 'dataurl' ?
+        block.url.substring(0, 80) + (block.url.length > 80 ? '...' : '') :
+        block.url;
+
+      document.getElementById('fetchUrlBox').innerHTML =
+        `<span class="fetch-type">${sourceLabel} ${typeLabel}</span>\n${escHTML(urlDisplay)}`;
+    }
+
+    async function fetchCurrent() {
+      const block = fetchQueue[fetchIdx];
+      try {
+        if (block.source === 'dataurl') {
+          block.content = decodeDataURL(block.url);
+        } else {
+          block.content = await fetchResource(block.url);
+        }
+        block.source = 'inline';
+        block.fetched = true;
+        showToast('Fetched successfully', 'success');
+      } catch (err) {
+        showToast('Fetch failed: ' + err.message, 'error');
+      }
+      fetchIdx++;
+      showFetchItem();
+    }
+
+    async function fetchAllRemaining() {
+      for (let i = fetchIdx; i < fetchQueue.length; i++) {
+        const block = fetchQueue[i];
+        try {
+          if (block.source === 'dataurl') {
+            block.content = decodeDataURL(block.url);
+          } else {
+            block.content = await fetchResource(block.url);
+          }
+          block.source = 'inline';
+          block.fetched = true;
+        } catch (e) {
+          /* skip failures */ }
+      }
+      fetchModal.classList.remove('visible');
+      showToast('Batch fetch complete', 'success');
+      showEditor();
+    }
+
+    function skipCurrent() {
+      fetchIdx++;
+      showFetchItem();
+    }
+
+    function skipAllRemaining() {
+      fetchModal.classList.remove('visible');
+      showEditor();
+    }
+
+    async function fetchResource(url) {
+      const resp = await fetch(url, {
+        mode: 'cors'
+      });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      return await resp.text();
+    }
+
+    function decodeDataURL(url) {
+      const m = url.match(/^data:(.+?)(;base64)?,(.*)$/);
+      if (!m) return url;
+      if (m[2]) {
+        try {
+          return atob(m[3]);
+        } catch (e) {
+          return m[3];
+        }
+      }
+      return decodeURIComponent(m[3]);
+    }
+
+    /* ===================== Editor UI ===================== */
+    function showEditor() {
+      uploadSection.style.display = 'none';
+      editorSection.style.display = 'block';
+      renderBlocks();
+    }
+
+    function renderBlocks() {
+      blockList.innerHTML = '';
+      if (blocks.length === 0) {
+        blockList.innerHTML = '<div class="empty-state"><i class="fa-solid fa-inbox" style="font-size:28px;margin-bottom:10px;display:block;"></i>No blocks extracted. Add some above.</div>';
+      } else {
+        blocks.forEach((block, i) => {
+          blockList.appendChild(createBlockCard(block, i));
+        });
+      }
+      updateStats();
+    }
+
+    function createBlockCard(block, index) {
+      const card = document.createElement('div');
+      card.className = `block-card ${block.type === 'css' ? 'css-block' : 'js-block'}`;
+      card.dataset.blockId = block.id;
+      card.draggable = true;
+
+      /* Drag events */
+      card.addEventListener('dragstart', e => {
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', block.id);
+        requestAnimationFrame(() => card.classList.add('dragging'));
+      });
+      card.addEventListener('dragend', () => card.classList.remove('dragging'));
+      card.addEventListener('dragover', e => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+      });
+      card.addEventListener('dragenter', e => {
+        e.preventDefault();
+        card.classList.add('drag-over');
+      });
+      card.addEventListener('dragleave', () => card.classList.remove('drag-over'));
+      card.addEventListener('drop', e => {
+        e.preventDefault();
+        card.classList.remove('drag-over');
+        const fromId = e.dataTransfer.getData('text/plain');
+        if (fromId === block.id) return;
+        const fromIdx = blocks.findIndex(b => b.id === fromId);
+        const toIdx = blocks.findIndex(b => b.id === block.id);
+        const [moved] = blocks.splice(fromIdx, 1);
+        blocks.splice(toIdx, 0, moved);
+        renderBlocks();
+      });
+
+      const isCSS = block.type === 'css';
+      const lineCount = block.content ? block.content.split('\n').length : 0;
+      const isExternal = block.source === 'external';
+      const isDataURL = block.source === 'dataurl';
+
+      /* Label */
+      let labelHTML = '';
+      if (isExternal) {
+        const shortUrl = block.url.length > 60 ? block.url.substring(0, 57) + '...' : block.url;
+        labelHTML = `<span class="url-text">${escHTML(shortUrl)}</span>`;
+      } else if (isDataURL) {
+        labelHTML = `<span class="url-text">data:...</span>`;
+      } else {
+        labelHTML = `<span class="inline-tag">inline</span>${lineCount > 0 ? ` <span style="color:var(--muted);font-size:11px;">&middot; ${lineCount} line${lineCount !== 1 ? 's' : ''}</span>` : ''}`;
+      }
+
+      /* Attribute chips */
+      let chipsHTML = '';
+      for (const [k, v] of Object.entries(block.attributes)) {
+        if (v === '' || v === undefined) {
+          chipsHTML += `<span class="attr-chip">${escHTML(k)}</span>`;
+        } else {
+          chipsHTML += `<span class="attr-chip">${escHTML(k)}="${escHTML(String(v).substring(0, 20))}"</span>`;
+        }
+      }
+
+      /* Fetch button for external/dataurl */
+      const fetchBtnHTML = (isExternal || isDataURL) ?
+        `<button class="fetch-btn" title="Fetch & inline" onclick="fetchSingleBlock('${block.id}')"><i class="fa-solid fa-arrow-down"></i></button>` :
+        '';
+
+      card.innerHTML = `
+    <div class="block-top">
+      <span class="drag-handle" title="Drag to reorder"><i class="fa-solid fa-grip-vertical"></i></span>
+      <span class="type-badge ${isCSS ? 'css-badge' : 'js-badge'}">${isCSS ? 'CSS' : 'JS'}</span>
+      <span class="block-label">${labelHTML}</span>
+      <div class="attr-chips">${chipsHTML}</div>
+      <div class="block-actions">
+        <button class="placement-btn ${block.placement === 'head' ? 'is-head' : 'is-body'}" title="Toggle placement" onclick="togglePlacement('${block.id}')">${block.placement.toUpperCase()}</button>
+        ${fetchBtnHTML}
+        <button title="Move up" onclick="moveBlock('${block.id}',-1)"><i class="fa-solid fa-chevron-up"></i></button>
+        <button title="Move down" onclick="moveBlock('${block.id}',1)"><i class="fa-solid fa-chevron-down"></i></button>
+        <button title="Edit" onclick="openEditModal('${block.id}')"><i class="fa-solid fa-pen"></i></button>
+        <button class="del-btn" title="Delete" onclick="deleteBlock('${block.id}')"><i class="fa-solid fa-trash-can"></i></button>
+      </div>
+    </div>
+    ${block.content ? `
+      <button class="expand-toggle" onclick="toggleExpand('${block.id}')">
+        <i class="fa-solid fa-chevron-${block.expanded ? 'down' : 'right'}" style="font-size:9px;"></i>
+        ${block.expanded ? 'Collapse' : 'Show content'}
+      </button>
+      <div class="block-preview ${block.expanded ? 'visible' : ''}">
+        <pre>${escHTML(block.content)}</pre>
+      </div>
+    ` : ''}
+  `;
+
+      return card;
+    }
+
+    function updateStats() {
+      const cssCount = blocks.filter(b => b.type === 'css').length;
+      const jsCount = blocks.filter(b => b.type === 'js').length;
+      statsBar.innerHTML = `
+    <div class="stat-chip total-chip"><i class="fa-solid fa-layer-group"></i> ${blocks.length} block${blocks.length !== 1 ? 's' : ''}</div>
+    <div class="stat-chip css-chip"><i class="fa-solid fa-palette"></i> ${cssCount} CSS</div>
+    <div class="stat-chip js-chip"><i class="fa-solid fa-code"></i> ${jsCount} JS</div>
+  `;
+    }
+
+    /* ===================== Block Operations ===================== */
+    function moveBlock(id, dir) {
+      const idx = blocks.findIndex(b => b.id === id);
+      const newIdx = idx + dir;
+      if (newIdx < 0 || newIdx >= blocks.length) return;
+      [blocks[idx], blocks[newIdx]] = [blocks[newIdx], blocks[idx]];
+      renderBlocks();
+    }
+
+    function deleteBlock(id) {
+      blocks = blocks.filter(b => b.id !== id);
+      renderBlocks();
+      showToast('Block removed', 'info');
+    }
+
+    function togglePlacement(id) {
+      const block = blocks.find(b => b.id === id);
+      block.placement = block.placement === 'head' ? 'body' : 'head';
+      renderBlocks();
+    }
+
+    function toggleExpand(id) {
+      const block = blocks.find(b => b.id === id);
+      block.expanded = !block.expanded;
+      renderBlocks();
+    }
+
+    async function fetchSingleBlock(id) {
+      const block = blocks.find(b => b.id === id);
+      if (!block || (block.source !== 'external' && block.source !== 'dataurl')) return;
+      try {
+        if (block.source === 'dataurl') {
+          block.content = decodeDataURL(block.url);
+        } else {
+          showToast('Fetching...', 'info');
+          block.content = await fetchResource(block.url);
+        }
+        block.source = 'inline';
+        block.fetched = true;
+        renderBlocks();
+        showToast('Fetched and inlined', 'success');
+      } catch (err) {
+        showToast('Fetch failed: ' + err.message, 'error');
+      }
+    }
+
+    /* ===================== Add Block ===================== */
+    document.getElementById('addBtn').addEventListener('click', e => {
+      e.stopPropagation();
+      addMenu.classList.toggle('visible');
+    });
+    document.addEventListener('click', () => addMenu.classList.remove('visible'));
+
+    function addBlock(type, source) {
+      addMenu.classList.remove('visible');
+      const block = {
+        id: uid(),
+        type,
+        source,
+        content: source === 'inline' ? '' : '',
+        url: source === 'external' ? '' : '',
+        attributes: {},
+        placement: type === 'css' ? 'head' : 'body',
+        fetched: false,
+        expanded: false
+      };
+
+      if (source === 'external') {
+        const url = prompt(`Enter URL for ${type.toUpperCase()} resource:`);
+        if (!url) return;
+        block.url = url.trim();
+      }
+
+      blocks.push(block);
+      renderBlocks();
+      showToast(`${type.toUpperCase()} block added`, 'success');
+
+      /* If inline, open the editor immediately */
+      if (source === 'inline') openEditModal(block.id);
+    }
+
+    /* ===================== Edit Modal ===================== */
+    function openEditModal(id) {
+      const block = blocks.find(b => b.id === id);
+      if (!block) return;
+      editingBlockId = id;
+      const isCSS = block.type === 'css';
+      document.getElementById('editTitle').textContent = `Edit ${isCSS ? 'CSS' : 'JS'} Block`;
+      document.getElementById('editSub').textContent = block.source === 'external' && !block.fetched ?
+        `External: ${block.url}` : 'Inline content';
+      document.getElementById('editTextarea').value = block.content || '';
+      editModal.classList.add('visible');
+      setTimeout(() => document.getElementById('editTextarea').focus(), 100);
+    }
+
+    function saveEdit() {
+      const block = blocks.find(b => b.id === editingBlockId);
+      if (!block) return;
+      block.content = document.getElementById('editTextarea').value;
+      if (block.content && (block.source === 'external' || block.source === 'dataurl')) {
+        block.source = 'inline';
+        block.fetched = true;
+      }
+      closeEditModal();
+      renderBlocks();
+      showToast('Block updated', 'success');
+    }
+
+    function closeEditModal() {
+      editModal.classList.remove('visible');
+      editingBlockId = null;
+    }
+
+    /* ===================== Preview ===================== */
+    function showPreview() {
+      document.getElementById('previewTextarea').value = reconstructHTML();
+      previewModal.classList.add('visible');
+    }
+
+    function closePreviewModal() {
+      previewModal.classList.remove('visible');
+    }
+
+    function copyPreview() {
+      const ta = document.getElementById('previewTextarea');
+      ta.select();
+      navigator.clipboard.writeText(ta.value).then(() => showToast('Copied to clipboard', 'success'));
+    }
+
+    /* ===================== Reconstruct HTML ===================== */
+    function reconstructHTML() {
+      /* Re-parse shell to get a fresh DOM */
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(htmlShell, 'text/html');
+
+      const headBlocks = blocks.filter(b => b.placement === 'head');
+      const bodyBlocks = blocks.filter(b => b.placement === 'body');
+
+      headBlocks.forEach(block => {
+        const el = buildElement(doc, block);
+        if (el) doc.head.appendChild(el);
+      });
+
+      bodyBlocks.forEach(block => {
+        const el = buildElement(doc, block);
+        if (el) doc.body.appendChild(el);
+      });
+
+      const hadDoctype = htmlShell.toLowerCase().includes('<!doctype');
+      return (hadDoctype ? '<!DOCTYPE html>\n' : '') + doc.documentElement.outerHTML;
+    }
+
+    function buildElement(doc, block) {
+      if (block.type === 'css') {
+        if ((block.source === 'external' || (block.source === 'dataurl' && !block.fetched)) && block.url && !block.fetched) {
+          const link = doc.createElement('link');
+          link.setAttribute('rel', 'stylesheet');
+          link.setAttribute('href', block.url);
+          applyAttrs(link, block.attributes, ['rel', 'href']);
+          return link;
+        } else {
+          const style = doc.createElement('style');
+          if (block.content) style.textContent = block.content;
+          applyAttrs(style, block.attributes, ['rel', 'href', 'src']);
+          return style;
+        }
+      } else {
+        if ((block.source === 'external' || (block.source === 'dataurl' && !block.fetched)) && block.url && !block.fetched) {
+          const script = doc.createElement('script');
+          script.setAttribute('src', block.url);
+          applyAttrs(script, block.attributes, ['src']);
+          return script;
+        } else {
+          const script = doc.createElement('script');
+          if (block.content) script.textContent = block.content;
+          applyAttrs(script, block.attributes, ['src', 'rel', 'href']);
+          return script;
+        }
+      }
+    }
+
+    function applyAttrs(el, attrs, exclude) {
+      for (const [k, v] of Object.entries(attrs)) {
+        if (exclude.includes(k)) continue;
+        try {
+          el.setAttribute(k, v);
+        } catch (e) {}
+      }
+    }
+
+    /* ===================== Export ===================== */
+    async function exportFile() {
+      const html = reconstructHTML();
+
+      if ('showSaveFilePicker' in window) {
+        try {
+          const handle = await window.showSaveFilePicker({
+            suggestedName: originalFileName,
+            types: [{
+              description: 'HTML Files',
+              accept: {
+                'text/html': ['.html', '.htm']
+              }
+            }]
+          });
+          const writable = await handle.createWritable();
+          await writable.write(html);
+          await writable.close();
+          showToast('File saved successfully', 'success');
+        } catch (err) {
+          if (err.name === 'AbortError') return;
+          showToast('Save failed: ' + err.message, 'error');
+        }
+      } else {
+        /* Fallback for browsers without File System Access API */
+        const blob = new Blob([html], {
+          type: 'text/html'
+        });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = originalFileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showToast('File downloaded', 'success');
+      }
+    }
+
+    /* ===================== Reset ===================== */
+    function resetApp() {
+      blocks = [];
+      htmlShell = '';
+      originalFileName = 'organized.html';
+      fetchQueue = [];
+      fetchIdx = 0;
+      editorSection.style.display = 'none';
+      uploadSection.style.display = 'flex';
+      fileInfoEl.classList.remove('visible');
+      fileInput.value = '';
+    }
+
+    /* ===================== Toast ===================== */
+    function showToast(msg, type) {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      toast.className = `toast ${type || 'info'}`;
+      const icons = {
+        success: 'fa-circle-check',
+        error: 'fa-circle-xmark',
+        info: 'fa-circle-info'
+      };
+      toast.innerHTML = `<i class="fa-solid ${icons[type] || icons.info}"></i> ${escHTML(msg)}`;
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.style.animation = 'toastOut .3s ease forwards';
+        setTimeout(() => toast.remove(), 300);
+      }, 2800);
+    }
+
+    /* ===================== Utilities ===================== */
+    function uid() {
+      return 'b' + Math.random().toString(36).substring(2, 11);
+    }
+
+    function escHTML(s) {
+      return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    /* ===================== Keyboard Shortcuts ===================== */
+    document.addEventListener('keydown', e => {
+      /* Ctrl/Cmd + S → Export */
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        if (editorSection.style.display !== 'none') exportFile();
+      }
+      /* Escape → Close modals */
+      if (e.key === 'Escape') {
+        if (editModal.classList.contains('visible')) closeEditModal();
+        else if (previewModal.classList.contains('visible')) closePreviewModal();
+        else if (fetchModal.classList.contains('visible')) skipAllRemaining();
+        addMenu.classList.remove('visible');
+      }
+    });
+
+    /* Close modals on overlay click */
+    [fetchModal, editModal, previewModal].forEach(overlay => {
+      overlay.addEventListener('click', e => {
+        if (e.target === overlay) {
+          if (overlay === editModal) closeEditModal();
+          else if (overlay === previewModal) closePreviewModal();
+          else if (overlay === fetchModal) skipAllRemaining();
+        }
+      });
+    });
+
+  </script>
+</body>
+
+</html>
