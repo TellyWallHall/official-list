@@ -1,0 +1,217 @@
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Song Explorer Elite</title>
+    <style>
+        :root { --accent: #10b981; --bg: #ffffff; --text: #111827; --card: #f9fafb; --border: #e5e7eb; }
+        [data-theme='dark'] { --bg: #0f172a; --text: #f1f5f9; --card: #1e293b; --border: #334155; }
+        [data-theme='sepia'] { --bg: #f4ecd8; --text: #5b4636; --card: #efe3c5; --border: #d3c2a3; --accent: #966919; }
+
+
+        body { font-family: -apple-system, system-ui, sans-serif; background: var(--bg); color: var(--text); margin: 0; transition: background 0.3s; }
+        .container { max-width: 500px; margin: auto; padding: 15px 15px 180px 15px; }
+        
+        /* Sticky Header & Tools */
+        .header-box { position: sticky; top: 0; background: var(--bg); padding: 10px 0; border-bottom: 1px solid var(--border); z-index: 100; }
+        input { width: 100%; padding: 14px; border-radius: 12px; border: 2px solid var(--border); background: var(--card); color: var(--text); outline: none; box-sizing: border-box; }
+        
+        .tool-bar { display: flex; gap: 5px; margin-top: 10px; flex-wrap: wrap; }
+        button { padding: 10px; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 11px; flex: 1; }
+        .btn-pri { background: var(--accent); color: #fff; }
+        .btn-sec { background: var(--card); color: var(--text); border: 1px solid var(--border); }
+
+
+        /* Favorites & Results */
+        .result-card { background: var(--card); padding: 15px; margin-top: 10px; border-radius: 12px; border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+        .song-info { flex: 1; cursor: pointer; }
+        .fav-star { font-size: 20px; cursor: pointer; padding-left: 10px; color: #d1d5db; }
+        .fav-active { color: #f59e0b; }
+
+
+        /* Reader Area */
+        #lyric-box { white-space: pre-wrap; padding: 25px; border-radius: 15px; font-size: 18px; line-height: 2; margin-top: 20px; border: 1px solid var(--border); }
+        
+        /* Persistent Translation Box */
+        #trans-box { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 400px; background: #111827; color: #fff; padding: 15px; border-radius: 16px; display: none; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.4); z-index: 1000; }
+        select { background: #374151; color: white; border: none; border-radius: 4px; font-size: 10px; margin-bottom: 8px; }
+        
+        .loader-bar { height: 3px; background: var(--accent); width: 0%; transition: width 0.3s; }
+    </style>
+</head>
+<body>
+
+
+<div class="container">
+    <div class="header-box">
+        <input type="text" id="query" placeholder="Search song, artist, or favorites..." autocomplete="off">
+        <div class="tool-bar">
+            <button class="btn-pri" onclick="multiSearch(false)">SEARCH</button>
+            <button class="btn-sec" onclick="toggleTheme()">THEME</button>
+            <button class="btn-sec" onclick="showFavorites()">FAVORITES</button>
+        </div>
+    </div>
+
+
+    <div id="status" style="font-size: 10px; text-align: center; margin-top: 10px; opacity: 0.7;"></div>
+    <div id="results"></div>
+
+
+    <div id="lyric-view" style="display:none;">
+        <button class="btn-sec" style="width:100%; margin-top:10px;" onclick="closeLyrics()">← BACK</button>
+        <div id="lyric-box"></div>
+    </div>
+</div>
+
+
+<div id="trans-box">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+        <select id="lang-pair">
+            <option value="ja|en">Japanese → English</option>
+            <option value="ko|en">Korean → English</option>
+            <option value="zh|en">Chinese → English</option>
+            <option value="en|ja">English → Japanese</option>
+            <option value="es|en">Spanish → English</option>
+        </select>
+        <span onclick="document.getElementById('trans-box').style.display='none'" style="cursor:pointer; color:#9ca3af;">×</span>
+    </div>
+    <div class="loader-bar" id="trans-loader"></div>
+    <div id="trans-text" style="font-size: 14px; margin-top: 10px;">Select text to translate...</div>
+</div>
+
+
+<script>
+const PROXIES = ["https://api.allorigins.win/get?url=", "https://api.codetabs.com/v1/proxy?quest="];
+let favorites = JSON.parse(localStorage.getItem('explorer_favs') || '[]');
+let currentSong = null;
+
+
+// --- CORE ENGINE ---
+async function raceFetch(targetUrl) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+    const promises = PROXIES.map(proxy => 
+        fetch(proxy + encodeURIComponent(targetUrl), { signal: controller.signal })
+            .then(res => res.json())
+            .then(data => data.contents ? JSON.parse(data.contents) : data)
+    );
+    return Promise.any(promises);
+}
+
+
+async function multiSearch(queryOverride = null) {
+    const q = queryOverride || document.getElementById('query').value;
+    if (!q) return;
+    const resDiv = document.getElementById('results');
+    resDiv.innerHTML = "PROBING MIRRORS...";
+    document.getElementById('lyric-view').style.display = "none";
+
+
+    try {
+        const data = await raceFetch(`https://lrclib.net/api/search?q=${encodeURIComponent(q)}`);
+        renderResults(data);
+    } catch (e) {
+        resDiv.innerHTML = "CONNECTION FAILED.";
+    }
+}
+
+
+function renderResults(songs) {
+    const resDiv = document.getElementById('results');
+    resDiv.innerHTML = "";
+    songs.slice(0, 10).forEach(song => {
+        const isFav = favorites.some(f => f.id === song.id);
+        const card = document.createElement('div');
+        card.className = 'result-card';
+        card.innerHTML = `
+            <div class="song-info">
+                <span class="song-title"><strong>${song.name}</strong></span>
+                <span style="font-size:11px; color:var(--accent)">${song.artistName}</span>
+            </div>
+            <div class="fav-star ${isFav ? 'fav-active' : ''}" onclick="toggleFav(event, ${JSON.stringify(song).replace(/"/g, '&quot;')})">★</div>
+        `;
+        card.querySelector('.song-info').onclick = () => openLyrics(song);
+        resDiv.appendChild(card);
+    });
+}
+
+
+// --- LYRICS & AUTO-TRANSLATE ---
+function openLyrics(song) {
+    currentSong = song;
+    document.getElementById('lyric-box').innerText = song.plainLyrics;
+    document.getElementById('lyric-view').style.display = "block";
+    document.getElementById('results').style.display = "none";
+    window.scrollTo(0,0);
+}
+
+
+function closeLyrics() {
+    document.getElementById('lyric-view').style.display = "none";
+    document.getElementById('results').style.display = "block";
+}
+
+
+let selectionTimeout;
+document.addEventListener('selectionchange', () => {
+    clearTimeout(selectionTimeout);
+    selectionTimeout = setTimeout(handleAutoTranslate, 400); // Trigger 400ms after user stops selecting
+});
+
+
+async function handleAutoTranslate() {
+    const sel = window.getSelection().toString().trim();
+    if (sel.length < 1 || sel.length > 500) return;
+
+
+    const box = document.getElementById('trans-box');
+    const txt = document.getElementById('trans-text');
+    const ldr = document.getElementById('trans-loader');
+    const lang = document.getElementById('lang-pair').value;
+
+
+    box.style.display = "block";
+    ldr.style.width = "40%";
+    txt.style.opacity = "0.5";
+
+
+    try {
+        const data = await raceFetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(sel)}&langpair=${lang}`);
+        txt.innerText = data.responseData.translatedText;
+        ldr.style.width = "100%";
+        txt.style.opacity = "1";
+    } catch (e) {
+        txt.innerText = "Translation Error.";
+    }
+}
+
+
+// --- FAVORITES & THEME ---
+function toggleFav(e, song) {
+    e.stopPropagation();
+    const idx = favorites.findIndex(f => f.id === song.id);
+    if (idx > -1) favorites.splice(idx, 1);
+    else favorites.push(song);
+    localStorage.setItem('explorer_favs', JSON.stringify(favorites));
+    e.target.classList.toggle('fav-active');
+}
+
+
+function showFavorites() {
+    renderResults(favorites);
+}
+
+
+function toggleTheme() {
+    const themes = ['light', 'dark', 'sepia'];
+    let current = document.body.getAttribute('data-theme') || 'light';
+    let next = themes[(themes.indexOf(current) + 1) % themes.length];
+    document.body.setAttribute('data-theme', next);
+}
+</script>
+</body>
+</html>
+
