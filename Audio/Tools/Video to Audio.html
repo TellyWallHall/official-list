@@ -1,0 +1,650 @@
+<!doctype html>
+<html lang="en" class="h-full">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Video to Audio Converter</title>
+  <script src="https://cdn.tailwindcss.com"></script>  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+  <style>
+    body {
+      box-sizing: border-box;
+    }
+    
+    * {
+      font-family: 'Space Grotesk', sans-serif;
+    }
+    
+    .gradient-bg {
+      background: linear-gradient(135deg, #0f0f23 0%, #1a1a3e 50%, #2d1b4e 100%);
+    }
+    
+    .glass-card {
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .glow-border {
+      box-shadow: 0 0 30px rgba(139, 92, 246, 0.3), inset 0 0 30px rgba(139, 92, 246, 0.05);
+    }
+    
+    .upload-zone {
+      border: 2px dashed rgba(139, 92, 246, 0.5);
+      transition: all 0.3s ease;
+    }
+    
+    .upload-zone:hover, .upload-zone.dragover {
+      border-color: #8b5cf6;
+      background: rgba(139, 92, 246, 0.1);
+    }
+    
+    .progress-bar {
+      background: linear-gradient(90deg, #8b5cf6, #ec4899, #8b5cf6);
+      background-size: 200% 100%;
+      animation: shimmer 2s linear infinite;
+    }
+    
+    @keyframes shimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+    
+    @keyframes pulse-glow {
+      0%, 100% { box-shadow: 0 0 20px rgba(139, 92, 246, 0.4); }
+      50% { box-shadow: 0 0 40px rgba(139, 92, 246, 0.8); }
+    }
+    
+    .processing {
+      animation: pulse-glow 2s ease-in-out infinite;
+    }
+    
+    @keyframes float {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-10px); }
+    }
+    
+    .float-animation {
+      animation: float 3s ease-in-out infinite;
+    }
+    
+    .btn-primary {
+      background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+      transition: all 0.3s ease;
+    }
+    
+    .btn-primary:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 30px rgba(139, 92, 246, 0.4);
+    }
+    
+    .btn-primary:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      transition: all 0.3s ease;
+    }
+    
+    .btn-secondary:hover:not(:disabled) {
+      background: rgba(255, 255, 255, 0.2);
+      transform: translateY(-2px);
+    }
+    
+    .waveform-bar {
+      animation: wave 1s ease-in-out infinite;
+    }
+    
+    @keyframes wave {
+      0%, 100% { transform: scaleY(0.3); }
+      50% { transform: scaleY(1); }
+    }
+    
+    .toast {
+      animation: slideIn 0.3s ease-out;
+    }
+    
+    @keyframes slideIn {
+      from { transform: translateY(100px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+  </style>
+ </head>
+ <body class="h-full gradient-bg text-white overflow-auto">
+  <div class="min-h-full w-full p-6 md:p-8 flex flex-col items-center justify-center"><!-- Main Container -->
+   <div class="w-full max-w-2xl"><!-- Header -->
+    <div class="text-center mb-8">
+     <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-500 to-pink-500 mb-4 float-animation">
+      <svg class="w-8 h-8" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+      </svg>
+     </div>
+     <h1 id="app-title" class="text-3xl md:text-4xl font-bold bg-gradient-to-r from-white via-violet-200 to-pink-200 bg-clip-text text-transparent mb-2">Video to Audio</h1>
+     <p class="text-gray-400 text-sm md:text-base">Extract audio from any video file instantly</p>
+    </div><!-- Main Card -->
+    <div class="glass-card rounded-3xl p-6 md:p-8 glow-border"><!-- Upload Zone -->
+     <div id="upload-zone" class="upload-zone rounded-2xl p-8 md:p-12 text-center cursor-pointer mb-6"><input type="file" id="video-input" accept="video/*" class="hidden">
+      <div id="upload-content">
+       <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-violet-500/20 flex items-center justify-center">
+        <svg class="w-8 h-8 text-violet-400" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+        </svg>
+       </div>
+       <p id="upload-text" class="text-lg font-medium text-white mb-2">Drop your video here</p>
+       <p class="text-gray-400 text-sm">or click to browse</p>
+       <p class="text-gray-500 text-xs mt-3">Supports MP4, WebM, MOV, AVI, and more</p>
+      </div>
+     </div><!-- Video Info (hidden initially) -->
+     <div id="video-info" class="hidden mb-6 p-4 rounded-xl bg-white/5 border border-white/10">
+      <div class="flex items-center gap-4">
+       <div class="w-12 h-12 rounded-lg bg-violet-500/20 flex items-center justify-center flex-shrink-0">
+        <svg class="w-6 h-6 text-violet-400" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+        </svg>
+       </div>
+       <div class="flex-1 min-w-0">
+        <p id="file-name" class="font-medium truncate text-white">video.mp4</p>
+        <p id="file-size" class="text-sm text-gray-400">0 MB</p>
+       </div><button id="remove-file" class="p-2 hover:bg-white/10 rounded-lg transition-colors">
+        <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg></button>
+      </div>
+     </div><!-- Hidden video element for processing -->
+     <video id="video-element" class="hidden" crossorigin="anonymous"></video><!-- Processing State -->
+     <div id="processing-state" class="hidden mb-6">
+      <div class="flex items-center justify-center gap-3 mb-4">
+       <div class="flex gap-1">
+        <div class="w-1 h-8 bg-violet-500 rounded-full waveform-bar" style="animation-delay: 0s;"></div>
+        <div class="w-1 h-8 bg-violet-400 rounded-full waveform-bar" style="animation-delay: 0.1s;"></div>
+        <div class="w-1 h-8 bg-pink-500 rounded-full waveform-bar" style="animation-delay: 0.2s;"></div>
+        <div class="w-1 h-8 bg-pink-400 rounded-full waveform-bar" style="animation-delay: 0.3s;"></div>
+        <div class="w-1 h-8 bg-violet-500 rounded-full waveform-bar" style="animation-delay: 0.4s;"></div>
+       </div>
+      </div>
+      <p id="processing-text" class="text-center text-gray-300 mb-3">Processing video...</p>
+      <div class="w-full h-2 bg-white/10 rounded-full overflow-hidden">
+       <div id="progress-bar" class="h-full progress-bar rounded-full transition-all duration-300" style="width: 0%"></div>
+      </div>
+      <p id="progress-text" class="text-center text-gray-500 text-sm mt-2">0%</p>
+     </div><!-- Error State -->
+     <div id="error-state" class="hidden mb-6 p-4 rounded-xl bg-red-500/10 border border-red-500/30">
+      <div class="flex items-start gap-3">
+       <div class="w-8 h-8 rounded-full bg-red-500/20 flex items-center justify-center flex-shrink-0">
+        <svg class="w-4 h-4 text-red-400" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+       </div>
+       <div>
+        <p class="font-medium text-red-400">Extraction Failed</p>
+        <p id="error-message" class="text-sm text-red-300/70 mt-1">An error occurred while processing the video.</p>
+       </div>
+      </div>
+     </div><!-- Success State -->
+     <div id="success-state" class="hidden mb-6">
+      <div class="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 mb-4">
+       <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center">
+         <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+         </svg>
+        </div>
+        <div>
+         <p class="font-medium text-emerald-400">Audio Ready!</p>
+         <p id="audio-info" class="text-sm text-emerald-300/70">WAV format</p>
+        </div>
+       </div>
+      </div><!-- Audio Preview -->
+      <div class="p-4 rounded-xl bg-white/5 border border-white/10 mb-4">
+       <p class="text-sm text-gray-400 mb-3">Preview</p>
+       <audio id="audio-preview" controls class="w-full h-10 rounded-lg"></audio>
+      </div>
+     </div><!-- Action Buttons -->
+     <div id="action-buttons" class="hidden space-y-3">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3"><button id="download-btn" class="btn-primary px-6 py-3 rounded-xl font-medium flex items-center justify-center gap-2">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+        </svg><span>Download Audio</span> </button> <button id="share-btn" class="btn-secondary px-6 py-3 rounded-xl font-medium flex items-center justify-center gap-2">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+        </svg><span>Share</span> </button>
+      </div><button id="convert-another" class="w-full btn-secondary px-6 py-3 rounded-xl font-medium"> Convert Another Video </button>
+     </div><!-- Extract Button (initial state) --> <button id="extract-btn" class="hidden w-full btn-primary px-6 py-4 rounded-xl font-medium text-lg flex items-center justify-center gap-2">
+      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+      </svg><span>Extract Audio</span> </button>
+    </div><!-- Footer -->
+    <p class="text-center text-gray-500 text-xs mt-6">All processing happens locally in your browser. Your files are never uploaded.</p>
+   </div>
+  </div><!-- Toast Container -->
+  <div id="toast-container" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50"></div>
+  <script>
+    // State management
+    let videoFile = null;
+    let audioBlob = null;
+    let compressedAudioBlob = null;
+    let originalAudioBuffer = null;
+    let audioFileName = 'audio.wav';
+
+    // DOM Elements
+    const uploadZone = document.getElementById('upload-zone');
+    const videoInput = document.getElementById('video-input');
+    const videoElement = document.getElementById('video-element');
+    const videoInfo = document.getElementById('video-info');
+    const fileNameEl = document.getElementById('file-name');
+    const fileSizeEl = document.getElementById('file-size');
+    const removeFileBtn = document.getElementById('remove-file');
+    const extractBtn = document.getElementById('extract-btn');
+    const processingState = document.getElementById('processing-state');
+    const processingText = document.getElementById('processing-text');
+    const progressBar = document.getElementById('progress-bar');
+    const progressText = document.getElementById('progress-text');
+    const errorState = document.getElementById('error-state');
+    const errorMessage = document.getElementById('error-message');
+    const successState = document.getElementById('success-state');
+    const audioInfo = document.getElementById('audio-info');
+    const audioPreview = document.getElementById('audio-preview');
+    const actionButtons = document.getElementById('action-buttons');
+    const downloadBtn = document.getElementById('download-btn');
+    const shareBtn = document.getElementById('share-btn');
+    const convertAnotherBtn = document.getElementById('convert-another');
+    const toastContainer = document.getElementById('toast-container');
+
+    // Toast notification
+    function showToast(message, type = 'info') {
+      const toast = document.createElement('div');
+      const bgColor = type === 'error' ? 'bg-red-500' : type === 'success' ? 'bg-emerald-500' : 'bg-violet-500';
+      toast.className = `toast ${bgColor} text-white px-6 py-3 rounded-xl shadow-lg font-medium`;
+      toast.textContent = message;
+      toastContainer.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transition = 'opacity 0.3s';
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+    }
+
+    // Format file size
+    function formatFileSize(bytes) {
+      if (bytes === 0) return '0 Bytes';
+      const k = 1024;
+      const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+
+    // Format duration
+    function formatDuration(seconds) {
+      const mins = Math.floor(seconds / 60);
+      const secs = Math.floor(seconds % 60);
+      return `${mins}:${secs.toString().padStart(2, '0')}`;
+    }
+
+    // Reset to initial state
+    function resetState() {
+      videoFile = null;
+      audioBlob = null;
+      compressedAudioBlob = null;
+      originalAudioBuffer = null;
+      videoInput.value = '';
+      videoElement.src = '';
+      videoInfo.classList.add('hidden');
+      extractBtn.classList.add('hidden');
+      processingState.classList.add('hidden');
+      errorState.classList.add('hidden');
+      successState.classList.add('hidden');
+      actionButtons.classList.add('hidden');
+      uploadZone.classList.remove('hidden');
+      progressBar.style.width = '0%';
+      progressText.textContent = '0%';
+      if (audioPreview.src) {
+        URL.revokeObjectURL(audioPreview.src);
+        audioPreview.src = '';
+      }
+    }
+
+    // Handle file selection
+    function handleFileSelect(file) {
+      if (!file) return;
+      
+      if (!file.type.startsWith('video/')) {
+        showToast('Please select a valid video file', 'error');
+        return;
+      }
+
+      // No file size limits - browser can handle it
+
+      videoFile = file;
+      audioFileName = file.name.replace(/\.[^/.]+$/, '') + '.wav';
+      
+      fileNameEl.textContent = file.name;
+      fileSizeEl.textContent = formatFileSize(file.size);
+      
+      uploadZone.classList.add('hidden');
+      videoInfo.classList.remove('hidden');
+      extractBtn.classList.remove('hidden');
+      errorState.classList.add('hidden');
+      successState.classList.add('hidden');
+      actionButtons.classList.add('hidden');
+    }
+
+    // Extract audio from video using FFmpeg-like approach
+    async function extractAudio() {
+      if (!videoFile) return;
+
+      processingState.classList.remove('hidden');
+      extractBtn.classList.add('hidden');
+      errorState.classList.add('hidden');
+
+      try {
+        updateProgress(10, 'Reading video file...');
+
+        // Create array buffer from file
+        const arrayBuffer = await videoFile.arrayBuffer();
+        
+        updateProgress(30, 'Decoding audio...');
+
+        // Create audio context
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        
+        // Decode the entire audio at once - this is much faster
+        const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+
+        updateProgress(70, 'Converting to WAV...');
+
+        // Store the original audio buffer for later compression if needed
+        originalAudioBuffer = audioBuffer;
+
+        // Convert audio buffer directly to WAV
+        audioBlob = audioBufferToWav(audioBuffer);
+
+        updateProgress(95, 'Finalizing...');
+
+        // Clean up
+        await audioContext.close();
+
+        updateProgress(100, 'Complete!');
+
+        // Show success state
+        setTimeout(() => {
+          processingState.classList.add('hidden');
+          successState.classList.remove('hidden');
+          actionButtons.classList.remove('hidden');
+          
+          const audioDuration = audioBuffer.duration;
+          audioInfo.textContent = `WAV format • ${formatDuration(audioDuration)} • ${formatFileSize(audioBlob.size)}`;
+          
+          // Set up audio preview
+          if (audioPreview.src) {
+            URL.revokeObjectURL(audioPreview.src);
+          }
+          audioPreview.src = URL.createObjectURL(audioBlob);
+          
+          showToast('Audio extracted successfully!', 'success');
+        }, 500);
+
+      } catch (error) {
+        console.error('Extraction error:', error);
+        processingState.classList.add('hidden');
+        extractBtn.classList.remove('hidden');
+        errorState.classList.remove('hidden');
+        errorMessage.textContent = error.message || 'An error occurred while processing the video.';
+        showToast('Failed to extract audio', 'error');
+      }
+    }
+
+    // Convert AudioBuffer to WAV blob
+    function audioBufferToWav(audioBuffer) {
+      const numberOfChannels = audioBuffer.numberOfChannels;
+      const sampleRate = audioBuffer.sampleRate;
+      const length = audioBuffer.length;
+      
+      // Create WAV file
+      const wavBuffer = new ArrayBuffer(44 + length * numberOfChannels * 2);
+      const view = new DataView(wavBuffer);
+      
+      // WAV header
+      const writeString = (offset, string) => {
+        for (let i = 0; i < string.length; i++) {
+          view.setUint8(offset + i, string.charCodeAt(i));
+        }
+      };
+      
+      writeString(0, 'RIFF');
+      view.setUint32(4, 36 + length * numberOfChannels * 2, true);
+      writeString(8, 'WAVE');
+      writeString(12, 'fmt ');
+      view.setUint32(16, 16, true);
+      view.setUint16(20, 1, true);
+      view.setUint16(22, numberOfChannels, true);
+      view.setUint32(24, sampleRate, true);
+      view.setUint32(28, sampleRate * numberOfChannels * 2, true);
+      view.setUint16(32, numberOfChannels * 2, true);
+      view.setUint16(34, 16, true);
+      writeString(36, 'data');
+      view.setUint32(40, length * numberOfChannels * 2, true);
+      
+      // Write audio data
+      const offset = 44;
+      const channels = [];
+      for (let i = 0; i < numberOfChannels; i++) {
+        channels.push(audioBuffer.getChannelData(i));
+      }
+      
+      for (let i = 0; i < length; i++) {
+        for (let channel = 0; channel < numberOfChannels; channel++) {
+          const sample = Math.max(-1, Math.min(1, channels[channel][i]));
+          view.setInt16(offset + (i * numberOfChannels + channel) * 2, sample * 0x7FFF, true);
+        }
+      }
+      
+      return new Blob([wavBuffer], { type: 'audio/wav' });
+    }
+
+    // Update progress
+    function updateProgress(percent, text) {
+      progressBar.style.width = percent + '%';
+      progressText.textContent = Math.round(percent) + '%';
+      if (text) processingText.textContent = text;
+    }
+
+    // Download using File System Access API or fallback
+    async function downloadAudio() {
+      if (!audioBlob) return;
+
+      try {
+        // Try File System Access API first
+        if ('showSaveFilePicker' in window) {
+          try {
+            const handle = await window.showSaveFilePicker({
+              suggestedName: audioFileName,
+              types: [{
+                description: 'Audio File',
+                accept: { 'audio/wav': ['.wav'] }
+              }]
+            });
+            
+            const writable = await handle.createWritable();
+            await writable.write(audioBlob);
+            await writable.close();
+            
+            showToast('Audio saved successfully!', 'success');
+            return;
+          } catch (err) {
+            // User cancelled or API failed, fall through to fallback
+            if (err.name === 'AbortError') return;
+          }
+        }
+
+        // Fallback to traditional download
+        const url = URL.createObjectURL(audioBlob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = audioFileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        showToast('Download started!', 'success');
+      } catch (error) {
+        console.error('Download error:', error);
+        showToast('Failed to download audio', 'error');
+      }
+    }
+
+    // Convert audio buffer to compressed WAV (reduced sample rate)
+    function audioBufferToCompressedWav(audioBuffer) {
+      const numberOfChannels = audioBuffer.numberOfChannels;
+      const originalSampleRate = audioBuffer.sampleRate;
+      
+      // Downsample to 22kHz (reduces size by ~50-70%)
+      const targetSampleRate = 22050;
+      const sampleRateRatio = originalSampleRate / targetSampleRate;
+      const newLength = Math.floor(audioBuffer.length / sampleRateRatio);
+      
+      // Downsample each channel
+      const compressedChannels = [];
+      for (let ch = 0; ch < numberOfChannels; ch++) {
+        const originalChannel = audioBuffer.getChannelData(ch);
+        const compressed = new Float32Array(newLength);
+        for (let i = 0; i < newLength; i++) {
+          compressed[i] = originalChannel[Math.floor(i * sampleRateRatio)];
+        }
+        compressedChannels.push(compressed);
+      }
+      
+      // Create WAV file with compressed data
+      const wavBuffer = new ArrayBuffer(44 + newLength * numberOfChannels * 2);
+      const view = new DataView(wavBuffer);
+      
+      const writeString = (offset, string) => {
+        for (let i = 0; i < string.length; i++) {
+          view.setUint8(offset + i, string.charCodeAt(i));
+        }
+      };
+      
+      writeString(0, 'RIFF');
+      view.setUint32(4, 36 + newLength * numberOfChannels * 2, true);
+      writeString(8, 'WAVE');
+      writeString(12, 'fmt ');
+      view.setUint32(16, 16, true);
+      view.setUint16(20, 1, true);
+      view.setUint16(22, numberOfChannels, true);
+      view.setUint32(24, targetSampleRate, true);
+      view.setUint32(28, targetSampleRate * numberOfChannels * 2, true);
+      view.setUint16(32, numberOfChannels * 2, true);
+      view.setUint16(34, 16, true);
+      writeString(36, 'data');
+      view.setUint32(40, newLength * numberOfChannels * 2, true);
+      
+      const offset = 44;
+      for (let i = 0; i < newLength; i++) {
+        for (let channel = 0; channel < numberOfChannels; channel++) {
+          const sample = Math.max(-1, Math.min(1, compressedChannels[channel][i]));
+          view.setInt16(offset + (i * numberOfChannels + channel) * 2, sample * 0x7FFF, true);
+        }
+      }
+      
+      return new Blob([wavBuffer], { type: 'audio/wav' });
+    }
+
+    // Share using Web Share API with compression fallback
+    async function shareAudio() {
+      if (!audioBlob) return;
+
+      try {
+        if (!navigator.share) {
+          showToast('Sharing not supported on this device', 'error');
+          return;
+        }
+
+        const file = new File([audioBlob], audioFileName, { type: 'audio/wav' });
+        
+        // Try direct file sharing first
+        try {
+          await navigator.share({
+            files: [file],
+            title: 'Extracted Audio',
+            text: 'Audio extracted from video'
+          });
+          showToast('Shared successfully!', 'success');
+        } catch (shareError) {
+          if (shareError.name === 'AbortError') return;
+          
+          // If sharing fails, compress and ask user to try again
+          if (!compressedAudioBlob && originalAudioBuffer) {
+            showToast('Compressing audio...', 'info');
+            
+            try {
+              // Create compressed version
+              compressedAudioBlob = audioBufferToCompressedWav(originalAudioBuffer);
+              
+              // Show user the compressed file is ready
+              const compressedSize = formatFileSize(compressedAudioBlob.size);
+              const originalSize = formatFileSize(audioBlob.size);
+              showToast(`Compressed from ${originalSize} to ${compressedSize}. Click Share again!`, 'success');
+              
+            } catch (compressionError) {
+              console.error('Compression error:', compressionError);
+              showToast('Compression failed. Try downloading instead.', 'error');
+            }
+          } else if (compressedAudioBlob) {
+            // User clicked share again - share the compressed version
+            const compressedFileName = audioFileName.replace('.wav', '_compressed.wav');
+            const compressedFile = new File([compressedAudioBlob], compressedFileName, { type: 'audio/wav' });
+            
+            try {
+              await navigator.share({
+                files: [compressedFile],
+                title: 'Extracted Audio (Compressed)',
+                text: 'Compressed audio extracted from video'
+              });
+              showToast('Shared successfully!', 'success');
+            } catch (compressedShareError) {
+              if (compressedShareError.name === 'AbortError') return;
+              showToast('Still too large to share. Try downloading instead.', 'error');
+            }
+          } else {
+            showToast('Unable to compress. Try downloading instead.', 'error');
+          }
+        }
+      } catch (error) {
+        if (error.name === 'AbortError') return;
+        console.error('Share error:', error);
+        showToast('Unable to share this file', 'error');
+      }
+    }
+
+
+
+    // Event listeners
+    uploadZone.addEventListener('click', () => videoInput.click());
+    
+    uploadZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      uploadZone.classList.add('dragover');
+    });
+    
+    uploadZone.addEventListener('dragleave', () => {
+      uploadZone.classList.remove('dragover');
+    });
+    
+    uploadZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      uploadZone.classList.remove('dragover');
+      const file = e.dataTransfer.files[0];
+      handleFileSelect(file);
+    });
+    
+    videoInput.addEventListener('change', (e) => {
+      handleFileSelect(e.target.files[0]);
+    });
+    
+    removeFileBtn.addEventListener('click', resetState);
+    extractBtn.addEventListener('click', extractAudio);
+    downloadBtn.addEventListener('click', downloadAudio);
+    shareBtn.addEventListener('click', shareAudio);
+    convertAnotherBtn.addEventListener('click', resetState);
+
+    // Check for Web Share API support
+    if (!navigator.share) {
+      shareBtn.classList.add('hidden');
+    }
+
+  </script>
+ </body>
+</html>
