@@ -1,0 +1,541 @@
+<!doctype html>
+<!-- by ImPot8o https://github.com/ImPot8o pot8o.dev -->
+<html lang="en" class="h-full">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gin Rummy</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      box-sizing: border-box;
+    }
+    
+    .card {
+      width: 60px;
+      height: 84px;
+      border-radius: 6px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 18px;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      user-select: none;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+    
+    .card.selected {
+      transform: translateY(-12px);
+      box-shadow: 0 6px 12px rgba(0,0,0,0.3);
+    }
+    
+    .card-back {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+    
+    .red-suit {
+      color: #dc2626;
+    }
+    
+    .black-suit {
+      color: #1f2937;
+    }
+    
+    .game-message {
+      min-height: 48px;
+      transition: all 0.3s ease;
+    }
+    
+    @keyframes dealCard {
+      from {
+        opacity: 0;
+        transform: translateY(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    .card-deal {
+      animation: dealCard 0.3s ease;
+    }
+  </style>
+  <style>@view-transition { navigation: auto; }</style>
+ </head>
+ <body class="h-full">
+  <div id="app" class="h-full w-full overflow-auto"></div>
+  <script>
+localStorage.setItem('pot8o watermark', `${localStorage.getItem('pot8o watermark') || ''} gin-rummy`);
+    const defaultConfig = {
+      game_title: "Gin Rummy",
+      player_label: "You",
+      opponent_label: "Opponent",
+      new_game_button: "New Game",
+      draw_button: "Draw Card",
+      discard_button: "Discard",
+      knock_button: "Knock",
+      background_color: "#0f172a",
+      surface_color: "#1e293b",
+      text_color: "#f1f5f9",
+      primary_action_color: "#3b82f6",
+      secondary_action_color: "#64748b",
+      font_family: "system-ui",
+      font_size: 16
+    };
+
+    const suits = ['♠', '♥', '♦', '♣'];
+    const ranks = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
+    
+    let deck = [];
+    let playerHand = [];
+    let opponentHand = [];
+    let discardPile = [];
+    let selectedCardIndex = null;
+    let gamePhase = 'draw';
+    let gameOver = false;
+    let message = '';
+
+    function createDeck() {
+      const newDeck = [];
+      for (let suit of suits) {
+        for (let rank of ranks) {
+          newDeck.push({ suit, rank });
+        }
+      }
+      return newDeck.sort(() => Math.random() - 0.5);
+    }
+
+    function dealCards() {
+      deck = createDeck();
+      playerHand = deck.splice(0, 10);
+      opponentHand = deck.splice(0, 10);
+      discardPile = [deck.pop()];
+      selectedCardIndex = null;
+      gamePhase = 'draw';
+      gameOver = false;
+      message = 'Draw a card from the deck or discard pile';
+    }
+
+    function getCardValue(rank) {
+      if (rank === 'A') return 1;
+      if (['J', 'Q', 'K'].includes(rank)) return 10;
+      return parseInt(rank);
+    }
+
+    function findMelds(hand) {
+      const sortedHand = [...hand].sort((a, b) => {
+        const rankOrder = ranks.indexOf(a.rank) - ranks.indexOf(b.rank);
+        if (rankOrder !== 0) return rankOrder;
+        return suits.indexOf(a.suit) - suits.indexOf(b.suit);
+      });
+
+      const melds = [];
+      const used = new Set();
+
+      for (let i = 0; i < sortedHand.length - 2; i++) {
+        if (used.has(i)) continue;
+        
+        if (sortedHand[i].suit === sortedHand[i + 1]?.suit && 
+            sortedHand[i].suit === sortedHand[i + 2]?.suit) {
+          const rank1 = ranks.indexOf(sortedHand[i].rank);
+          const rank2 = ranks.indexOf(sortedHand[i + 1].rank);
+          const rank3 = ranks.indexOf(sortedHand[i + 2].rank);
+          
+          if (rank2 === rank1 + 1 && rank3 === rank2 + 1) {
+            melds.push([i, i + 1, i + 2]);
+            used.add(i);
+            used.add(i + 1);
+            used.add(i + 2);
+          }
+        }
+      }
+
+      const rankGroups = {};
+      sortedHand.forEach((card, idx) => {
+        if (!rankGroups[card.rank]) rankGroups[card.rank] = [];
+        rankGroups[card.rank].push(idx);
+      });
+
+      for (let indices of Object.values(rankGroups)) {
+        if (indices.length >= 3 && !indices.some(i => used.has(i))) {
+          melds.push(indices.slice(0, 3));
+          indices.slice(0, 3).forEach(i => used.add(i));
+        }
+      }
+
+      return { melds, deadwood: sortedHand.filter((_, i) => !used.has(i)) };
+    }
+
+    function calculateDeadwood(hand) {
+      const { deadwood } = findMelds(hand);
+      return deadwood.reduce((sum, card) => sum + getCardValue(card.rank), 0);
+    }
+
+    function drawFromDeck() {
+      if (deck.length === 0) {
+        message = 'Deck is empty! Game ends in a draw.';
+        gameOver = true;
+        render();
+        return;
+      }
+      
+      const card = deck.pop();
+      playerHand.push(card);
+      gamePhase = 'discard';
+      message = 'Select a card to discard';
+      render();
+    }
+
+    function drawFromDiscard() {
+      if (discardPile.length === 0) return;
+      
+      const card = discardPile.pop();
+      playerHand.push(card);
+      gamePhase = 'discard';
+      message = 'Select a card to discard';
+      render();
+    }
+
+    function discardCard() {
+      if (selectedCardIndex === null) {
+        message = 'Please select a card to discard';
+        render();
+        return;
+      }
+      
+      const card = playerHand.splice(selectedCardIndex, 1)[0];
+      discardPile.push(card);
+      selectedCardIndex = null;
+      
+      opponentTurn();
+    }
+
+    function opponentTurn() {
+      setTimeout(() => {
+        if (deck.length === 0) {
+          message = 'Deck is empty! Game ends in a draw.';
+          gameOver = true;
+          render();
+          return;
+        }
+
+        const drawFromDiscardChance = Math.random() > 0.7 && discardPile.length > 0;
+        
+        if (drawFromDiscardChance) {
+          opponentHand.push(discardPile.pop());
+        } else {
+          opponentHand.push(deck.pop());
+        }
+
+        const randomDiscard = Math.floor(Math.random() * opponentHand.length);
+        discardPile.push(opponentHand.splice(randomDiscard, 1)[0]);
+
+        const opponentDeadwood = calculateDeadwood(opponentHand);
+        if (opponentDeadwood <= 10 && Math.random() > 0.5) {
+          endGame('opponent');
+          return;
+        }
+
+        gamePhase = 'draw';
+        message = 'Your turn - Draw a card';
+        render();
+      }, 1000);
+    }
+
+    function knock() {
+      const playerDeadwood = calculateDeadwood(playerHand);
+      
+      if (playerDeadwood > 10) {
+        message = `Cannot knock - your deadwood is ${playerDeadwood} (must be 10 or less)`;
+        render();
+        return;
+      }
+      
+      endGame('player');
+    }
+
+    function endGame(knocker) {
+      gameOver = true;
+      const playerDeadwood = calculateDeadwood(playerHand);
+      const opponentDeadwood = calculateDeadwood(opponentHand);
+      
+      if (knocker === 'player') {
+        if (playerDeadwood === 0) {
+          message = `🎉 Gin! You win! (Your: 0, Opponent: ${opponentDeadwood})`;
+        } else if (opponentDeadwood < playerDeadwood) {
+          message = `😔 Undercut! Opponent wins! (Your: ${playerDeadwood}, Opponent: ${opponentDeadwood})`;
+        } else {
+          message = `🎊 You win! (Your: ${playerDeadwood}, Opponent: ${opponentDeadwood})`;
+        }
+      } else {
+        if (opponentDeadwood === 0) {
+          message = `😔 Opponent has Gin! (Your: ${playerDeadwood}, Opponent: 0)`;
+        } else if (playerDeadwood < opponentDeadwood) {
+          message = `🎊 You undercut! You win! (Your: ${playerDeadwood}, Opponent: ${opponentDeadwood})`;
+        } else {
+          message = `😔 Opponent wins! (Your: ${playerDeadwood}, Opponent: ${opponentDeadwood})`;
+        }
+      }
+      
+      render();
+    }
+
+    function render() {
+      const config = window.elementSdk?.config || defaultConfig;
+      const customFont = config.font_family || defaultConfig.font_family;
+      const baseFontSize = config.font_size || defaultConfig.font_size;
+      const baseFontStack = 'system-ui, -apple-system, sans-serif';
+      
+      const app = document.getElementById('app');
+      app.style.fontFamily = `${customFont}, ${baseFontStack}`;
+      app.style.backgroundColor = config.background_color || defaultConfig.background_color;
+      app.style.color = config.text_color || defaultConfig.text_color;
+      app.style.fontSize = `${baseFontSize}px`;
+      
+      const canKnock = calculateDeadwood(playerHand) <= 10 && playerHand.length === 10;
+      
+      app.innerHTML = `
+        <div class="min-h-full w-full flex flex-col p-4" style="background-color: ${config.background_color};">
+          <!-- Header -->
+          <header class="text-center mb-4">
+            <h1 class="font-bold mb-2" style="font-size: ${baseFontSize * 1.75}px; color: ${config.text_color};">${config.game_title}</h1>
+            <button 
+              id="newGameBtn"
+              class="px-4 py-2 rounded-lg font-semibold transition-all"
+              style="background-color: ${config.secondary_action_color}; color: white; font-size: ${baseFontSize * 0.875}px;"
+              onmouseover="this.style.opacity='0.9'"
+              onmouseout="this.style.opacity='1'"
+            >
+              ${config.new_game_button}
+            </button>
+          </header>
+
+          <!-- Game Message -->
+          <div class="game-message text-center mb-4 px-4 py-3 rounded-lg" style="background-color: ${config.surface_color}; color: ${config.text_color}; font-size: ${baseFontSize}px;">
+            ${message}
+          </div>
+
+          <!-- Opponent Section -->
+          <section class="mb-6">
+            <h2 class="font-semibold mb-2" style="font-size: ${baseFontSize * 1.125}px; color: ${config.text_color};">
+              ${config.opponent_label} ${gameOver ? `(Deadwood: ${calculateDeadwood(opponentHand)})` : ''}
+            </h2>
+            <div class="flex flex-wrap gap-2 justify-center">
+              ${opponentHand.map((card, idx) => `
+                <div class="card ${gameOver ? '' : 'card-back'}" style="background-color: ${gameOver ? 'white' : ''};">
+                  ${gameOver ? `<span class="${['♥', '♦'].includes(card.suit) ? 'red-suit' : 'black-suit'}">${card.rank}${card.suit}</span>` : '🎴'}
+                </div>
+              `).join('')}
+            </div>
+          </section>
+
+          <!-- Deck and Discard -->
+          <section class="mb-6">
+            <div class="flex gap-4 justify-center items-center">
+              <div class="text-center">
+                <div class="text-sm mb-1" style="color: ${config.text_color}; font-size: ${baseFontSize * 0.875}px;">Deck (${deck.length})</div>
+                <div 
+                  id="deckCard"
+                  class="card card-back ${gamePhase === 'draw' && !gameOver ? '' : 'opacity-50 cursor-not-allowed'}"
+                  style="cursor: ${gamePhase === 'draw' && !gameOver ? 'pointer' : 'not-allowed'};"
+                >
+                  🎴
+                </div>
+              </div>
+              <div class="text-center">
+                <div class="text-sm mb-1" style="color: ${config.text_color}; font-size: ${baseFontSize * 0.875}px;">Discard</div>
+                ${discardPile.length > 0 ? `
+                  <div 
+                    id="discardCard"
+                    class="card ${gamePhase === 'draw' && !gameOver ? '' : 'opacity-50 cursor-not-allowed'}"
+                    style="background-color: white; cursor: ${gamePhase === 'draw' && !gameOver ? 'pointer' : 'not-allowed'};"
+                  >
+                    <span class="${['♥', '♦'].includes(discardPile[discardPile.length - 1].suit) ? 'red-suit' : 'black-suit'}">
+                      ${discardPile[discardPile.length - 1].rank}${discardPile[discardPile.length - 1].suit}
+                    </span>
+                  </div>
+                ` : '<div class="card opacity-30" style="background-color: white;"></div>'}
+              </div>
+            </div>
+          </section>
+
+          <!-- Player Section -->
+          <section class="mt-auto">
+            <h2 class="font-semibold mb-2" style="font-size: ${baseFontSize * 1.125}px; color: ${config.text_color};">
+              ${config.player_label} ${gameOver ? `(Deadwood: ${calculateDeadwood(playerHand)})` : ''}
+            </h2>
+            <div class="flex flex-wrap gap-2 justify-center mb-4">
+              ${playerHand.map((card, idx) => `
+                <div 
+                  class="card card-deal ${selectedCardIndex === idx ? 'selected' : ''}"
+                  data-index="${idx}"
+                  style="background-color: white; cursor: ${gamePhase === 'discard' && !gameOver ? 'pointer' : 'default'};"
+                >
+                  <span class="${['♥', '♦'].includes(card.suit) ? 'red-suit' : 'black-suit'}">
+                    ${card.rank}${card.suit}
+                  </span>
+                </div>
+              `).join('')}
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex gap-2 justify-center flex-wrap">
+              <button 
+                id="discardBtn"
+                class="px-6 py-3 rounded-lg font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                style="background-color: ${config.primary_action_color}; color: white; font-size: ${baseFontSize}px;"
+                ${gamePhase !== 'discard' || gameOver ? 'disabled' : ''}
+                onmouseover="if(!this.disabled) this.style.opacity='0.9'"
+                onmouseout="if(!this.disabled) this.style.opacity='1'"
+              >
+                ${config.discard_button}
+              </button>
+              <button 
+                id="knockBtn"
+                class="px-6 py-3 rounded-lg font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                style="background-color: ${config.secondary_action_color}; color: white; font-size: ${baseFontSize}px;"
+                ${!canKnock || gameOver ? 'disabled' : ''}
+                onmouseover="if(!this.disabled) this.style.opacity='0.9'"
+                onmouseout="if(!this.disabled) this.style.opacity='1'"
+              >
+                ${config.knock_button} ${canKnock ? '✓' : ''}
+              </button>
+            </div>
+          </section>
+        </div>
+      `;
+
+      document.getElementById('newGameBtn').addEventListener('click', () => {
+        dealCards();
+        render();
+      });
+
+      if (gamePhase === 'draw' && !gameOver) {
+        const deckCard = document.getElementById('deckCard');
+        if (deckCard) {
+          deckCard.addEventListener('click', drawFromDeck);
+        }
+
+        const discardCard = document.getElementById('discardCard');
+        if (discardCard && discardPile.length > 0) {
+          discardCard.addEventListener('click', drawFromDiscard);
+        }
+      }
+
+      if (gamePhase === 'discard' && !gameOver) {
+        document.querySelectorAll('.card[data-index]').forEach(cardEl => {
+          cardEl.addEventListener('click', () => {
+            selectedCardIndex = parseInt(cardEl.dataset.index);
+            render();
+          });
+        });
+      }
+
+      const discardBtn = document.getElementById('discardBtn');
+      if (discardBtn) {
+        discardBtn.addEventListener('click', discardCard);
+      }
+
+      const knockBtn = document.getElementById('knockBtn');
+      if (knockBtn) {
+        knockBtn.addEventListener('click', knock);
+      }
+    }
+
+    async function onConfigChange(config) {
+      render();
+    }
+
+    function mapToCapabilities(config) {
+      return {
+        recolorables: [
+          {
+            get: () => config.background_color || defaultConfig.background_color,
+            set: (value) => {
+              config.background_color = value;
+              window.elementSdk.setConfig({ background_color: value });
+            }
+          },
+          {
+            get: () => config.surface_color || defaultConfig.surface_color,
+            set: (value) => {
+              config.surface_color = value;
+              window.elementSdk.setConfig({ surface_color: value });
+            }
+          },
+          {
+            get: () => config.text_color || defaultConfig.text_color,
+            set: (value) => {
+              config.text_color = value;
+              window.elementSdk.setConfig({ text_color: value });
+            }
+          },
+          {
+            get: () => config.primary_action_color || defaultConfig.primary_action_color,
+            set: (value) => {
+              config.primary_action_color = value;
+              window.elementSdk.setConfig({ primary_action_color: value });
+            }
+          },
+          {
+            get: () => config.secondary_action_color || defaultConfig.secondary_action_color,
+            set: (value) => {
+              config.secondary_action_color = value;
+              window.elementSdk.setConfig({ secondary_action_color: value });
+            }
+          }
+        ],
+        borderables: [],
+        fontEditable: {
+          get: () => config.font_family || defaultConfig.font_family,
+          set: (value) => {
+            config.font_family = value;
+            window.elementSdk.setConfig({ font_family: value });
+          }
+        },
+        fontSizeable: {
+          get: () => config.font_size || defaultConfig.font_size,
+          set: (value) => {
+            config.font_size = value;
+            window.elementSdk.setConfig({ font_size: value });
+          }
+        }
+      };
+    }
+
+    function mapToEditPanelValues(config) {
+      return new Map([
+        ["game_title", config.game_title || defaultConfig.game_title],
+        ["player_label", config.player_label || defaultConfig.player_label],
+        ["opponent_label", config.opponent_label || defaultConfig.opponent_label],
+        ["new_game_button", config.new_game_button || defaultConfig.new_game_button],
+        ["draw_button", config.draw_button || defaultConfig.draw_button],
+        ["discard_button", config.discard_button || defaultConfig.discard_button],
+        ["knock_button", config.knock_button || defaultConfig.knock_button]
+      ]);
+    }
+
+    if (window.elementSdk) {
+      window.elementSdk.init({
+        defaultConfig,
+        onConfigChange,
+        mapToCapabilities,
+        mapToEditPanelValues
+      });
+    }
+
+    dealCards();
+    render();
+  </script>
+</body>
+</html>
