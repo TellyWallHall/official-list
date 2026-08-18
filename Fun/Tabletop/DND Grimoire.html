@@ -1,0 +1,2019 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0"
+    />
+    <title>DMs Grimoire – Open5e</title>
+
+    <!-- React and ReactDOM -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+
+    <!-- Tailwind (CDN, fine for local testing) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Fonts -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Inter:wght@400;500;700&family=JetBrains+Mono:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <style>
+      :root {
+        --background: 215 20% 11%;
+        --foreground: 210 10% 92%;
+        --card: 215 17% 15%;
+        --card-foreground: 210 10% 92%;
+        --popover: 215 17% 15%;
+        --popover-foreground: 210 10% 92%;
+        --primary: 210 8% 65%;
+        --primary-foreground: 215 20% 10%;
+        --secondary: 215 12% 20%;
+        --secondary-foreground: 210 15% 88%;
+        --muted: 215 12% 18%;
+        --muted-foreground: 215 8% 65%;
+        --accent: 215 16% 22%;
+        --accent-foreground: 210 15% 92%;
+        --destructive: 0 60% 45%;
+        --destructive-foreground: 210 20% 96%;
+        --border: 215 13% 25%;
+        --input: 215 13% 25%;
+        --ring: 210 8% 65%;
+        --radius: 0.5rem;
+      }
+
+      body {
+        background-color: hsl(var(--background));
+        color: hsl(var(--foreground));
+        font-family: Inter, sans-serif;
+      }
+
+      .font-serif {
+        font-family: Cinzel, serif;
+      }
+
+      .font-mono {
+        font-family: JetBrains Mono, monospace;
+      }
+
+      .custom-scrollbar::-webkit-scrollbar {
+        width: 4px;
+      }
+
+      .custom-scrollbar::-webkit-scrollbar-track {
+        background: transparent;
+      }
+
+      .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: hsla(215, 8%, 65%, 0.25);
+        border-radius: 2px;
+      }
+
+      .blur-overlay {
+        backdrop-filter: blur(4px);
+      }
+    </style>
+
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              border: "hsl(var(--border))",
+              input: "hsl(var(--input))",
+              ring: "hsl(var(--ring))",
+              background: "hsl(var(--background))",
+              foreground: "hsl(var(--foreground))",
+              primary: {
+                DEFAULT: "hsl(var(--primary))",
+                foreground: "hsl(var(--primary-foreground))",
+              },
+              secondary: {
+                DEFAULT: "hsl(var(--secondary))",
+                foreground: "hsl(var(--secondary-foreground))",
+              },
+              destructive: {
+                DEFAULT: "hsl(var(--destructive))",
+                foreground: "hsl(var(--destructive-foreground))",
+              },
+              muted: {
+                DEFAULT: "hsl(var(--muted))",
+                foreground: "hsl(var(--muted-foreground))",
+              },
+              accent: {
+                DEFAULT: "hsl(var(--accent))",
+                foreground: "hsl(var(--accent-foreground))",
+              },
+              card: {
+                DEFAULT: "hsl(var(--card))",
+                foreground: "hsl(var(--card-foreground))",
+              },
+            },
+            borderRadius: {
+              lg: "var(--radius)",
+              md: "calc(var(--radius) - 2px)",
+              sm: "calc(var(--radius) - 4px)",
+            },
+          },
+        },
+      };
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+
+    <script type="text/javascript">
+      const { useState, useEffect, useMemo, useRef } = React;
+
+      function cn(...classes) {
+        return classes.filter(Boolean).join(" ");
+      }
+
+      function useLocalStorage(key, initialValue) {
+        const [storedValue, setStoredValue] = useState(() => {
+          try {
+            const item = window.localStorage.getItem(key);
+            return item ? JSON.parse(item) : initialValue;
+          } catch {
+            return initialValue;
+          }
+        });
+
+        const setValue = (value) => {
+          try {
+            const valueToStore =
+              value instanceof Function ? value(storedValue) : value;
+            setStoredValue(valueToStore);
+            window.localStorage.setItem(key, JSON.stringify(valueToStore));
+          } catch {}
+        };
+
+        return [storedValue, setValue];
+      }
+
+      // Helpers to avoid rendering objects directly
+      function normalizeAC(val) {
+        if (val == null) return undefined;
+        if (Array.isArray(val)) {
+          const first = val[0];
+          if (typeof first === "object" && first !== null) {
+            return first.value ?? first.base ?? first.default ?? "";
+          }
+          return first;
+        }
+        if (typeof val === "object") {
+          return val.value ?? val.base ?? val.default ?? "";
+        }
+        return val;
+      }
+
+      const OPEN5E_ENDPOINTS = {
+          spells: {
+            url: "https://api.open5e.com/v2/spells/?format=api&limit=100",
+            label: "Spells",
+            itemKey: "slug",
+          },
+          spelllist: {
+            url: "https://api.open5e.com/v1/spelllist/?format=api&limit=100",
+            label: "Spell Lists", 
+            itemKey: "slug",
+          },
+          monsters: {
+            url: "https://api.open5e.com/v1/monsters/?format=api&limit=100",
+            label: "Monsters",
+            itemKey: "slug",
+          },
+          documents: {
+            url: "https://api.open5e.com/v2/documents/?format=api&limit=100",
+            label: "Documents",
+            itemKey: "slug",
+          },
+          backgrounds: {
+            url: "https://api.open5e.com/v2/backgrounds/?format=api&limit=100",
+            label: "Backgrounds",
+            itemKey: "slug",
+          },
+          planes: {
+            url: "https://api.open5e.com/v1/planes/?format=api&limit=100",
+            label: "Planes",
+            itemKey: "slug",
+          },
+          sections: {
+            url: "https://api.open5e.com/v1/sections/?format=api&limit=100",
+            label: "Rules",
+            itemKey: "slug",
+          },
+          feats: {
+            url: "https://api.open5e.com/v2/feats/?format=api&limit=100",
+            label: "Feats",
+            itemKey: "slug",
+          },
+          conditions: {
+            url: "https://api.open5e.com/v2/conditions/?format=api&limit=100",
+            label: "Conditions",
+            itemKey: "slug",
+          },
+          races: {
+            url: "https://api.open5e.com/v1/races/?format=api&limit=100",
+            label: "Races",
+            itemKey: "slug",
+          },
+          classes: {
+            url: "https://api.open5e.com/v1/classes/?format=api&limit=100",
+            label: "Classes",
+            itemKey: "slug",
+          },
+          magicitems: {
+            url: "https://api.open5e.com/v1/magicitems/?format=api&limit=100",
+            label: "Magic Items",
+            itemKey: "slug",
+          },
+          weapons: {
+            url: "https://api.open5e.com/v2/weapons/?format=api&limit=100",
+            label: "Weapons",
+            itemKey: "slug",
+          },
+          armor: {
+            url: "https://api.open5e.com/v2/armor/?format=api&limit=100",
+            label: "Armor",
+            itemKey: "slug",
+          },
+        };
+
+
+      const CATEGORIES = Object.entries(OPEN5E_ENDPOINTS).map(
+        ([id, meta]) => ({
+          id,
+          label: meta.label,
+          source: "open5e",
+        })
+      );
+
+      const Button = ({ variant = "default", size = "default", className, ...props }) => {
+        const variants = {
+          default: "bg-primary text-primary-foreground hover:bg-primary/90",
+          outline:
+            "border border-input bg-background hover:bg-accent hover:text-accent-foreground",
+          ghost: "hover:bg-accent hover:text-accent-foreground",
+          secondary:
+            "bg-secondary text-secondary-foreground hover:bg-secondary/80",
+        };
+
+        const sizes = {
+          default: "h-10 px-4 py-2",
+          sm: "h-8 px-3 text-xs",
+          icon: "h-9 w-9 p-0",
+        };
+
+        return React.createElement("button", {
+          className: cn(
+            "inline-flex items-center justify-center rounded-md font-medium transition-colors focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50",
+            variants[variant],
+            sizes[size],
+            className
+          ),
+          ...props,
+        });
+      };
+
+      const Card = ({ className, ...props }) =>
+        React.createElement("div", {
+          className: cn(
+            "rounded-xl border bg-card text-card-foreground shadow-sm",
+            className
+          ),
+          ...props,
+        });
+
+      const CardHeader = ({ className, ...props }) =>
+        React.createElement("div", {
+          className: cn("flex flex-col space-y-1.5 p-5", className),
+          ...props,
+        });
+
+      const CardTitle = ({ className, ...props }) =>
+        React.createElement("h3", {
+          className: cn("font-semibold leading-none tracking-tight", className),
+          ...props,
+        });
+
+      const CardContent = ({ className, ...props }) =>
+        React.createElement("div", {
+          className: cn("p-5 pt-0", className),
+          ...props,
+        });
+
+      const Badge = ({ variant = "default", className, ...props }) => {
+        const variants = {
+          default:
+            "border-transparent bg-primary text-primary-foreground hover:bg-primary/80",
+          secondary:
+            "border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80",
+          outline: "text-foreground",
+        };
+
+        return React.createElement("div", {
+          className: cn(
+            "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+            variants[variant],
+            className
+          ),
+          ...props,
+        });
+      };
+
+          async function fetchOpen5eList(categoryId, searchTerm = "") {
+  const meta = OPEN5E_ENDPOINTS[categoryId];
+  if (!meta) return [];
+  
+  const plainUrls = {
+    spells: "https://api.open5e.com/v2/spells/?limit=100",
+    spelllist: "https://api.open5e.com/v1/spelllist/?limit=100",
+    monsters: "https://api.open5e.com/v1/monsters/?limit=100",
+    documents: "https://api.open5e.com/v2/documents/?limit=100",
+    backgrounds: "https://api.open5e.com/v2/backgrounds/?limit=100",
+    planes: "https://api.open5e.com/v1/planes/?limit=100",
+    sections: "https://api.open5e.com/v1/sections/?limit=100",
+    feats: "https://api.open5e.com/v2/feats/?limit=100",
+    conditions: "https://api.open5e.com/v2/conditions/?limit=100",
+    races: "https://api.open5e.com/v1/races/?limit=100",
+    classes: "https://api.open5e.com/v1/classes/?limit=100",
+    magicitems: "https://api.open5e.com/v1/magicitems/?limit=100",
+    weapons: "https://api.open5e.com/v2/weapons/?limit=100",
+    armor: "https://api.open5e.com/v2/armor/?limit=100",
+  };
+
+    async function searchSpells(query) {
+    const response = await fetch(`https://api.open5e.com/v2/spells/?search=${encodeURIComponent(query)}&limit=20`);
+    const data = await response.json();
+    return data.results || [];
+}
+
+              
+  let url = plainUrls[categoryId];
+  
+  // Category-specific search parameters
+  if (searchTerm) {
+    if (categoryId === 'spells') {
+      url += `&name=${encodeURIComponent(searchTerm)}`;
+    } else if (categoryId === 'monsters') {
+      url += `&search=${encodeURIComponent(searchTerm)}`;
+    } else {
+      url += `&search=${encodeURIComponent(searchTerm)}`;
+    }
+  }
+  
+  if (!url) return [];
+  
+  try {
+    const res = await fetch(url);
+    const text = await res.text();
+    
+    if (!res.ok || text.includes('<!DOCTYPE')) {
+      return [];
+    }
+    
+    const data = JSON.parse(text);
+    const results = data.results || [];
+    const key = meta.itemKey || "slug";
+
+    return results.map((item, idx) => {
+      const slug = item[key] || item.slug || String(idx);
+      return {
+        name: item.name || item.title || item.slug || `Item ${idx + 1}`,
+        index: slug,
+        categoryId,
+        _raw: item,
+      };
+    });
+  } catch (error) {
+    return [];
+  }
+}
+
+
+
+
+
+
+      async function fetchOpen5eDetail(listItem) {
+        const raw = listItem._raw || {};
+        if (!listItem.detailUrl) return raw;
+        try {
+          const res = await fetch(listItem.detailUrl);
+          if (res.ok) {
+            return res.json();
+          }
+        } catch (e) {}
+        return raw;
+      }
+
+      function CompendiumView({ sidebarOpen, setSidebarOpen, onAddToCombat }) {
+        const [category, setCategory] = useLocalStorage(
+          "dm-grimoire-category",
+          CATEGORIES[0]?.id || "spells"
+        );
+        const [list, setList] = useState([]);
+        const [loading, setLoading] = useState(false);
+        const [search, setSearch] = useState("");
+        const [openBlocks, setOpenBlocks] = useLocalStorage(
+          "dm-grimoire-blocks",
+          []
+        );
+
+                useEffect(() => {
+  const timeoutId = setTimeout(async () => {
+    let active = true;
+    setLoading(true);
+    
+    let data = [];
+    
+    if (category === 'spells' && search.length > 1) {
+      const response = await fetch(
+        `https://api.open5e.com/v2/spells/?search=${encodeURIComponent(search)}&limit=20`
+      );
+      const apiData = await response.json();
+      
+      // FILTER OUT 3rd-party - keep ONLY core spells
+      data = apiData.results.filter(spell => 
+        !spell.document.key.includes('deepm') && 
+        !spell.document.key.includes('wz') && 
+        !spell.document.key.includes('a5e')
+      ) || [];
+    } else {
+      data = await fetchOpen5eList(category, search);
+    }
+    
+    if (!active) return;
+    setList(data || []);
+    setLoading(false);
+  }, 300);
+  
+  return () => clearTimeout(timeoutId);
+}, [category, search]);
+
+
+
+
+
+
+
+
+
+        const filteredList = useMemo(
+          () =>
+            list.filter((item) =>
+              item.name.toLowerCase().includes(search.toLowerCase())
+            ),
+          [list, search]
+        );
+
+        const openDetail = async (item) => {
+          if (openBlocks.find((b) => b.index === item.index)) return;
+          try {
+            const data = await fetchOpen5eDetail(item);
+            setOpenBlocks((prev) => [
+              { ...data, index: item.index, categoryId: category },
+              ...prev,
+            ]);
+            if (window.innerWidth < 768) setSidebarOpen(false);
+          } catch {}
+        };
+
+        return React.createElement(
+          "div",
+          { className: "flex h-full w-full overflow-hidden" },
+          React.createElement(
+            "aside",
+            {
+              className: cn(
+                "flex flex-col border-r bg-card/70 transition-all duration-300 absolute md:relative z-20 h-full w-full md:w-80",
+                sidebarOpen
+                  ? "translate-x-0"
+                  : "-translate-x-full md:translate-x-0 md:w-0 md:opacity-0 md:overflow-hidden"
+              ),
+            },
+            React.createElement(
+              "div",
+              {
+                className:
+                  "p-4 border-b space-y-4 bg-background/95 backdrop-blur",
+              },
+              React.createElement(
+                "div",
+                { className: "flex flex-wrap gap-2" },
+                CATEGORIES.map((cat) =>
+                  React.createElement(
+                    Button,
+                    {
+                      key: cat.id,
+                      variant: category === cat.id ? "default" : "outline",
+                      size: "sm",
+                      onClick: () => setCategory(cat.id),
+                      className: "text-xs h-7",
+                    },
+                    cat.label
+                  )
+                )
+              ),
+              React.createElement(
+                "div",
+                { className: "relative" },
+                React.createElement(
+                  "span",
+                  {
+                    className:
+                      "absolute left-2 top-2.5 h-4 w-4 text-muted-foreground text-xs",
+                  },
+                  "🔍"
+                ),
+                React.createElement("input", {
+                  placeholder: "Search...",
+                  value: search,
+                  onChange: (e) => setSearch(e.target.value),
+                  className:
+                    "flex h-10 w-full rounded-md border border-input bg-background/80 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 pl-8",
+                })
+              )
+            ),
+            React.createElement(
+              "div",
+              {
+                className:
+                  "flex-1 overflow-y-auto p-2 custom-scrollbar text-sm",
+              },
+              loading
+                ? React.createElement(
+                    "div",
+                    { className: "flex justify-center p-8" },
+                    React.createElement(
+                      "span",
+                      {
+                        className:
+                          "animate-spin text-muted-foreground text-xl",
+                      },
+                      "⏳"
+                    )
+                  )
+                : filteredList.map((item) =>
+                    React.createElement(
+                      "button",
+                      {
+                        key: item.index,
+                        onClick: () => openDetail(item),
+                        className:
+                          "w-full text-left px-3 py-2 text-sm rounded-md hover:bg-accent/70 transition-colors truncate",
+                      },
+                      item.name
+                    )
+                  )
+            )
+          ),
+          React.createElement(
+            "div",
+            {
+              className:
+                "flex-1 overflow-y-auto bg-[hsl(215,20%,11%)] p-4 transition-all duration-300 relative",
+            },
+            openBlocks.length === 0
+              ? React.createElement(
+                  "div",
+                  {
+                    className:
+                      "h-full flex flex-col items-center justify-center opacity-25 text-muted-foreground",
+                  },
+                  React.createElement(
+                    "span",
+                    { className: "text-3xl mb-4" },
+                    "🧙‍♂️"
+                  ),
+                  React.createElement(
+                    "p",
+                    { className: "text-sm" },
+                    "Select items to begin"
+                  )
+                )
+              : React.createElement(
+                  "div",
+                  {
+                    className:
+                      "grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 items-start pb-20",
+                  },
+                  openBlocks.map((block) =>
+                    React.createElement(DetailCard, {
+                      key: block.index,
+                      data: block,
+                      onClose: () =>
+                        setOpenBlocks((prev) =>
+                          prev.filter((b) => b.index !== block.index)
+                        ),
+                      onAddToCombat,
+                    })
+                  )
+                )
+          )
+        );
+      }
+
+      function DetailCard({ data, onClose, onAddToCombat }) {
+        const scores = ["STR", "DEX", "CON", "INT", "WIS", "CHA"];
+
+        const isMonster =
+          data.type === "monster" ||
+          data.categoryId === "monsters" ||
+          data.challenge_rating !== undefined ||
+          data.cr !== undefined ||
+          data.hit_points !== undefined;
+        const isSpell =
+          data.categoryId === "spells" ||
+          data.spell_level !== undefined ||
+          data.level !== undefined ||
+          data.spell_level === 0;
+        const isFeatLike =
+          data.categoryId === "feats" ||
+          data.prerequisite !== undefined ||
+          data.prerequisites !== undefined;
+        const isClassLike =
+          data.categoryId === "classes" || data.hit_die !== undefined;
+
+        const cr =
+          data.challenge_rating !== undefined
+            ? data.challenge_rating
+            : data.cr !== undefined
+            ? data.cr
+            : undefined;
+
+        const hp = data.hit_points || data.hp || undefined;
+
+        const rawAC = data.armor_class ?? data.ac;
+        const ac = normalizeAC(rawAC);
+
+        const speed = data.speed;
+
+        const documentTitle = data.document__title || data.document__slug;
+
+        const fullText =
+          data.full_text ||
+          (Array.isArray(data.desc) ? data.desc.join("\n\n") : data.desc) ||
+          data.description;
+
+        const abilityScores =
+          data.str !== undefined ||
+          data.dex !== undefined ||
+          data.con !== undefined ||
+          data.int !== undefined ||
+          data.wis !== undefined ||
+          data.cha !== undefined ||
+          (data.strength !== undefined && data.dexterity !== undefined);
+
+        const getScore = (label) => {
+          switch (label) {
+            case "STR":
+              return data.strength ?? data.str;
+            case "DEX":
+              return data.dexterity ?? data.dex;
+            case "CON":
+              return data.constitution ?? data.con;
+            case "INT":
+              return data.intelligence ?? data.int;
+            case "WIS":
+              return data.wisdom ?? data.wis;
+            case "CHA":
+              return data.charisma ?? data.cha;
+            default:
+              return undefined;
+          }
+        };
+
+        return React.createElement(
+          Card,
+          {
+            className:
+              "relative overflow-hidden group border-muted bg-card/95 hover:bg-card transition-colors",
+          },
+          React.createElement(
+            Button,
+            {
+              variant: "ghost",
+              size: "icon",
+              className:
+                "absolute right-2 top-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground",
+              onClick: onClose,
+            },
+            "✕"
+          ),
+          React.createElement(
+            CardHeader,
+            { className: "pb-2" },
+            React.createElement(
+              CardTitle,
+              {
+                className: "font-serif text-lg pr-8 tracking-wide",
+              },
+              data.name || data.title || "Entry"
+            ),
+            React.createElement(
+              "div",
+              {
+                className:
+                  "flex flex-wrap gap-2 text-[11px] text-muted-foreground",
+              },
+              isMonster &&
+                React.createElement(
+                  Badge,
+                  { variant: "secondary", className: "rounded-sm" },
+                  "Monster"
+                ),
+              isSpell &&
+                React.createElement(
+                  Badge,
+                  { variant: "secondary", className: "rounded-sm" },
+                  "Spell"
+                ),
+              isFeatLike &&
+                React.createElement(
+                  Badge,
+                  { variant: "secondary", className: "rounded-sm" },
+                  "Feat"
+                ),
+              isClassLike &&
+                React.createElement(
+                  Badge,
+                  { variant: "secondary", className: "rounded-sm" },
+                  "Class"
+                ),
+              cr !== undefined &&
+                React.createElement(
+                  Badge,
+                  { variant: "outline", className: "border-primary/25" },
+                  `CR ${cr}`
+                ),
+              documentTitle &&
+                React.createElement(
+                  Badge,
+                  { variant: "outline", className: "border-muted/50" },
+                  documentTitle
+                )
+            )
+          ),
+          React.createElement(
+            CardContent,
+            { className: "text-sm space-y-4" },
+            React.createElement(
+              "div",
+              {
+                className:
+                  "grid grid-cols-2 gap-x-4 gap-y-2 text-xs border-y py-3 bg-muted/40 -mx-5 px-5",
+              },
+              ac !== undefined &&
+                React.createElement(
+                  "div",
+                  { className: "flex justify-between items-center" },
+                  React.createElement(
+                    "span",
+                    {
+                      className:
+                        "text-muted-foreground font-bold uppercase text-[11px]",
+                    },
+                    "AC"
+                  ),
+                  React.createElement(
+                    "span",
+                    { className: "font-black" },
+                    ac
+                  )
+                ),
+              hp !== undefined &&
+                React.createElement(
+                  "div",
+                  { className: "flex justify-between items-center" },
+                  React.createElement(
+                    "span",
+                    {
+                      className:
+                        "text-muted-foreground font-bold uppercase text-[11px]",
+                    },
+                    "HP"
+                  ),
+                  React.createElement("span", { className: "font-black" }, hp)
+                ),
+              cr !== undefined &&
+                React.createElement(
+                  "div",
+                  { className: "flex justify-between items-center" },
+                  React.createElement(
+                    "span",
+                    {
+                      className:
+                        "text-muted-foreground font-bold uppercase text-[11px]",
+                    },
+                    "CR"
+                  ),
+                  React.createElement(
+                    "span",
+                    { className: "font-black" },
+                    cr
+                  )
+                ),
+              speed &&
+                React.createElement(
+                  "div",
+                  { className: "col-span-2 flex gap-2" },
+                  React.createElement(
+                    "span",
+                    {
+                      className:
+                        "text-muted-foreground font-bold uppercase text-[11px]",
+                    },
+                    "Speed"
+                  ),
+                  React.createElement(
+                    "span",
+                    { className: "font-medium" },
+                    typeof speed === "object"
+                      ? Object.entries(speed)
+                          .map(([k, v]) => `${k} ${v}`)
+                          .join(", ")
+                      : speed
+                  )
+                ),
+              isSpell &&
+                (data.spell_level !== undefined ||
+                  data.level !== undefined ||
+                  data.school) &&
+                React.createElement(
+                  React.Fragment,
+                  null,
+                  (data.spell_level !== undefined ||
+                    data.level !== undefined) &&
+                    React.createElement(
+                      "div",
+                      { className: "flex justify-between" },
+                      React.createElement(
+                        "span",
+                        {
+                          className:
+                            "text-muted-foreground font-bold uppercase text-[11px]",
+                        },
+                        "Level"
+                      ),
+                      React.createElement(
+                        "span",
+                        null,
+                        data.spell_level !== undefined
+                          ? data.spell_level
+                          : data.level
+                      )
+                    ),
+                  data.school &&
+                    React.createElement(
+                      "div",
+                      { className: "flex justify-between" },
+                      React.createElement(
+                        "span",
+                        {
+                          className:
+                            "text-muted-foreground font-bold uppercase text-[11px]",
+                        },
+                        "School"
+                      ),
+                      React.createElement("span", null, data.school)
+                    )
+                ),
+              isFeatLike &&
+                (data.prerequisite || data.prerequisites) &&
+                React.createElement(
+                  "div",
+                  { className: "col-span-2" },
+                  React.createElement(
+                    "span",
+                    {
+                      className:
+                        "text-muted-foreground font-bold uppercase text-[11px]",
+                    },
+                    "Prerequisites"
+                  ),
+                  React.createElement(
+                    "span",
+                    { className: "ml-1" },
+                    Array.isArray(data.prerequisites)
+                      ? data.prerequisites.join(", ")
+                      : data.prerequisite
+                  )
+                ),
+              isClassLike &&
+                data.hit_die &&
+                React.createElement(
+                  "div",
+                  { className: "flex justify-between items-center" },
+                  React.createElement(
+                    "span",
+                    {
+                      className:
+                        "text-muted-foreground font-bold uppercase text-[11px]",
+                    },
+                    "Hit Die"
+                  ),
+                  React.createElement(
+                    "span",
+                    { className: "font-black" },
+                    `d${data.hit_die}`
+                  )
+                )
+            ),
+            abilityScores &&
+              React.createElement(
+                "div",
+                {
+                  className:
+                    "grid grid-cols-3 sm:grid-cols-6 gap-2 text-center",
+                },
+                scores.map((key) => {
+                  const val = getScore(key);
+                  if (val === undefined) return null;
+                  const mod = Math.floor((val - 10) / 2);
+                  return React.createElement(
+                    "div",
+                    {
+                      key,
+                      className:
+                        "flex flex-col p-1 rounded bg-muted/30 border border-muted/60",
+                    },
+                    React.createElement(
+                      "span",
+                      {
+                        className:
+                          "text-[10px] font-bold opacity-60 uppercase",
+                      },
+                      key
+                    ),
+                    React.createElement(
+                      "span",
+                      { className: "text-sm font-black" },
+                      val
+                    ),
+                    React.createElement(
+                      "span",
+                      {
+                        className:
+                          "text-[10px] font-bold text-muted-foreground",
+                      },
+                      mod >= 0 ? `+${mod}` : `${mod}`
+                    )
+                  );
+                })
+              ),
+            (data.special_abilities || data.actions) &&
+              React.createElement(
+                "div",
+                { className: "space-y-4 pt-2" },
+                data.special_abilities?.map((a, i) =>
+                  React.createElement(
+                    "div",
+                    { key: i, className: "text-xs" },
+                    React.createElement(
+                      "span",
+                      { className: "font-black" },
+                      a.name,
+                      ". "
+                    ),
+                    React.createElement(
+                      "span",
+                      { className: "text-muted-foreground" },
+                      a.desc
+                    )
+                  )
+                ),
+                data.actions?.length > 0 &&
+                  React.createElement(
+                    "h4",
+                    {
+                      className:
+                        "font-serif font-bold text-sm border-b border-muted pb-1",
+                    },
+                    "Actions"
+                  ),
+                data.actions?.map((a, i) =>
+                  React.createElement(
+                    "div",
+                    { key: i, className: "text-xs" },
+                    React.createElement(
+                      "span",
+                      { className: "font-black" },
+                      a.name,
+                      ". "
+                    ),
+                    React.createElement(
+                      "span",
+                      { className: "text-muted-foreground" },
+                      a.desc
+                    )
+                  )
+                )
+              ),
+            React.createElement(
+              "div",
+              {
+                className:
+                  "space-y-2 text-muted-foreground text-xs leading-relaxed max-h-56 overflow-y-auto pr-2 custom-scrollbar border-t border-muted pt-3",
+              },
+              fullText
+                ? fullText.split(/\n{2,}/).map((p, i) =>
+                    React.createElement("p", { key: i }, p)
+                  )
+                : React.createElement(
+                    "p",
+                    null,
+                    "No description available."
+                  )
+            ),
+            isMonster &&
+              onAddToCombat &&
+              React.createElement(
+                "div",
+                { className: "pt-2 flex justify-end" },
+                React.createElement(
+                  Button,
+                  {
+                    variant: "secondary",
+                    size: "sm",
+                    className: "text-[11px] gap-1",
+                    onClick: () => onAddToCombat(data),
+                  },
+                  "Add to Combat"
+                )
+              )
+          )
+        );
+      }
+
+      function DiceTrayView() {
+        const [history, setHistory] = useLocalStorage(
+          "dm-grimoire-dice-history",
+          []
+        );
+        const [count, setCount] = useState(1);
+        const [modifier, setModifier] = useState(0);
+        const [historyOpen, setHistoryOpen] = useState(false);
+
+        const recentRolls = history.slice(0, 3);
+
+        const roll = (sides) => {
+          const diceCount = Math.max(1, Math.min(50, count));
+          const rolls = [];
+          let total = 0;
+          for (let i = 0; i < diceCount; i++) {
+            const r = Math.floor(Math.random() * sides) + 1;
+            rolls.push(r);
+            total += r;
+          }
+          const finalTotal = total + modifier;
+          const result = {
+            id: Date.now(),
+            expression:
+              diceCount +
+              "d" +
+              sides +
+              (modifier !== 0 ? (modifier > 0 ? "+" + modifier : modifier) : ""),
+            rolls,
+            modifier,
+            sides,
+            total: finalTotal,
+            timestamp: new Date().toLocaleTimeString(),
+            isCrit:
+              sides === 20 && diceCount === 1 && rolls[0] === 20,
+            isFumble:
+              sides === 20 && diceCount === 1 && rolls[0] === 1,
+          };
+          setHistory((prev) => [result, ...prev.slice(0, 20)]);
+        };
+
+        return React.createElement(
+          "div",
+          { className: "relative flex h-full w-full bg-background flex-col" },
+          React.createElement(
+            "div",
+            {
+              className:
+                "flex-1 p-4 flex flex-col items-center justify-center space-y-6 overflow-y-auto bg-[hsl(215,20%,11%)]",
+            },
+            React.createElement(
+              "div",
+              {
+                className:
+                  "w-full max-w-xl flex items-center justify-between mb-2",
+              },
+              React.createElement(
+                "h2",
+                {
+                  className:
+                    "font-serif text-sm tracking-wide text-muted-foreground",
+                },
+                "Dice Tray"
+              ),
+              React.createElement(
+                Button,
+                {
+                  variant: "ghost",
+                  size: "sm",
+                  className:
+                    "text-[11px] gap-1 px-2 py-1 border border-muted/60 rounded-full bg-card/70",
+                  onClick: () => setHistoryOpen(true),
+                },
+                "History"
+              )
+            ),
+            React.createElement(
+              "div",
+              {
+                className:
+                  "w-full max-w-xl flex flex-col sm:flex-row gap-4 p-4 bg-card/90 rounded-2xl border border-muted shadow-sm",
+              },
+              React.createElement(
+                "div",
+                {
+                  className:
+                    "flex-1 flex flex-col items-center gap-1.5 p-3 rounded-xl bg-muted/40",
+                },
+                React.createElement(
+                  "span",
+                  {
+                    className:
+                      "text-[10px] font-bold text-muted-foreground uppercase tracking-wide",
+                  },
+                  "Dice Count"
+                ),
+                React.createElement(
+                  "div",
+                  { className: "flex items-center gap-2" },
+                  React.createElement(
+                    Button,
+                    {
+                      variant: "outline",
+                      size: "icon",
+                      className: "h-8 w-8 rounded-full",
+                      onClick: () => setCount((c) => Math.max(1, c - 1)),
+                    },
+                    "−"
+                  ),
+                  React.createElement(
+                    "div",
+                    {
+                      className:
+                        "w-8 text-center font-mono text-xl font-bold",
+                    },
+                    count
+                  ),
+                  React.createElement(
+                    Button,
+                    {
+                      variant: "outline",
+                      size: "icon",
+                      className: "h-8 w-8 rounded-full",
+                      onClick: () => setCount((c) => Math.min(50, c + 1)),
+                    },
+                    "+"
+                  )
+                )
+              ),
+              React.createElement(
+                "div",
+                {
+                  className:
+                    "flex-1 flex flex-col items-center gap-1.5 p-3 rounded-xl bg-muted/40",
+                },
+                React.createElement(
+                  "span",
+                  {
+                    className:
+                      "text-[10px] font-bold text-muted-foreground uppercase tracking-wide",
+                  },
+                  "Modifier"
+                ),
+                React.createElement(
+                  "div",
+                  { className: "flex items-center gap-2" },
+                  React.createElement(
+                    Button,
+                    {
+                      variant: "outline",
+                      size: "icon",
+                      className: "h-8 w-8 rounded-full",
+                      onClick: () => setModifier((m) => m - 1),
+                    },
+                    "−"
+                  ),
+                  React.createElement(
+                    "div",
+                    {
+                      className:
+                        "w-10 text-center font-mono text-xl font-bold",
+                    },
+                    modifier === 0 ? "±0" : modifier
+                  ),
+                  React.createElement(
+                    Button,
+                    {
+                      variant: "outline",
+                      size: "icon",
+                      className: "h-8 w-8 rounded-full",
+                      onClick: () => setModifier((m) => m + 1),
+                    },
+                    "+"
+                  )
+                )
+              )
+            ),
+            React.createElement(
+              "div",
+              {
+                className:
+                  "w-full max-w-2xl grid grid-cols-2 sm:grid-cols-4 gap-4",
+              },
+              [4, 6, 8, 10, 12, 20, 100].map((sides) =>
+                React.createElement(
+                  Button,
+                  {
+                    key: sides,
+                    variant: "outline",
+                    className:
+                      "relative h-20 flex flex-col items-center justify-center gap-1 text-lg font-serif hover:border-primary hover:bg-primary/10 transition-all",
+                    onClick: () => roll(sides),
+                  },
+                  React.createElement(
+                    "span",
+                    {
+                      className:
+                        "uppercase tracking-wide text-[11px] text-muted-foreground",
+                    },
+                    `d${sides}`
+                  ),
+                  React.createElement(
+                    "span",
+                    { className: "text-[11px] text-muted-foreground" },
+                    "Roll"
+                  )
+                )
+              ),
+              React.createElement(
+                Button,
+                {
+                  variant: "ghost",
+                  className:
+                    "h-20 flex flex-col items-center justify-center gap-1 text-xs opacity-60 hover:opacity-100 border border-dashed border-muted/60",
+                  onClick: () => {
+                    setCount(1);
+                    setModifier(0);
+                  },
+                },
+                React.createElement(
+                  "span",
+                  { className: "text-[11px]" },
+                  "Reset"
+                )
+              )
+            ),
+            recentRolls.length > 0 &&
+              React.createElement(
+                "div",
+                {
+                  className:
+                    "w-full max-w-xl mt-4 space-y-2 text-xs",
+                },
+                React.createElement(
+                  "div",
+                  {
+                    className:
+                      "flex items-center justify-between text-[11px] text-muted-foreground",
+                  },
+                  React.createElement("span", null, "Recent Rolls"),
+                  React.createElement(
+                    "button",
+                    {
+                      className: "text-[10px] underline",
+                      onClick: () => setHistoryOpen(true),
+                    },
+                    "Open history"
+                  )
+                ),
+                recentRolls.map((roll) =>
+                  React.createElement(
+                    "div",
+                    {
+                      key: roll.id,
+                      className: cn(
+                        "p-2.5 rounded-lg border bg-card/90 shadow-sm flex justify-between items-center",
+                        roll.isCrit &&
+                          "border-green-500/60 bg-green-500/5",
+                        roll.isFumble &&
+                          "border-red-500/60 bg-red-500/5"
+                      ),
+                    },
+                    React.createElement(
+                      "div",
+                      { className: "flex flex-col" },
+                      React.createElement(
+                        "span",
+                        {
+                          className:
+                            "font-mono text-sm font-semibold",
+                        },
+                        roll.total
+                      ),
+                      React.createElement(
+                        "span",
+                        {
+                          className:
+                            "text-[9px] text-muted-foreground",
+                        },
+                        roll.expression
+                      )
+                    ),
+                    React.createElement(
+                      "span",
+                      {
+                        className:
+                          "text-[9px] text-muted-foreground",
+                      },
+                      roll.timestamp
+                    )
+                  )
+                )
+              )
+          ),
+          historyOpen &&
+            React.createElement(
+              "div",
+              {
+                className:
+                  "fixed inset-0 z-40 bg-black/40 flex items-end md:items-stretch md:justify-end",
+              },
+              React.createElement("div", {
+                className: "flex-1 md:flex-none",
+                onClick: () => setHistoryOpen(false),
+              }),
+              React.createElement(
+                "div",
+                {
+                  className:
+                    "w-full md:w-80 max-h-[70vh] md:h-full bg-card shadow-xl border-t md:border-t-0 md:border-l border-muted flex flex-col",
+                },
+                React.createElement(
+                  "div",
+                  {
+                    className:
+                      "p-3 border-b border-muted flex items-center justify-between bg-card/95",
+                  },
+                  React.createElement(
+                    "div",
+                    {
+                      className:
+                        "font-serif text-xs flex items-center gap-2 text-muted-foreground",
+                    },
+                    "Roll History"
+                  ),
+                  React.createElement(
+                    Button,
+                    {
+                      variant: "ghost",
+                      size: "sm",
+                      className: "h-7 text-[10px]",
+                      onClick: () => setHistoryOpen(false),
+                    },
+                    "Close"
+                  )
+                ),
+                React.createElement(
+                  "div",
+                  {
+                    className:
+                      "flex items-center justify-between px-3 py-2 text-[11px] text-muted-foreground",
+                  },
+                  React.createElement(
+                    "span",
+                    null,
+                    history.length
+                      ? `${history.length} roll${
+                          history.length !== 1 ? "s" : ""
+                        }`
+                      : "No rolls yet"
+                  ),
+                  history.length > 0 &&
+                    React.createElement(
+                      Button,
+                      {
+                        variant: "ghost",
+                        size: "sm",
+                        className: "h-7 text-[10px] uppercase",
+                        onClick: () => setHistory([]),
+                      },
+                      "Clear"
+                    )
+                ),
+                React.createElement(
+                  "div",
+                  {
+                    className:
+                      "flex-1 overflow-y-auto p-3 space-y-2 custom-scrollbar text-xs",
+                  },
+                  history.length === 0
+                    ? React.createElement(
+                        "div",
+                        {
+                          className:
+                            "text-[11px] text-muted-foreground italic",
+                        },
+                        "Roll some dice to see history here."
+                      )
+                    : history.map((roll) =>
+                        React.createElement(
+                          "div",
+                          {
+                            key: roll.id,
+                            className: cn(
+                              "p-2.5 rounded-lg border bg-card/95 shadow-sm transition-colors",
+                              roll.isCrit &&
+                                "border-green-500/60 bg-green-500/5",
+                              roll.isFumble &&
+                                "border-red-500/60 bg-red-500/5"
+                            ),
+                          },
+                          React.createElement(
+                            "div",
+                            {
+                              className:
+                                "flex justify-between items-center mb-1",
+                            },
+                            React.createElement(
+                              "div",
+                              { className: "flex flex-col" },
+                              React.createElement(
+                                "span",
+                                {
+                                  className:
+                                    "font-mono text-sm font-semibold",
+                                },
+                                roll.total
+                              ),
+                              React.createElement(
+                                "span",
+                                {
+                                  className:
+                                    "text-[9px] text-muted-foreground",
+                                },
+                                roll.expression
+                              ),
+                              React.createElement(
+                                "span",
+                                {
+                                  className:
+                                    "text-[9px] text-muted-foreground",
+                                },
+                                roll.timestamp
+                              )
+                            )
+                          ),
+                          React.createElement(
+                            "div",
+                            {
+                              className:
+                                "text-[10px] text-muted-foreground flex flex-wrap gap-1",
+                            },
+                            React.createElement(
+                              "span",
+                              null,
+                              "Rolls:"
+                            ),
+                            roll.rolls
+                              .slice(0, 10)
+                              .map((r, i) =>
+                                React.createElement(
+                                  "span",
+                                  {
+                                    key: i,
+                                    className: cn(
+                                      "px-1 rounded bg-muted/60 font-mono font-semibold",
+                                      r === roll.sides &&
+                                        "text-green-400",
+                                      r === 1 && "text-red-400"
+                                    ),
+                                  },
+                                  r
+                                )
+                              ),
+                            roll.rolls.length > 10 &&
+                              React.createElement(
+                                "span",
+                                { className: "px-1 rounded bg-muted/40" },
+                                `+${roll.rolls.length - 10}`
+                              )
+                          ),
+                          roll.modifier !== 0 &&
+                            React.createElement(
+                              "div",
+                              {
+                                className:
+                                  "text-[10px] text-muted-foreground mt-1",
+                              },
+                              React.createElement(
+                                "span",
+                                null,
+                                "Mod: "
+                              ),
+                              React.createElement(
+                                "span",
+                                {
+                                  className:
+                                    "font-mono font-semibold",
+                                },
+                                roll.modifier > 0
+                                  ? `+${roll.modifier}`
+                                  : roll.modifier
+                              )
+                            )
+                        )
+                      )
+                )
+              )
+            )
+        );
+      }
+
+      function CombatTrackerView({ combatants, setCombatants }) {
+        const [form, setForm] = useState({
+          name: "",
+          init: "",
+          hp: "",
+          ac: "",
+        });
+
+        const add = (e) => {
+          e.preventDefault();
+          if (!form.name) return;
+          const c = {
+            id: crypto.randomUUID(),
+            name: form.name,
+            init: Number(form.init) || 0,
+            hp: Number(form.hp) || 10,
+            maxHp: Number(form.hp) || 10,
+            ac: Number(form.ac) || 10,
+          };
+          setCombatants((prev) =>
+            [...prev, c].sort((a, b) => b.init - a.init)
+          );
+          setForm({ name: "", init: "", hp: "", ac: "" });
+        };
+
+        const updateHp = (id, delta) => {
+          setCombatants((prev) =>
+            prev.map((c) =>
+              c.id === id ? { ...c, hp: Math.max(0, c.hp + delta) } : c
+            )
+          );
+        };
+
+        return React.createElement(
+          "div",
+          { className: "flex h-full flex-col md:flex-row bg-background" },
+          React.createElement(
+            "div",
+            {
+              className:
+                "w-full md:w-80 border-b md:border-b-0 md:border-r border-muted bg-muted/20 p-4 flex flex-col gap-6",
+            },
+            React.createElement(
+              "h2",
+              {
+                className:
+                  "text-lg font-serif font-semibold text-foreground",
+              },
+              "Summon Combatant"
+            ),
+            React.createElement(
+              "form",
+              { onSubmit: add, className: "space-y-4 text-sm" },
+              React.createElement("input", {
+                value: form.name,
+                onChange: (e) =>
+                  setForm((f) => ({ ...f, name: e.target.value })),
+                placeholder: "Name",
+                className:
+                  "flex h-9 w-full rounded-md border border-input bg-background/90 px-3 py-2 text-sm",
+              }),
+              React.createElement(
+                "div",
+                { className: "grid grid-cols-3 gap-2" },
+                React.createElement("input", {
+                  type: "number",
+                  value: form.init,
+                  onChange: (e) =>
+                    setForm((f) => ({ ...f, init: e.target.value })),
+                  placeholder: "Init",
+                  className:
+                    "flex h-9 w-full rounded-md border border-input bg-background/90 px-3 py-2 text-sm",
+                }),
+                React.createElement("input", {
+                  type: "number",
+                  value: form.hp,
+                  onChange: (e) =>
+                    setForm((f) => ({ ...f, hp: e.target.value })),
+                  placeholder: "HP",
+                  className:
+                    "flex h-9 w-full rounded-md border border-input bg-background/90 px-3 py-2 text-sm",
+                }),
+                React.createElement("input", {
+                  type: "number",
+                  value: form.ac,
+                  onChange: (e) =>
+                    setForm((f) => ({ ...f, ac: e.target.value })),
+                  placeholder: "AC",
+                  className:
+                    "flex h-9 w-full rounded-md border border-input bg-background/90 px-3 py-2 text-sm",
+                })
+              ),
+              React.createElement(
+                Button,
+                {
+                  type: "submit",
+                  className: "w-full gap-2 font-semibold text-sm",
+                },
+                "Add to Battle"
+              )
+            )
+          ),
+          React.createElement(
+            "div",
+            {
+              className:
+                "flex-1 flex flex-col h-full overflow-hidden relative",
+            },
+            React.createElement(
+              "div",
+              {
+                className:
+                  "p-4 border-b border-muted bg-card/95 flex justify-between items-center backdrop-blur-md z-10",
+              },
+              React.createElement(
+                "h2",
+                {
+                  className:
+                    "font-serif font-black text-lg flex items-center gap-3 text-foreground",
+                },
+                "BATTLE ORDER"
+              ),
+              React.createElement(
+                Button,
+                {
+                  onClick: () =>
+                    setCombatants((prev) => {
+                      if (prev.length < 2) return prev;
+                      const [first, ...rest] = prev;
+                      return [...rest, first];
+                    }),
+                  disabled: combatants.length < 2,
+                  size: "sm",
+                  className: "gap-2 font-semibold px-5",
+                },
+                "Next Turn"
+              )
+            ),
+            React.createElement(
+              "div",
+              {
+                className:
+                  "flex-1 overflow-y-auto p-4 space-y-4 bg-[hsl(215,20%,11%)] pb-20 custom-scrollbar",
+              },
+              combatants.map((c, i) =>
+                React.createElement(
+                  "div",
+                  {
+                    key: c.id,
+                    className: cn(
+                      "flex items-center gap-4 p-4 rounded-2xl border border-muted bg-card/95 transition-all duration-300",
+                      i === 0 &&
+                        "border-primary ring-1 ring-primary/30 shadow-xl scale-[1.01] z-10 opacity-90 shadow-sm"
+                    ),
+                  },
+                  React.createElement(
+                    "div",
+                    {
+                      className: cn(
+                        "flex flex-col items-center justify-center w-12 h-12 rounded-xl border font-mono text-lg font-black shrink-0",
+                        i === 0
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "bg-muted text-muted-foreground"
+                      ),
+                    },
+                    c.init
+                  ),
+                  React.createElement(
+                    "div",
+                    { className: "flex-1 min-w-0" },
+                    React.createElement(
+                      "h3",
+                      {
+                        className:
+                          "font-serif font-semibold text-lg truncate text-foreground",
+                      },
+                      c.name
+                    ),
+                    React.createElement(
+                      "div",
+                      {
+                        className:
+                          "flex items-center gap-1 text-[10px] font-semibold text-muted-foreground",
+                      },
+                      React.createElement("span", null, "AC"),
+                      React.createElement("span", null, c.ac)
+                    ),
+                    React.createElement(
+                      "div",
+                      {
+                        className:
+                          "flex justify-between text-[10px] font-semibold mt-1 text-muted-foreground",
+                      },
+                      React.createElement("span", null, "HP"),
+                      React.createElement(
+                        "span",
+                        null,
+                        `${c.hp} / ${c.maxHp}`
+                      )
+                    ),
+                    React.createElement(
+                      "div",
+                      {
+                        className:
+                          "h-2 w-full bg-muted rounded-full mt-1 overflow-hidden",
+                      },
+                      React.createElement("div", {
+                        className: cn(
+                          "h-full transition-all",
+                          c.hp / c.maxHp > 0.5
+                            ? "bg-green-500"
+                            : c.hp / c.maxHp > 0.25
+                            ? "bg-yellow-500"
+                            : "bg-red-500"
+                        ),
+                        style: {
+                          width: `${Math.max(
+                            0,
+                            Math.min(100, (c.hp / c.maxHp) * 100)
+                          )}%`,
+                        },
+                      })
+                    )
+                  ),
+                  React.createElement(
+                    "div",
+                    { className: "flex items-center gap-1.5" },
+                    React.createElement(
+                      Button,
+                      {
+                        variant: "outline",
+                        size: "icon",
+                        className: "h-8 w-8 rounded-full",
+                        onClick: () => updateHp(c.id, -1),
+                      },
+                      "−"
+                    ),
+                    React.createElement(
+                      Button,
+                      {
+                        variant: "outline",
+                        size: "icon",
+                        className: "h-8 w-8 rounded-full",
+                        onClick: () => updateHp(c.id, 1),
+                      },
+                      "+"
+                    ),
+                    React.createElement(
+                      Button,
+                      {
+                        variant: "ghost",
+                        size: "icon",
+                        className:
+                          "h-8 w-8 text-muted-foreground",
+                        onClick: () =>
+                          setCombatants((prev) =>
+                            prev.filter((u) => u.id !== c.id)
+                          ),
+                      },
+                      "✕"
+                    )
+                  )
+                )
+              )
+            )
+          )
+        );
+      }
+
+      function App() {
+        const [activeTab, setActiveTab] = useLocalStorage(
+          "dm-grimoire-tab",
+          "compendium"
+        );
+        const [sidebarOpen, setSidebarOpen] = useState(true);
+        const [combatants, setCombatants] = useLocalStorage(
+          "dm-grimoire-combatants",
+          []
+        );
+
+        const tabs = ["compendium", "dice", "combat"];
+        const startXRef = useRef(null);
+        const startYRef = useRef(null);
+
+        const handleTouchStart = (e) => {
+          const touch = e.touches[0];
+          startXRef.current = touch.clientX;
+          startYRef.current = touch.clientY;
+        };
+
+        const handleTouchEnd = (e) => {
+          if (startXRef.current == null || startYRef.current == null) return;
+          const touch = e.changedTouches[0];
+          const dx = touch.clientX - startXRef.current;
+          const dy = touch.clientY - startYRef.current;
+
+          if (Math.abs(dx) < 40 || Math.abs(dx) < Math.abs(dy)) {
+            startXRef.current = null;
+            startYRef.current = null;
+            return;
+          }
+
+          const currentIndex = tabs.indexOf(activeTab);
+          if (dx < 0 && currentIndex < tabs.length - 1) {
+            setActiveTab(tabs[currentIndex + 1]);
+          } else if (dx > 0 && currentIndex > 0) {
+            setActiveTab(tabs[currentIndex - 1]);
+          }
+
+          startXRef.current = null;
+          startYRef.current = null;
+        };
+
+        useEffect(() => {
+          document.documentElement.className = "";
+        }, []);
+
+        const addMonsterToCombat = (monster) => {
+          const dex =
+            monster.dexterity ??
+            monster.dex ??
+            10;
+          const initMod = Math.floor((dex - 10) / 2);
+          const initRoll =
+            Math.floor(Math.random() * 20) + 1 + initMod;
+
+          const hp =
+            monster.hit_points ||
+            monster.hp ||
+            10;
+
+          const armorValue =
+            normalizeAC(monster.armor_class ?? monster.ac) || 10;
+
+          const c = {
+            id: crypto.randomUUID(),
+            name: monster.name || "Monster",
+            init: initRoll,
+            hp,
+            maxHp: hp,
+            ac: armorValue,
+          };
+
+          setCombatants((prev) =>
+            [...prev, c].sort((a, b) => b.init - a.init)
+          );
+          setActiveTab("combat");
+        };
+
+        return React.createElement(
+          "div",
+          {
+            className:
+              "flex flex-col h-screen w-full bg-background text-foreground overflow-hidden",
+          },
+          React.createElement(
+            "header",
+            {
+              className:
+                "flex-none h-14 border-b border-muted bg-card/90 backdrop-blur-md px-4 flex items-center justify-between z-50",
+            },
+            React.createElement(
+              "div",
+              { className: "flex items-center gap-3" },
+              React.createElement(
+                Button,
+                {
+                  variant: "ghost",
+                  size: "icon",
+                  className: "md:hidden text-lg",
+                  onClick: () => setSidebarOpen(!sidebarOpen),
+                },
+                sidebarOpen ? "✕" : "☰"
+              ),
+              React.createElement(
+                "div",
+                { className: "flex items-center gap-2 text-primary" },
+                React.createElement("span", { className: "text-lg" }, "📖"),
+                React.createElement(
+                  "h1",
+                  {
+                    className:
+                      "font-serif font-bold text-lg tracking-wide hidden sm:block",
+                  },
+                  "DMs Grimoire"
+                )
+              )
+            ),
+            React.createElement(
+              "nav",
+              {
+                className:
+                  "hidden md:flex items-center gap-1 bg-muted/40 p-1 rounded-full border border-muted/60",
+              },
+              tabs.map((tab) =>
+                React.createElement(
+                  "button",
+                  {
+                    key: tab,
+                    onClick: () => setActiveTab(tab),
+                    className: cn(
+                      "flex items-center px-4 py-1.5 rounded-full text-sm font-medium transition-all capitalize",
+                      activeTab === tab
+                        ? "bg-background text-foreground shadow-sm ring-1 ring-border"
+                        : "text-muted-foreground hover:text-foreground hover:bg-background/40"
+                    ),
+                  },
+                  tab === "compendium"
+                    ? "Compendium"
+                    : tab === "dice"
+                    ? "Dice Tray"
+                    : "Combat"
+                )
+              )
+            )
+          ),
+          React.createElement(
+            "main",
+            {
+              className: "flex-1 flex min-h-0 relative pb-14",
+              onTouchStart: handleTouchStart,
+              onTouchEnd: handleTouchEnd,
+            },
+            activeTab === "compendium" &&
+              React.createElement(CompendiumView, {
+                sidebarOpen,
+                setSidebarOpen,
+                onAddToCombat: addMonsterToCombat,
+              }),
+            activeTab === "dice" && React.createElement(DiceTrayView, null),
+            activeTab === "combat" &&
+              React.createElement(CombatTrackerView, {
+                combatants,
+                setCombatants,
+              })
+          ),
+          React.createElement(
+            "nav",
+            {
+              className:
+                "md:hidden fixed bottom-0 left-0 right-0 h-14 border-t border-muted bg-card/95 flex items-center justify-around px-2 z-40",
+            },
+            tabs.map((tab) =>
+              React.createElement(
+                "button",
+                {
+                  key: tab,
+                  onClick: () => setActiveTab(tab),
+                  className: cn(
+                    "flex flex-col items-center justify-center w-full h-full gap-1 text-[11px] font-medium capitalize",
+                    activeTab === tab
+                      ? "text-primary"
+                      : "text-muted-foreground"
+                  ),
+                },
+                React.createElement(
+                  "span",
+                  null,
+                  tab === "compendium"
+                    ? "Compendium"
+                    : tab === "dice"
+                    ? "Dice"
+                    : "Combat"
+                )
+              )
+            )
+          )
+        );
+      }
+
+      const root = ReactDOM.createRoot(document.getElementById("root"));
+      root.render(React.createElement(App));
+    </script>
+  </body>
+</html>
