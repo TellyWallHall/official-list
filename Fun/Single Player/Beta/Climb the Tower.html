@@ -1,0 +1,1417 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tower Ascent: 100 Floors</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            touch-action: none;
+        }
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+        #game-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        .ui-overlay {
+            position: absolute;
+            pointer-events: none;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+        }
+        .ui-element {
+            pointer-events: auto;
+        }
+        .joystick-base {
+            position: absolute;
+            bottom: 80px;
+            left: 80px;
+            width: 120px;
+            height: 120px;
+            background-color: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+        .joystick-thumb {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            background-color: rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            left: 50%;
+            top: 50%;
+        }
+        .action-button {
+            position: absolute;
+            bottom: 100px;
+            right: 80px;
+            width: 80px;
+            height: 80px;
+            background-color: rgba(255, 50, 50, 0.6);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: white;
+            font-size: 18px;
+            border: 2px solid rgba(255, 255, 255, 0.5);
+        }
+        .game-over-screen, .level-complete-screen, .start-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            z-index: 20;
+        }
+        .health-bar {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            width: 200px;
+            height: 20px;
+            background-color: rgba(0, 0, 0, 0.5);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .health-fill {
+            height: 100%;
+            background-color: #ff3a3a;
+            width: 100%;
+            transition: width 0.3s;
+        }
+        .floor-indicator {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background-color: rgba(0, 0, 0, 0.5);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+        }
+        .theme-indicator {
+            position: absolute;
+            top: 60px;
+            right: 20px;
+            background-color: rgba(0, 0, 0, 0.5);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+        }
+        .pickup-item {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            opacity: 0;
+            transition: opacity 0.5s;
+        }
+        .btn {
+            background-color: #ff5a5a;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 24px;
+            font-size: 18px;
+            font-weight: bold;
+            margin: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn:hover {
+            background-color: #ff3a3a;
+            transform: scale(1.05);
+        }
+        .ammo-counter {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background-color: rgba(0, 0, 0, 0.5);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+        }
+        .crosshair {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 20px;
+            height: 20px;
+            pointer-events: none;
+        }
+        .crosshair::before, .crosshair::after {
+            content: '';
+            position: absolute;
+            background-color: rgba(255, 255, 255, 0.7);
+        }
+        .crosshair::before {
+            width: 100%;
+            height: 2px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        .crosshair::after {
+            width: 2px;
+            height: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="game-canvas"></canvas>
+        
+        <div class="ui-overlay">
+            <div class="health-bar">
+                <div class="health-fill"></div>
+            </div>
+            <div class="floor-indicator">Floor: 1/100</div>
+            <div class="theme-indicator">Theme: Combat</div>
+            <div class="ammo-counter">Ammo: 10</div>
+            <div class="crosshair"></div>
+            
+            <div class="joystick-base ui-element">
+                <div class="joystick-thumb"></div>
+            </div>
+            
+            <div class="action-button ui-element">ACTION</div>
+            
+            <div class="pickup-item">Picked up: Health Potion</div>
+        </div>
+        
+        <div class="start-screen">
+            <h1 class="text-4xl font-bold mb-4">Tower Ascent: 100 Floors</h1>
+            <p class="text-xl mb-8">Climb to the top of the tower through 100 challenging floors!</p>
+            <p class="mb-6">Every 10 floors share a theme: Combat, Stealth, Puzzle, and more!</p>
+            <button class="btn" id="start-button">START GAME</button>
+        </div>
+        
+        <div class="game-over-screen" style="display: none;">
+            <h1 class="text-4xl font-bold mb-4">Game Over</h1>
+            <p class="text-xl mb-8">You reached floor <span id="final-floor">0</span></p>
+            <button class="btn" id="restart-button">TRY AGAIN</button>
+        </div>
+        
+        <div class="level-complete-screen" style="display: none;">
+            <h1 class="text-4xl font-bold mb-4">Floor Cleared!</h1>
+            <p class="text-xl mb-4">Moving to floor <span id="next-floor">2</span></p>
+            <div class="mb-6">
+                <p>Choose an upgrade:</p>
+                <div class="flex mt-4">
+                    <button class="btn" id="health-upgrade">+20 Health</button>
+                    <button class="btn" id="damage-upgrade">+10% Damage</button>
+                    <button class="btn" id="speed-upgrade">+10% Speed</button>
+                </div>
+            </div>
+            <button class="btn" id="continue-button">CONTINUE</button>
+        </div>
+    </div>
+
+    <script>
+        // Game state
+        const gameState = {
+            currentFloor: 1,
+            maxFloor: 100,
+            health: 100,
+            maxHealth: 100,
+            ammo: 10,
+            maxAmmo: 10,
+            damage: 10,
+            moveSpeed: 5,
+            isGameOver: false,
+            isLevelComplete: false,
+            isGameStarted: false,
+            currentTheme: 'Combat',
+            score: 0,
+            touchControls: {
+                joystick: {
+                    active: false,
+                    id: null,
+                    startX: 0,
+                    startY: 0,
+                    moveX: 0,
+                    moveY: 0
+                },
+                action: {
+                    active: false,
+                    id: null
+                }
+            }
+        };
+
+        // Theme definitions
+        const themes = [
+            { name: 'Combat', color: 0xff3a3a, description: 'Defeat all enemies!' },
+            { name: 'Stealth', color: 0x3a3aff, description: 'Avoid being detected!' },
+            { name: 'Puzzle', color: 0x3aff3a, description: 'Solve the maze!' },
+            { name: 'Survival', color: 0xffaa3a, description: 'Survive the hazards!' },
+            { name: 'Collection', color: 0xaa3aff, description: 'Collect all the gems!' }
+        ];
+
+        // Three.js setup
+        let scene, camera, renderer;
+        let player, floor, walls = [], enemies = [], items = [], exit;
+        let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
+        let velocity = new THREE.Vector3();
+        let direction = new THREE.Vector3();
+        let prevTime = performance.now();
+        let raycaster = new THREE.Raycaster();
+
+        // DOM elements
+        const gameCanvas = document.getElementById('game-canvas');
+        const startScreen = document.querySelector('.start-screen');
+        const gameOverScreen = document.querySelector('.game-over-screen');
+        const levelCompleteScreen = document.querySelector('.level-complete-screen');
+        const healthFill = document.querySelector('.health-fill');
+        const floorIndicator = document.querySelector('.floor-indicator');
+        const themeIndicator = document.querySelector('.theme-indicator');
+        const ammoCounter = document.querySelector('.ammo-counter');
+        const finalFloorSpan = document.getElementById('final-floor');
+        const nextFloorSpan = document.getElementById('next-floor');
+        const pickupItem = document.querySelector('.pickup-item');
+        
+        // Joystick elements
+        const joystickBase = document.querySelector('.joystick-base');
+        const joystickThumb = document.querySelector('.joystick-thumb');
+        const actionButton = document.querySelector('.action-button');
+
+        // Initialize the game
+        function init() {
+            // Scene setup
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x87ceeb); // Sky blue
+            
+            // Camera setup
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.y = 1.6; // Eye height
+            
+            // Renderer setup
+            renderer = new THREE.WebGLRenderer({ canvas: gameCanvas, antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0x404040);
+            scene.add(ambientLight);
+            
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(1, 1, 1);
+            scene.add(directionalLight);
+            
+            // Create player (camera is the player)
+            player = new THREE.Group();
+            player.add(camera);
+            scene.add(player);
+            
+            // Event listeners
+            window.addEventListener('resize', onWindowResize);
+            document.getElementById('start-button').addEventListener('click', startGame);
+            document.getElementById('restart-button').addEventListener('click', restartGame);
+            document.getElementById('continue-button').addEventListener('click', continueToNextFloor);
+            document.getElementById('health-upgrade').addEventListener('click', () => applyUpgrade('health'));
+            document.getElementById('damage-upgrade').addEventListener('click', () => applyUpgrade('damage'));
+            document.getElementById('speed-upgrade').addEventListener('click', () => applyUpgrade('speed'));
+            
+            // Mobile touch controls
+            setupTouchControls();
+            
+            // Keyboard controls for desktop
+            setupKeyboardControls();
+            
+            // Start animation loop
+            animate();
+        }
+
+        function setupTouchControls() {
+            // Joystick touch handling
+            joystickBase.addEventListener('touchstart', handleJoystickStart);
+            joystickBase.addEventListener('touchmove', handleJoystickMove);
+            joystickBase.addEventListener('touchend', handleJoystickEnd);
+            
+            // Action button touch handling
+            actionButton.addEventListener('touchstart', handleActionStart);
+            actionButton.addEventListener('touchend', handleActionEnd);
+            
+            // Handle touches outside of UI elements for camera rotation
+            gameCanvas.addEventListener('touchstart', handleCanvasTouchStart);
+            gameCanvas.addEventListener('touchmove', handleCanvasTouchMove);
+            gameCanvas.addEventListener('touchend', handleCanvasTouchEnd);
+        }
+
+        function setupKeyboardControls() {
+            document.addEventListener('keydown', (event) => {
+                switch (event.code) {
+                    case 'KeyW':
+                    case 'ArrowUp':
+                        moveForward = true;
+                        break;
+                    case 'KeyS':
+                    case 'ArrowDown':
+                        moveBackward = true;
+                        break;
+                    case 'KeyA':
+                    case 'ArrowLeft':
+                        moveLeft = true;
+                        break;
+                    case 'KeyD':
+                    case 'ArrowRight':
+                        moveRight = true;
+                        break;
+                    case 'Space':
+                        performAction();
+                        break;
+                }
+            });
+            
+            document.addEventListener('keyup', (event) => {
+                switch (event.code) {
+                    case 'KeyW':
+                    case 'ArrowUp':
+                        moveForward = false;
+                        break;
+                    case 'KeyS':
+                    case 'ArrowDown':
+                        moveBackward = false;
+                        break;
+                    case 'KeyA':
+                    case 'ArrowLeft':
+                        moveLeft = false;
+                        break;
+                    case 'KeyD':
+                    case 'ArrowRight':
+                        moveRight = false;
+                        break;
+                }
+            });
+            
+            // Mouse controls for camera rotation
+            document.addEventListener('mousemove', (event) => {
+                if (gameState.isGameStarted && !gameState.isGameOver && !gameState.isLevelComplete) {
+                    const movementX = event.movementX || 0;
+                    const movementY = event.movementY || 0;
+                    
+                    player.rotation.y -= movementX * 0.002;
+                    camera.rotation.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, camera.rotation.x - movementY * 0.002));
+                }
+            });
+            
+            // Lock pointer on click for desktop
+            gameCanvas.addEventListener('click', () => {
+                if (gameState.isGameStarted && !gameState.isGameOver && !gameState.isLevelComplete) {
+                    gameCanvas.requestPointerLock();
+                }
+            });
+        }
+
+        // Touch control handlers
+        function handleJoystickStart(event) {
+            event.preventDefault();
+            const touch = event.touches[0];
+            const rect = joystickBase.getBoundingClientRect();
+            
+            gameState.touchControls.joystick.active = true;
+            gameState.touchControls.joystick.id = touch.identifier;
+            gameState.touchControls.joystick.startX = rect.left + rect.width / 2;
+            gameState.touchControls.joystick.startY = rect.top + rect.height / 2;
+        }
+
+        function handleJoystickMove(event) {
+            event.preventDefault();
+            if (!gameState.touchControls.joystick.active) return;
+            
+            let touch;
+            for (let i = 0; i < event.touches.length; i++) {
+                if (event.touches[i].identifier === gameState.touchControls.joystick.id) {
+                    touch = event.touches[i];
+                    break;
+                }
+            }
+            
+            if (!touch) return;
+            
+            const maxDistance = 40;
+            let dx = touch.clientX - gameState.touchControls.joystick.startX;
+            let dy = touch.clientY - gameState.touchControls.joystick.startY;
+            
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            
+            if (distance > maxDistance) {
+                dx = dx * maxDistance / distance;
+                dy = dy * maxDistance / distance;
+            }
+            
+            joystickThumb.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+            
+            // Normalize for movement
+            gameState.touchControls.joystick.moveX = dx / maxDistance;
+            gameState.touchControls.joystick.moveY = dy / maxDistance;
+            
+            // Set movement flags based on joystick position
+            moveForward = gameState.touchControls.joystick.moveY < -0.3;
+            moveBackward = gameState.touchControls.joystick.moveY > 0.3;
+            moveLeft = gameState.touchControls.joystick.moveX < -0.3;
+            moveRight = gameState.touchControls.joystick.moveX > 0.3;
+        }
+
+        function handleJoystickEnd(event) {
+            event.preventDefault();
+            let found = false;
+            
+            for (let i = 0; i < event.touches.length; i++) {
+                if (event.touches[i].identifier === gameState.touchControls.joystick.id) {
+                    found = true;
+                    break;
+                }
+            }
+            
+            if (!found) {
+                gameState.touchControls.joystick.active = false;
+                joystickThumb.style.transform = 'translate(-50%, -50%)';
+                moveForward = moveBackward = moveLeft = moveRight = false;
+            }
+        }
+
+        function handleActionStart(event) {
+            event.preventDefault();
+            gameState.touchControls.action.active = true;
+            gameState.touchControls.action.id = event.touches[0].identifier;
+            performAction();
+        }
+
+        function handleActionEnd(event) {
+            event.preventDefault();
+            gameState.touchControls.action.active = false;
+        }
+
+        // Camera rotation via touch on canvas
+        let lastTouchX = 0;
+        let lastTouchY = 0;
+        let touchId = null;
+
+        function handleCanvasTouchStart(event) {
+            // Only handle touches that are not on UI elements
+            for (let i = 0; i < event.touches.length; i++) {
+                const touch = event.touches[i];
+                const element = document.elementFromPoint(touch.clientX, touch.clientY);
+                
+                if (!element.closest('.ui-element') && touchId === null) {
+                    touchId = touch.identifier;
+                    lastTouchX = touch.clientX;
+                    lastTouchY = touch.clientY;
+                    break;
+                }
+            }
+        }
+
+        function handleCanvasTouchMove(event) {
+            if (touchId === null) return;
+            
+            for (let i = 0; i < event.touches.length; i++) {
+                const touch = event.touches[i];
+                if (touch.identifier === touchId) {
+                    const movementX = touch.clientX - lastTouchX;
+                    const movementY = touch.clientY - lastTouchY;
+                    
+                    player.rotation.y -= movementX * 0.01;
+                    camera.rotation.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, camera.rotation.x - movementY * 0.01));
+                    
+                    lastTouchX = touch.clientX;
+                    lastTouchY = touch.clientY;
+                    break;
+                }
+            }
+        }
+
+        function handleCanvasTouchEnd(event) {
+            let found = false;
+            for (let i = 0; i < event.touches.length; i++) {
+                if (event.touches[i].identifier === touchId) {
+                    found = true;
+                    break;
+                }
+            }
+            
+            if (!found) {
+                touchId = null;
+            }
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function startGame() {
+            gameState.isGameStarted = true;
+            startScreen.style.display = 'none';
+            generateLevel(gameState.currentFloor);
+            updateUI();
+        }
+
+        function restartGame() {
+            gameState.currentFloor = 1;
+            gameState.health = gameState.maxHealth;
+            gameState.ammo = gameState.maxAmmo;
+            gameState.isGameOver = false;
+            gameState.score = 0;
+            
+            gameOverScreen.style.display = 'none';
+            generateLevel(gameState.currentFloor);
+            updateUI();
+        }
+
+        function continueToNextFloor() {
+            gameState.currentFloor++;
+            gameState.isLevelComplete = false;
+            levelCompleteScreen.style.display = 'none';
+            generateLevel(gameState.currentFloor);
+            updateUI();
+        }
+
+        function applyUpgrade(type) {
+            switch (type) {
+                case 'health':
+                    gameState.maxHealth += 20;
+                    gameState.health = Math.min(gameState.health + 20, gameState.maxHealth);
+                    break;
+                case 'damage':
+                    gameState.damage *= 1.1;
+                    break;
+                case 'speed':
+                    gameState.moveSpeed *= 1.1;
+                    break;
+            }
+            updateUI();
+        }
+
+        function generateLevel(floorNumber) {
+            // Clear previous level
+            walls.forEach(wall => scene.remove(wall));
+            enemies.forEach(enemy => scene.remove(enemy));
+            items.forEach(item => scene.remove(item));
+            if (floor) scene.remove(floor);
+            if (exit) scene.remove(exit);
+            
+            walls = [];
+            enemies = [];
+            items = [];
+            
+            // Determine theme based on floor number
+            const themeIndex = Math.floor((floorNumber - 1) / 10) % themes.length;
+            gameState.currentTheme = themes[themeIndex].name;
+            
+            // Create floor
+            const floorGeometry = new THREE.PlaneGeometry(50, 50);
+            const floorMaterial = new THREE.MeshStandardMaterial({ 
+                color: themes[themeIndex].color,
+                roughness: 0.8
+            });
+            floor = new THREE.Mesh(floorGeometry, floorMaterial);
+            floor.rotation.x = -Math.PI / 2;
+            floor.position.y = 0;
+            scene.add(floor);
+            
+            // Create walls based on theme
+            createWalls(themeIndex, floorNumber);
+            
+            // Create enemies based on theme
+            createEnemies(themeIndex, floorNumber);
+            
+            // Create items
+            createItems(themeIndex, floorNumber);
+            
+            // Create exit
+            createExit();
+            
+            // Reset player position
+            player.position.set(0, 1.6, 20);
+            player.rotation.y = 0;
+            camera.rotation.x = 0;
+            
+            // Update theme indicator
+            themeIndicator.textContent = `Theme: ${gameState.currentTheme}`;
+        }
+
+        function createWalls(themeIndex, floorNumber) {
+            // Outer walls
+            const wallHeight = 4;
+            const wallMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0x808080,
+                roughness: 0.7
+            });
+            
+            // North wall
+            const northWall = new THREE.Mesh(
+                new THREE.BoxGeometry(50, wallHeight, 1),
+                wallMaterial
+            );
+            northWall.position.set(0, wallHeight/2, -25);
+            scene.add(northWall);
+            walls.push(northWall);
+            
+            // South wall
+            const southWall = new THREE.Mesh(
+                new THREE.BoxGeometry(50, wallHeight, 1),
+                wallMaterial
+            );
+            southWall.position.set(0, wallHeight/2, 25);
+            scene.add(southWall);
+            walls.push(southWall);
+            
+            // East wall
+            const eastWall = new THREE.Mesh(
+                new THREE.BoxGeometry(1, wallHeight, 50),
+                wallMaterial
+            );
+            eastWall.position.set(25, wallHeight/2, 0);
+            scene.add(eastWall);
+            walls.push(eastWall);
+            
+            // West wall
+            const westWall = new THREE.Mesh(
+                new THREE.BoxGeometry(1, wallHeight, 50),
+                wallMaterial
+            );
+            westWall.position.set(-25, wallHeight/2, 0);
+            scene.add(westWall);
+            walls.push(westWall);
+            
+            // Add internal walls based on theme
+            switch (themeIndex) {
+                case 0: // Combat theme - arena style with some cover
+                    for (let i = 0; i < 5; i++) {
+                        const pillar = new THREE.Mesh(
+                            new THREE.BoxGeometry(2, wallHeight, 2),
+                            wallMaterial
+                        );
+                        pillar.position.set(
+                            (Math.random() - 0.5) * 40,
+                            wallHeight/2,
+                            (Math.random() - 0.5) * 40
+                        );
+                        scene.add(pillar);
+                        walls.push(pillar);
+                    }
+                    break;
+                    
+                case 1: // Stealth theme - more walls to hide behind
+                    for (let i = 0; i < 8; i++) {
+                        const wall = new THREE.Mesh(
+                            new THREE.BoxGeometry(Math.random() * 10 + 5, wallHeight, 1),
+                            wallMaterial
+                        );
+                        wall.position.set(
+                            (Math.random() - 0.5) * 40,
+                            wallHeight/2,
+                            (Math.random() - 0.5) * 40
+                        );
+                        wall.rotation.y = Math.random() * Math.PI;
+                        scene.add(wall);
+                        walls.push(wall);
+                    }
+                    break;
+                    
+                case 2: // Puzzle theme - maze-like structure
+                    const mazeSize = 5;
+                    const cellSize = 8;
+                    
+                    // Simple maze generation
+                    for (let x = 0; x < mazeSize; x++) {
+                        for (let z = 0; z < mazeSize; z++) {
+                            if (Math.random() > 0.7) {
+                                const wall = new THREE.Mesh(
+                                    new THREE.BoxGeometry(cellSize, wallHeight, 1),
+                                    wallMaterial
+                                );
+                                wall.position.set(
+                                    (x - mazeSize/2) * cellSize,
+                                    wallHeight/2,
+                                    (z - mazeSize/2) * cellSize
+                                );
+                                wall.rotation.y = Math.random() > 0.5 ? 0 : Math.PI/2;
+                                scene.add(wall);
+                                walls.push(wall);
+                            }
+                        }
+                    }
+                    break;
+                    
+                case 3: // Survival theme - obstacles and hazards
+                    for (let i = 0; i < 12; i++) {
+                        const obstacle = new THREE.Mesh(
+                            new THREE.CylinderGeometry(1, 1, wallHeight, 8),
+                            new THREE.MeshStandardMaterial({ color: 0xff0000 })
+                        );
+                        obstacle.position.set(
+                            (Math.random() - 0.5) * 40,
+                            wallHeight/2,
+                            (Math.random() - 0.5) * 40
+                        );
+                        scene.add(obstacle);
+                        walls.push(obstacle);
+                    }
+                    break;
+                    
+                case 4: // Collection theme - open space with platforms
+                    for (let i = 0; i < 8; i++) {
+                        const platform = new THREE.Mesh(
+                            new THREE.BoxGeometry(5, 1, 5),
+                            new THREE.MeshStandardMaterial({ color: 0xffff00 })
+                        );
+                        platform.position.set(
+                            (Math.random() - 0.5) * 40,
+                            Math.random() * 2,
+                            (Math.random() - 0.5) * 40
+                        );
+                        scene.add(platform);
+                        walls.push(platform);
+                    }
+                    break;
+            }
+        }
+
+        function createEnemies(themeIndex, floorNumber) {
+            const enemyCount = Math.min(3 + Math.floor(floorNumber / 5), 15);
+            const enemySize = 0.8;
+            
+            for (let i = 0; i < enemyCount; i++) {
+                let enemyGeometry, enemyMaterial;
+                
+                switch (themeIndex) {
+                    case 0: // Combat - aggressive enemies
+                        enemyGeometry = new THREE.BoxGeometry(enemySize, enemySize*2, enemySize);
+                        enemyMaterial = new THREE.MeshStandardMaterial({ color: 0xff0000 });
+                        break;
+                    case 1: // Stealth - patrolling guards
+                        enemyGeometry = new THREE.ConeGeometry(enemySize/2, enemySize*2, 4);
+                        enemyMaterial = new THREE.MeshStandardMaterial({ color: 0x0000ff });
+                        break;
+                    case 2: // Puzzle - stationary obstacles
+                        enemyGeometry = new THREE.SphereGeometry(enemySize/2);
+                        enemyMaterial = new THREE.MeshStandardMaterial({ color: 0x00ff00 });
+                        break;
+                    case 3: // Survival - hazards
+                        enemyGeometry = new THREE.TetrahedronGeometry(enemySize/2);
+                        enemyMaterial = new THREE.MeshStandardMaterial({ color: 0xff6600 });
+                        break;
+                    case 4: // Collection - competitors
+                        enemyGeometry = new THREE.OctahedronGeometry(enemySize/2);
+                        enemyMaterial = new THREE.MeshStandardMaterial({ color: 0xffff00 });
+                        break;
+                }
+                
+                const enemy = new THREE.Mesh(enemyGeometry, enemyMaterial);
+                
+                // Position away from player start
+                let validPosition = false;
+                let position = new THREE.Vector3();
+                
+                while (!validPosition) {
+                    position.set(
+                        (Math.random() - 0.5) * 40,
+                        enemySize,
+                        (Math.random() - 0.5) * 40
+                    );
+                    
+                    // Check if too close to player start
+                    if (position.distanceTo(new THREE.Vector3(0, 1.6, 20)) > 10) {
+                        validPosition = true;
+                    }
+                }
+                
+                enemy.position.copy(position);
+                
+                // Add properties for game logic
+                enemy.userData = {
+                    type: 'enemy',
+                    health: 20 + Math.floor(floorNumber / 10) * 10,
+                    damage: 5 + Math.floor(floorNumber / 10) * 2,
+                    speed: 0.03 + Math.random() * 0.02,
+                    state: 'patrol',
+                    patrolTarget: new THREE.Vector3(
+                        (Math.random() - 0.5) * 40,
+                        enemySize,
+                        (Math.random() - 0.5) * 40
+                    ),
+                    detectionRange: themeIndex === 1 ? 8 : 15, // Stealth theme has shorter detection
+                    lastAttackTime: 0
+                };
+                
+                scene.add(enemy);
+                enemies.push(enemy);
+            }
+        }
+
+        function createItems(themeIndex, floorNumber) {
+            const itemCount = 3 + Math.floor(Math.random() * 3);
+            
+            for (let i = 0; i < itemCount; i++) {
+                let itemGeometry, itemMaterial, itemType;
+                
+                // Determine item type
+                const itemRoll = Math.random();
+                
+                if (itemRoll < 0.4) {
+                    // Health pack
+                    itemGeometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
+                    itemMaterial = new THREE.MeshStandardMaterial({ color: 0x00ff00 });
+                    itemType = 'health';
+                } else if (itemRoll < 0.7) {
+                    // Ammo
+                    itemGeometry = new THREE.CylinderGeometry(0.2, 0.2, 0.6, 8);
+                    itemMaterial = new THREE.MeshStandardMaterial({ color: 0xffff00 });
+                    itemType = 'ammo';
+                } else {
+                    // Power-up
+                    itemGeometry = new THREE.SphereGeometry(0.3);
+                    itemMaterial = new THREE.MeshStandardMaterial({ color: 0xff00ff });
+                    itemType = 'powerup';
+                }
+                
+                const item = new THREE.Mesh(itemGeometry, itemMaterial);
+                item.position.set(
+                    (Math.random() - 0.5) * 40,
+                    0.5,
+                    (Math.random() - 0.5) * 40
+                );
+                
+                // Add rotation animation
+                item.userData = {
+                    type: 'item',
+                    itemType: itemType,
+                    rotationSpeed: 0.02
+                };
+                
+                scene.add(item);
+                items.push(item);
+            }
+        }
+
+        function createExit() {
+            const exitGeometry = new THREE.CylinderGeometry(1.5, 1.5, 0.1, 16);
+            const exitMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0x00ffff,
+                emissive: 0x00ffff,
+                emissiveIntensity: 0.5
+            });
+            
+            exit = new THREE.Mesh(exitGeometry, exitMaterial);
+            exit.position.set(0, 0.05, -20);
+            exit.userData = { type: 'exit' };
+            
+            scene.add(exit);
+        }
+
+        function performAction() {
+            if (!gameState.isGameStarted || gameState.isGameOver || gameState.isLevelComplete) return;
+            
+            const themeIndex = Math.floor((gameState.currentFloor - 1) / 10) % themes.length;
+            
+            switch (themeIndex) {
+                case 0: // Combat - shoot
+                    if (gameState.ammo > 0) {
+                        shootWeapon();
+                        gameState.ammo--;
+                        updateUI();
+                    }
+                    break;
+                case 1: // Stealth - hide/distract
+                    createDistraction();
+                    break;
+                case 2: // Puzzle - interact
+                    interactWithPuzzle();
+                    break;
+                case 3: // Survival - dodge
+                    performDodge();
+                    break;
+                case 4: // Collection - collect
+                    magnetizeItems();
+                    break;
+            }
+        }
+
+        function shootWeapon() {
+            // Create a bullet trail effect
+            raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
+            
+            const bulletGeometry = new THREE.SphereGeometry(0.1);
+            const bulletMaterial = new THREE.MeshBasicMaterial({ color: 0xffff00 });
+            const bullet = new THREE.Mesh(bulletGeometry, bulletMaterial);
+            
+            bullet.position.copy(camera.position);
+            scene.add(bullet);
+            
+            // Animate bullet along raycaster direction
+            const bulletDirection = raycaster.ray.direction.clone();
+            const bulletSpeed = 1;
+            
+            // Check for enemy hits
+            const intersects = raycaster.intersectObjects(enemies);
+            
+            if (intersects.length > 0) {
+                const hitEnemy = intersects[0].object;
+                hitEnemy.userData.health -= gameState.damage;
+                
+                // Enemy hit effect
+                hitEnemy.material.emissive = new THREE.Color(0xff0000);
+                hitEnemy.material.emissiveIntensity = 0.5;
+                
+                setTimeout(() => {
+                    if (hitEnemy.material) {
+                        hitEnemy.material.emissiveIntensity = 0;
+                    }
+                }, 200);
+                
+                // Check if enemy is defeated
+                if (hitEnemy.userData.health <= 0) {
+                    scene.remove(hitEnemy);
+                    enemies = enemies.filter(e => e !== hitEnemy);
+                    
+                    // Check if all enemies are defeated
+                    if (enemies.length === 0 && gameState.currentTheme === 'Combat') {
+                        showPickupMessage('All enemies defeated!');
+                    }
+                }
+            }
+            
+            // Remove bullet after animation
+            setTimeout(() => {
+                scene.remove(bullet);
+            }, 1000);
+            
+            // Bullet animation
+            function animateBullet() {
+                bullet.position.add(bulletDirection.multiplyScalar(bulletSpeed));
+                
+                // Check if bullet is out of bounds
+                if (bullet.position.length() > 50) {
+                    scene.remove(bullet);
+                    return;
+                }
+                
+                requestAnimationFrame(animateBullet);
+            }
+            
+            animateBullet();
+        }
+
+        function createDistraction() {
+            // Create a noise distraction to lure enemies
+            const distractionGeometry = new THREE.SphereGeometry(0.3);
+            const distractionMaterial = new THREE.MeshBasicMaterial({ 
+                color: 0x00ffff,
+                transparent: true,
+                opacity: 0.7
+            });
+            
+            const distraction = new THREE.Mesh(distractionGeometry, distractionMaterial);
+            
+            // Position the distraction in front of the player
+            raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
+            distraction.position.copy(player.position.clone().add(raycaster.ray.direction.clone().multiplyScalar(5)));
+            distraction.position.y = 0.3;
+            
+            scene.add(distraction);
+            
+            // Make enemies aware of the distraction
+            enemies.forEach(enemy => {
+                if (enemy.position.distanceTo(distraction.position) < 15) {
+                    enemy.userData.state = 'distracted';
+                    enemy.userData.distractionTarget = distraction.position.clone();
+                }
+            });
+            
+            // Expand and fade out the distraction
+            let scale = 1;
+            let opacity = 0.7;
+            
+            function animateDistraction() {
+                scale += 0.1;
+                opacity -= 0.02;
+                
+                distraction.scale.set(scale, scale, scale);
+                distractionMaterial.opacity = Math.max(0, opacity);
+                
+                if (opacity <= 0) {
+                    scene.remove(distraction);
+                    return;
+                }
+                
+                requestAnimationFrame(animateDistraction);
+            }
+            
+            animateDistraction();
+            
+            // Reset enemies after distraction
+            setTimeout(() => {
+                enemies.forEach(enemy => {
+                    if (enemy.userData.state === 'distracted') {
+                        enemy.userData.state = 'patrol';
+                    }
+                });
+            }, 5000);
+            
+            showPickupMessage('Distraction created!');
+        }
+
+        function interactWithPuzzle() {
+            // In puzzle theme, reveal the path to exit
+            if (gameState.currentTheme === 'Puzzle') {
+                // Highlight the path to exit
+                const pathMarkers = [];
+                const markerCount = 5;
+                
+                for (let i = 0; i < markerCount; i++) {
+                    const t = (i + 1) / (markerCount + 1);
+                    const markerGeometry = new THREE.CylinderGeometry(0.3, 0.3, 0.1, 8);
+                    const markerMaterial = new THREE.MeshBasicMaterial({ 
+                        color: 0x00ffff,
+                        transparent: true,
+                        opacity: 0.7
+                    });
+                    
+                    const marker = new THREE.Mesh(markerGeometry, markerMaterial);
+                    
+                    // Position along path from player to exit
+                    marker.position.x = player.position.x * (1 - t) + exit.position.x * t;
+                    marker.position.y = 0.05;
+                    marker.position.z = player.position.z * (1 - t) + exit.position.z * t;
+                    
+                    scene.add(marker);
+                    pathMarkers.push(marker);
+                }
+                
+                // Remove markers after a few seconds
+                setTimeout(() => {
+                    pathMarkers.forEach(marker => scene.remove(marker));
+                }, 5000);
+                
+                showPickupMessage('Path revealed temporarily!');
+            }
+        }
+
+        function performDodge() {
+            // Quick dodge movement in survival theme
+            if (gameState.currentTheme === 'Survival') {
+                const dodgeDirection = new THREE.Vector3();
+                
+                // Dodge to the side
+                if (moveForward || moveBackward) {
+                    dodgeDirection.x = Math.sin(player.rotation.y) * (moveLeft ? 1 : moveRight ? -1 : 0);
+                    dodgeDirection.z = Math.cos(player.rotation.y) * (moveLeft ? 1 : moveRight ? -1 : 0);
+                } else {
+                    dodgeDirection.x = Math.sin(player.rotation.y + Math.PI/2) * (moveLeft ? 1 : moveRight ? -1 : 1);
+                    dodgeDirection.z = Math.cos(player.rotation.y + Math.PI/2) * (moveLeft ? 1 : moveRight ? -1 : 1);
+                }
+                
+                // Apply dodge movement
+                const dodgeDistance = 3;
+                player.position.x += dodgeDirection.x * dodgeDistance;
+                player.position.z += dodgeDirection.z * dodgeDistance;
+                
+                // Prevent going through walls
+                checkCollisions();
+                
+                showPickupMessage('Dodge!');
+            }
+        }
+
+        function magnetizeItems() {
+            // Pull nearby items toward the player in collection theme
+            if (gameState.currentTheme === 'Collection') {
+                items.forEach(item => {
+                    if (item.position.distanceTo(player.position) < 10) {
+                        item.userData.magnetized = true;
+                    }
+                });
+                
+                showPickupMessage('Items magnetized!');
+            }
+        }
+
+        function updateEnemies() {
+            const time = performance.now();
+            
+            enemies.forEach(enemy => {
+                const distanceToPlayer = enemy.position.distanceTo(player.position);
+                
+                // Enemy behavior based on theme and state
+                switch (enemy.userData.state) {
+                    case 'patrol':
+                        // Move toward patrol target
+                        const distanceToTarget = enemy.position.distanceTo(enemy.userData.patrolTarget);
+                        
+                        if (distanceToTarget > 1) {
+                            const direction = enemy.userData.patrolTarget.clone().sub(enemy.position).normalize();
+                            enemy.position.x += direction.x * enemy.userData.speed;
+                            enemy.position.z += direction.z * enemy.userData.speed;
+                            
+                            // Rotate toward movement direction
+                            enemy.rotation.y = Math.atan2(direction.x, direction.z);
+                        } else {
+                            // Set new patrol target
+                            enemy.userData.patrolTarget = new THREE.Vector3(
+                                (Math.random() - 0.5) * 40,
+                                enemy.position.y,
+                                (Math.random() - 0.5) * 40
+                            );
+                        }
+                        
+                        // Check if player is detected
+                        if (distanceToPlayer < enemy.userData.detectionRange) {
+                            // Check if player is in line of sight
+                            raycaster.set(enemy.position, player.position.clone().sub(enemy.position).normalize());
+                            const intersects = raycaster.intersectObjects(walls);
+                            
+                            if (intersects.length === 0 || intersects[0].distance > distanceToPlayer) {
+                                enemy.userData.state = 'chase';
+                            }
+                        }
+                        break;
+                        
+                    case 'chase':
+                        // Move toward player
+                        const directionToPlayer = player.position.clone().sub(enemy.position).normalize();
+                        enemy.position.x += directionToPlayer.x * enemy.userData.speed * 1.5;
+                        enemy.position.z += directionToPlayer.z * enemy.userData.speed * 1.5;
+                        
+                        // Rotate toward player
+                        enemy.rotation.y = Math.atan2(directionToPlayer.x, directionToPlayer.z);
+                        
+                        // Attack if close enough
+                        if (distanceToPlayer < 2 && time - enemy.userData.lastAttackTime > 1000) {
+                            gameState.health -= enemy.userData.damage;
+                            enemy.userData.lastAttackTime = time;
+                            
+                            // Visual feedback for taking damage
+                            document.body.style.backgroundColor = 'rgba(255,0,0,0.3)';
+                            setTimeout(() => {
+                                document.body.style.backgroundColor = 'transparent';
+                            }, 100);
+                            
+                            updateUI();
+                            
+                            // Check if player is dead
+                            if (gameState.health <= 0) {
+                                gameOver();
+                            }
+                        }
+                        
+                        // Lose interest if player gets too far
+                        if (distanceToPlayer > enemy.userData.detectionRange * 1.5) {
+                            enemy.userData.state = 'patrol';
+                        }
+                        break;
+                        
+                    case 'distracted':
+                        // Move toward distraction
+                        const distanceToDistraction = enemy.position.distanceTo(enemy.userData.distractionTarget);
+                        
+                        if (distanceToDistraction > 1) {
+                            const direction = enemy.userData.distractionTarget.clone().sub(enemy.position).normalize();
+                            enemy.position.x += direction.x * enemy.userData.speed;
+                            enemy.position.z += direction.z * enemy.userData.speed;
+                            
+                            // Rotate toward distraction
+                            enemy.rotation.y = Math.atan2(direction.x, direction.z);
+                        }
+                        break;
+                }
+            });
+        }
+
+        function updateItems() {
+            items.forEach(item => {
+                // Rotate items
+                item.rotation.y += item.userData.rotationSpeed;
+                
+                // Handle magnetized items
+                if (item.userData.magnetized) {
+                    const directionToPlayer = player.position.clone().sub(item.position).normalize();
+                    item.position.add(directionToPlayer.multiplyScalar(0.2));
+                }
+                
+                // Check if player collects item
+                if (item.position.distanceTo(player.position) < 1.5) {
+                    // Apply item effect
+                    switch (item.userData.itemType) {
+                        case 'health':
+                            gameState.health = Math.min(gameState.health + 20, gameState.maxHealth);
+                            showPickupMessage('Picked up: Health Pack (+20)');
+                            break;
+                        case 'ammo':
+                            gameState.ammo = Math.min(gameState.ammo + 5, gameState.maxAmmo);
+                            showPickupMessage('Picked up: Ammo (+5)');
+                            break;
+                        case 'powerup':
+                            gameState.damage *= 1.2;
+                            showPickupMessage('Picked up: Damage Boost (+20%)');
+                            break;
+                    }
+                    
+                    // Remove item
+                    scene.remove(item);
+                    items = items.filter(i => i !== item);
+                    
+                    updateUI();
+                }
+            });
+        }
+
+        function checkCollisions() {
+            // Player-wall collisions
+            const playerRadius = 0.5;
+            
+            walls.forEach(wall => {
+                const wallBox = new THREE.Box3().setFromObject(wall);
+                const playerPos = new THREE.Vector3(player.position.x, player.position.y - 1.6, player.position.z);
+                
+                // Simple sphere-box collision
+                const closestPoint = new THREE.Vector3().copy(playerPos).clamp(wallBox.min, wallBox.max);
+                const distance = closestPoint.distanceTo(playerPos);
+                
+                if (distance < playerRadius) {
+                    // Push player away from wall
+                    const pushDirection = playerPos.clone().sub(closestPoint).normalize();
+                    const pushAmount = playerRadius - distance;
+                    
+                    player.position.x += pushDirection.x * pushAmount;
+                    player.position.z += pushDirection.z * pushAmount;
+                }
+            });
+            
+            // Check if player reached exit
+            if (exit && player.position.distanceTo(exit.position) < 2) {
+                completeLevel();
+            }
+        }
+
+        function completeLevel() {
+            if (gameState.isLevelComplete) return;
+            
+            gameState.isLevelComplete = true;
+            
+            // Update UI
+            nextFloorSpan.textContent = gameState.currentFloor + 1;
+            
+            // Show level complete screen
+            levelCompleteScreen.style.display = 'flex';
+            
+            // Check if game is won
+            if (gameState.currentFloor >= gameState.maxFloor) {
+                // Game won!
+                document.querySelector('.level-complete-screen h1').textContent = 'Tower Conquered!';
+                document.querySelector('.level-complete-screen p').textContent = 'You reached the top of the tower!';
+                document.getElementById('continue-button').style.display = 'none';
+            }
+        }
+
+        function gameOver() {
+            gameState.isGameOver = true;
+            
+            // Update UI
+            finalFloorSpan.textContent = gameState.currentFloor;
+            
+            // Show game over screen
+            gameOverScreen.style.display = 'flex';
+        }
+
+        function showPickupMessage(message) {
+            pickupItem.textContent = message;
+            pickupItem.style.opacity = 1;
+            
+            setTimeout(() => {
+                pickupItem.style.opacity = 0;
+            }, 2000);
+        }
+
+        function updateUI() {
+            // Update health bar
+            healthFill.style.width = `${(gameState.health / gameState.maxHealth) * 100}%`;
+            
+            // Update floor indicator
+            floorIndicator.textContent = `Floor: ${gameState.currentFloor}/${gameState.maxFloor}`;
+            
+            // Update ammo counter
+            ammoCounter.textContent = `Ammo: ${gameState.ammo}`;
+            
+            // Show/hide ammo counter based on theme
+            ammoCounter.style.display = gameState.currentTheme === 'Combat' ? 'block' : 'none';
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            if (gameState.isGameStarted && !gameState.isGameOver && !gameState.isLevelComplete) {
+                const time = performance.now();
+                const delta = (time - prevTime) / 1000;
+                
+                // Update velocity based on movement controls
+                velocity.x = 0;
+                velocity.z = 0;
+                
+                direction.z = Number(moveForward) - Number(moveBackward);
+                direction.x = Number(moveRight) - Number(moveLeft);
+                direction.normalize();
+                
+                if (moveForward || moveBackward) velocity.z -= direction.z * gameState.moveSpeed;
+                if (moveLeft || moveRight) velocity.x -= direction.x * gameState.moveSpeed;
+                
+                // Apply velocity to player position
+                player.translateX(velocity.x * delta);
+                player.translateZ(velocity.z * delta);
+                
+                // Keep player at constant height
+                player.position.y = 1.6;
+                
+                // Check collisions
+                checkCollisions();
+                
+                // Update enemies
+                updateEnemies();
+                
+                // Update items
+                updateItems();
+                
+                prevTime = time;
+            }
+            
+            renderer.render(scene, camera);
+        }
+
+        // Initialize the game
+        init();
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'947a748473ba616b',t:'MTc0ODU2ODUxMC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
