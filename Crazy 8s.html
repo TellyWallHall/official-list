@@ -1,0 +1,406 @@
+<!doctype html>
+<!-- by ImPot8o https://github.com/ImPot8o pot8o.dev -->
+<html lang="en" class="h-full">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Crazy 8s</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      box-sizing: border-box;
+    }
+    
+    @keyframes dealCard {
+      from {
+        opacity: 0;
+        transform: translateY(-50px) rotate(-10deg);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) rotate(0deg);
+      }
+    }
+    
+    @keyframes playCard {
+      from {
+        transform: scale(1);
+      }
+      to {
+        transform: scale(0.9);
+      }
+    }
+    
+    @keyframes pulse {
+      0%, 100% {
+        transform: scale(1);
+      }
+      50% {
+        transform: scale(1.05);
+      }
+    }
+    
+    .card-deal {
+      animation: dealCard 0.3s ease-out;
+    }
+    
+    .card-play {
+      animation: playCard 0.2s ease-out;
+    }
+    
+    .pulse-animation {
+      animation: pulse 1s ease-in-out infinite;
+    }
+    
+    .card {
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    
+    .card:hover:not(.disabled) {
+      transform: translateY(-10px);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+    }
+    
+    .card.disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  </style>
+ </head>
+ <body class="h-full">
+  <div id="app-wrapper" class="h-full w-full overflow-auto" style="background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);">
+   <div class="min-h-full w-full flex flex-col p-4"><!-- Header -->
+    <header class="text-center mb-4">
+     <h1 id="game-title" class="text-3xl font-bold text-white mb-2" style="font-family: 'Georgia', serif;">Crazy 8s</h1>
+     <div id="game-status" class="text-lg text-white font-semibold"></div>
+    </header><!-- Computer Hand (cards face down) -->
+    <section class="mb-6">
+     <div class="flex items-center justify-between mb-2"><label class="text-white font-semibold" id="computer-label">Computer</label> <span id="computer-count" class="text-white text-sm bg-black bg-opacity-30 px-3 py-1 rounded-full">0 cards</span>
+     </div>
+     <div id="computer-hand" class="flex justify-center gap-2 flex-wrap"></div>
+    </section><!-- Game Area (Deck and Discard Pile) -->
+    <main class="flex-1 flex items-center justify-center mb-6">
+     <div class="flex gap-6 items-center"><!-- Draw Pile -->
+      <div class="relative"><button id="draw-pile" class="w-24 h-36 bg-red-600 rounded-lg shadow-lg border-4 border-red-700 flex items-center justify-center text-white font-bold text-xl hover:bg-red-700 transition-colors" aria-label="Draw a card"> 🂠 </button>
+       <div id="deck-count" class="absolute -top-2 -right-2 bg-yellow-400 text-black font-bold px-2 py-1 rounded-full text-xs"></div>
+      </div><!-- Discard Pile -->
+      <div class="relative">
+       <div id="discard-pile" class="w-24 h-36 bg-white rounded-lg shadow-lg border-2 border-gray-300 flex items-center justify-center text-5xl"></div>
+       <div id="suit-indicator" class="absolute -bottom-8 left-1/2 transform -translate-x-1/2 text-white text-sm font-semibold bg-black bg-opacity-50 px-3 py-1 rounded-full whitespace-nowrap"></div>
+      </div>
+     </div>
+    </main><!-- Player Hand -->
+    <section>
+     <div class="flex items-center justify-between mb-2"><label class="text-white font-semibold" id="player-label">You</label> <span id="player-count" class="text-white text-sm bg-black bg-opacity-30 px-3 py-1 rounded-full">0 cards</span>
+     </div>
+     <div id="player-hand" class="flex justify-center gap-2 flex-wrap"></div>
+    </section><!-- Suit Selector Modal -->
+    <div id="suit-modal" class="fixed inset-0 bg-black bg-opacity-75 hidden items-center justify-center z-50">
+     <div class="bg-white rounded-xl p-6 max-w-sm mx-4">
+      <h2 class="text-2xl font-bold text-gray-800 mb-4 text-center">Choose a Suit</h2>
+      <div class="grid grid-cols-2 gap-4"><button class="suit-btn bg-red-500 hover:bg-red-600 text-white font-bold py-4 px-6 rounded-lg text-3xl transition-colors" data-suit="♥">♥</button> <button class="suit-btn bg-black hover:bg-gray-800 text-white font-bold py-4 px-6 rounded-lg text-3xl transition-colors" data-suit="♠">♠</button> <button class="suit-btn bg-red-500 hover:bg-red-600 text-white font-bold py-4 px-6 rounded-lg text-3xl transition-colors" data-suit="♦">♦</button> <button class="suit-btn bg-black hover:bg-gray-800 text-white font-bold py-4 px-6 rounded-lg text-3xl transition-colors" data-suit="♣">♣</button>
+      </div>
+     </div>
+    </div><!-- Game Over Modal -->
+    <div id="game-over-modal" class="fixed inset-0 bg-black bg-opacity-75 hidden items-center justify-center z-50">
+     <div class="bg-white rounded-xl p-8 max-w-sm mx-4 text-center">
+      <h2 id="game-over-title" class="text-3xl font-bold mb-4"></h2>
+      <p id="game-over-message" class="text-lg text-gray-700 mb-6"></p><button id="new-game-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-lg transition-colors">New Game</button>
+     </div>
+    </div>
+   </div>
+  </div>
+  <script>
+localStorage.setItem('pot8o watermark', `${localStorage.getItem('pot8o watermark') || ''} crazy-8s`);
+
+    let config = {};
+    let gameState = {
+      deck: [],
+      playerHand: [],
+      computerHand: [],
+      discardPile: [],
+      currentSuit: null,
+      currentRank: null,
+      playerTurn: true,
+      gameOver: false
+    };
+
+    const suits = ['♥', '♦', '♣', '♠'];
+    const ranks = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
+    const suitColors = { '♥': 'red', '♦': 'red', '♣': 'black', '♠': 'black' };
+
+    function createDeck() {
+      const deck = [];
+      for (const suit of suits) {
+        for (const rank of ranks) {
+          deck.push({ suit, rank });
+        }
+      }
+      return shuffle(deck);
+    }
+
+    function shuffle(array) {
+      const arr = [...array];
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+
+    function dealCards() {
+      gameState.deck = createDeck();
+      gameState.playerHand = [];
+      gameState.computerHand = [];
+      gameState.discardPile = [];
+      gameState.playerTurn = true;
+      gameState.gameOver = false;
+
+      for (let i = 0; i < 5; i++) {
+        gameState.playerHand.push(gameState.deck.pop());
+        gameState.computerHand.push(gameState.deck.pop());
+      }
+
+      const firstCard = gameState.deck.pop();
+      gameState.discardPile.push(firstCard);
+      gameState.currentSuit = firstCard.suit;
+      gameState.currentRank = firstCard.rank;
+
+      renderGame();
+      updateStatus();
+    }
+
+    function renderGame() {
+      renderHand('player-hand', gameState.playerHand, true);
+      renderHand('computer-hand', gameState.computerHand, false);
+      renderDiscardPile();
+      updateCounts();
+    }
+
+    function renderHand(containerId, hand, isPlayer) {
+      const container = document.getElementById(containerId);
+      container.innerHTML = '';
+
+      hand.forEach((card, index) => {
+        const cardEl = document.createElement('div');
+        cardEl.className = 'card w-16 h-24 rounded-lg shadow-lg border-2 flex items-center justify-center font-bold text-xl cursor-pointer card-deal';
+        
+        if (isPlayer) {
+          const color = suitColors[card.suit];
+          cardEl.style.backgroundColor = 'white';
+          cardEl.style.borderColor = color === 'red' ? '#dc2626' : '#1f2937';
+          cardEl.style.color = color === 'red' ? '#dc2626' : '#1f2937';
+          cardEl.innerHTML = `<div class="text-center"><div class="text-sm">${card.rank}</div><div>${card.suit}</div></div>`;
+          
+          const canPlay = isValidPlay(card);
+          if (!canPlay || !gameState.playerTurn || gameState.gameOver) {
+            cardEl.classList.add('disabled');
+          } else {
+            cardEl.addEventListener('click', () => playCard(index));
+          }
+        } else {
+          cardEl.style.backgroundColor = '#dc2626';
+          cardEl.style.borderColor = '#991b1b';
+          cardEl.style.color = 'white';
+          cardEl.innerHTML = '🂠';
+          cardEl.classList.add('disabled');
+        }
+
+        container.appendChild(cardEl);
+      });
+    }
+
+    function renderDiscardPile() {
+      const pile = document.getElementById('discard-pile');
+      const suitIndicator = document.getElementById('suit-indicator');
+      
+      if (gameState.discardPile.length > 0) {
+        const topCard = gameState.discardPile[gameState.discardPile.length - 1];
+        const color = suitColors[topCard.suit];
+        pile.style.color = color === 'red' ? '#dc2626' : '#1f2937';
+        pile.innerHTML = `<div class="text-center"><div class="text-lg">${topCard.rank}</div><div class="text-4xl">${topCard.suit}</div></div>`;
+        
+        suitIndicator.textContent = `Current: ${gameState.currentSuit}`;
+      }
+    }
+
+    function updateCounts() {
+      document.getElementById('player-count').textContent = `${gameState.playerHand.length} cards`;
+      document.getElementById('computer-count').textContent = `${gameState.computerHand.length} cards`;
+      document.getElementById('deck-count').textContent = gameState.deck.length;
+    }
+
+    function isValidPlay(card) {
+      return card.rank === '8' || 
+             card.suit === gameState.currentSuit || 
+             card.rank === gameState.currentRank;
+    }
+
+    function playCard(index) {
+      if (!gameState.playerTurn || gameState.gameOver) return;
+
+      const card = gameState.playerHand[index];
+      if (!isValidPlay(card)) return;
+
+      gameState.playerHand.splice(index, 1);
+      gameState.discardPile.push(card);
+      gameState.currentRank = card.rank;
+
+      if (card.rank === '8') {
+        showSuitSelector();
+      } else {
+        gameState.currentSuit = card.suit;
+        checkWin('player');
+        if (!gameState.gameOver) {
+          gameState.playerTurn = false;
+          renderGame();
+          updateStatus();
+          setTimeout(computerTurn, 1000);
+        }
+      }
+    }
+
+    function showSuitSelector() {
+      const modal = document.getElementById('suit-modal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function hideSuitSelector() {
+      const modal = document.getElementById('suit-modal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    function computerTurn() {
+      if (gameState.gameOver) return;
+
+      let playedCard = false;
+      
+      for (let i = 0; i < gameState.computerHand.length; i++) {
+        const card = gameState.computerHand[i];
+        if (isValidPlay(card)) {
+          gameState.computerHand.splice(i, 1);
+          gameState.discardPile.push(card);
+          gameState.currentRank = card.rank;
+          
+          if (card.rank === '8') {
+            const suitCounts = {};
+            gameState.computerHand.forEach(c => {
+              suitCounts[c.suit] = (suitCounts[c.suit] || 0) + 1;
+            });
+            const bestSuit = Object.keys(suitCounts).reduce((a, b) => 
+              suitCounts[a] > suitCounts[b] ? a : b, suits[0]);
+            gameState.currentSuit = bestSuit;
+          } else {
+            gameState.currentSuit = card.suit;
+          }
+          
+          playedCard = true;
+          break;
+        }
+      }
+
+      if (!playedCard && gameState.deck.length > 0) {
+        gameState.computerHand.push(gameState.deck.pop());
+      }
+
+      checkWin('computer');
+      if (!gameState.gameOver) {
+        gameState.playerTurn = true;
+        renderGame();
+        updateStatus();
+      }
+    }
+
+    function drawCard() {
+      if (!gameState.playerTurn || gameState.gameOver || gameState.deck.length === 0) return;
+
+      gameState.playerHand.push(gameState.deck.pop());
+      gameState.playerTurn = false;
+      renderGame();
+      updateStatus();
+      setTimeout(computerTurn, 1000);
+    }
+
+    function checkWin(player) {
+      if (player === 'player' && gameState.playerHand.length === 0) {
+        gameOver('You Win! 🎉', 'Congratulations! You got rid of all your cards!');
+      } else if (player === 'computer' && gameState.computerHand.length === 0) {
+        gameOver('Computer Wins!', 'Better luck next time!');
+      }
+    }
+
+    function gameOver(title, message) {
+      gameState.gameOver = true;
+      document.getElementById('game-over-title').textContent = title;
+      document.getElementById('game-over-message').textContent = message;
+      const modal = document.getElementById('game-over-modal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function updateStatus() {
+      const status = document.getElementById('game-status');
+      if (gameState.gameOver) {
+        status.textContent = '';
+      } else if (gameState.playerTurn) {
+        status.textContent = 'Your Turn';
+        status.className = 'text-lg text-white font-semibold pulse-animation';
+      } else {
+        status.textContent = 'Computer\'s Turn';
+        status.className = 'text-lg text-white font-semibold';
+      }
+    }
+
+    document.getElementById('draw-pile').addEventListener('click', drawCard);
+
+    document.querySelectorAll('.suit-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        gameState.currentSuit = e.target.dataset.suit;
+        hideSuitSelector();
+        checkWin('player');
+        if (!gameState.gameOver) {
+          gameState.playerTurn = false;
+          renderGame();
+          updateStatus();
+          setTimeout(computerTurn, 1000);
+        }
+      });
+    });
+
+    document.getElementById('new-game-btn').addEventListener('click', () => {
+      document.getElementById('game-over-modal').classList.add('hidden');
+      document.getElementById('game-over-modal').classList.remove('flex');
+      dealCards();
+    });
+
+    async function onConfigChange(newConfig) {
+      const baseSize = newConfig.font_size || defaultConfig.font_size;
+      const customFont = newConfig.font_family || defaultConfig.font_family;
+      const baseFontStack = 'serif';
+      
+      document.getElementById('game-title').textContent = newConfig.game_title || defaultConfig.game_title;
+      document.getElementById('game-title').style.fontSize = `${baseSize * 2}px`;
+      document.getElementById('game-title').style.fontFamily = `${customFont}, ${baseFontStack}`;
+      
+      document.getElementById('player-label').textContent = newConfig.player_label || defaultConfig.player_label;
+      document.getElementById('computer-label').textContent = newConfig.computer_label || defaultConfig.computer_label;
+      
+      const backgroundColor = newConfig.background_color || defaultConfig.background_color;
+      const surfaceColor = newConfig.surface_color || defaultConfig.surface_color;
+      const textColor = newConfig.text_color || defaultConfig.text_color;
+      const primaryActionColor = newConfig.primary_action_color || defaultConfig.primary_action_color;
+      
+      document.getElementById('app-wrapper').style.background = `linear-gradient(135deg, ${backgroundColor} 0%, ${surfaceColor} 100%)`;
+      document.querySelectorAll('.text-white').forEach(el => {
+        el.style.color = textColor;
+      });
+      document.getElementById('draw-pile').style.backgroundColor = primaryActionColor;
+      document.getElementById('draw-pile').style.borderColor = primaryActionColor;
+    }
+
+    dealCards();
+  </script>
+</body>
+</html>
