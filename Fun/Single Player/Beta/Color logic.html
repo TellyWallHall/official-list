@@ -1,0 +1,371 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Color Logic - Brain Teaser Puzzle</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #8b5cf6, #6366f1);
+            min-height: 100vh;
+        }
+        
+        .game-tile {
+            transition: all 0.3s ease;
+        }
+        
+        .game-tile:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 15px rgba(0,0,0,0.2);
+        }
+        
+        .pattern-tile {
+            transition: all 0.2s ease;
+        }
+        
+        .color-option {
+            transition: all 0.2s ease;
+        }
+        
+        .color-option:hover {
+            transform: scale(1.1);
+        }
+        
+        .color-option.selected {
+            transform: scale(1.1);
+            box-shadow: 0 0 0 3px white, 0 0 0 6px #4f46e5;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        .pulse {
+            animation: pulse 1s infinite;
+        }
+        
+        .confetti {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            opacity: 0;
+        }
+    </style>
+</head>
+<body class="p-4">
+    <div class="max-w-4xl mx-auto bg-white rounded-xl shadow-xl overflow-hidden">
+        <div class="p-6 bg-indigo-600 text-white">
+            <div class="flex justify-between items-center">
+                <h1 class="text-2xl md:text-3xl font-bold">Color Logic Puzzle</h1>
+                <div class="flex items-center space-x-4">
+                    <div class="text-sm md:text-base">Level: <span id="level-display" class="font-bold">1</span></div>
+                    <div class="text-sm md:text-base">Moves: <span id="moves-counter" class="font-bold">0</span></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="p-6">
+            <div class="mb-6">
+                <h2 class="text-lg font-semibold text-gray-700 mb-2">Goal Pattern:</h2>
+                <div id="pattern-container" class="flex justify-center gap-2 p-4 bg-gray-100 rounded-lg"></div>
+            </div>
+            
+            <div class="mb-6">
+                <h2 class="text-lg font-semibold text-gray-700 mb-2">Your Board:</h2>
+                <div id="game-board" class="grid grid-cols-3 gap-3 p-4 bg-gray-100 rounded-lg"></div>
+            </div>
+            
+            <div class="mb-6">
+                <h2 class="text-lg font-semibold text-gray-700 mb-2">Color Palette:</h2>
+                <div id="color-palette" class="flex justify-center gap-4 p-4 bg-gray-100 rounded-lg"></div>
+            </div>
+            
+            <div class="flex justify-between">
+                <button id="reset-btn" class="px-6 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg font-medium transition-colors">Reset Board</button>
+                <button id="hint-btn" class="px-6 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg font-medium transition-colors">Hint</button>
+                <button id="check-btn" class="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors">Check Solution</button>
+            </div>
+        </div>
+        
+        <div id="level-complete" class="hidden fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
+            <div class="bg-white p-8 rounded-xl max-w-md text-center">
+                <div class="text-5xl mb-4">🎉</div>
+                <h2 class="text-2xl font-bold text-gray-800 mb-2">Level Complete!</h2>
+                <p class="text-gray-600 mb-6">You solved the puzzle in <span id="completion-moves" class="font-bold"></span> moves.</p>
+                <button id="next-level-btn" class="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition-colors">Next Level</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Game state
+            const state = {
+                level: 1,
+                moves: 0,
+                boardSize: 3,
+                selectedColor: null,
+                board: [],
+                targetPattern: [],
+                colors: ['#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899']
+            };
+            
+            // DOM elements
+            const gameBoard = document.getElementById('game-board');
+            const patternContainer = document.getElementById('pattern-container');
+            const colorPalette = document.getElementById('color-palette');
+            const movesCounter = document.getElementById('moves-counter');
+            const levelDisplay = document.getElementById('level-display');
+            const resetBtn = document.getElementById('reset-btn');
+            const hintBtn = document.getElementById('hint-btn');
+            const checkBtn = document.getElementById('check-btn');
+            const levelComplete = document.getElementById('level-complete');
+            const completionMoves = document.getElementById('completion-moves');
+            const nextLevelBtn = document.getElementById('next-level-btn');
+            
+            // Initialize the game
+            function initGame() {
+                state.moves = 0;
+                movesCounter.textContent = state.moves;
+                levelDisplay.textContent = state.level;
+                
+                // Generate target pattern based on level
+                generateTargetPattern();
+                
+                // Initialize empty board
+                state.board = Array(state.boardSize).fill().map(() => Array(state.boardSize).fill(null));
+                
+                // Render game elements
+                renderBoard();
+                renderPattern();
+                renderColorPalette();
+            }
+            
+            // Generate target pattern based on current level
+            function generateTargetPattern() {
+                const patternComplexity = Math.min(state.level + 1, 5);
+                state.targetPattern = [];
+                
+                for (let i = 0; i < state.boardSize; i++) {
+                    state.targetPattern[i] = [];
+                    for (let j = 0; j < state.boardSize; j++) {
+                        // More complex patterns for higher levels
+                        if (Math.random() < patternComplexity / 5) {
+                            const colorIndex = Math.floor(Math.random() * Math.min(state.level + 2, state.colors.length));
+                            state.targetPattern[i][j] = state.colors[colorIndex];
+                        } else {
+                            state.targetPattern[i][j] = null;
+                        }
+                    }
+                }
+                
+                // Ensure at least one tile is colored
+                if (state.targetPattern.flat().every(color => color === null)) {
+                    const row = Math.floor(Math.random() * state.boardSize);
+                    const col = Math.floor(Math.random() * state.boardSize);
+                    state.targetPattern[row][col] = state.colors[0];
+                }
+            }
+            
+            // Render the game board
+            function renderBoard() {
+                gameBoard.innerHTML = '';
+                gameBoard.style.gridTemplateColumns = `repeat(${state.boardSize}, 1fr)`;
+                
+                for (let i = 0; i < state.boardSize; i++) {
+                    for (let j = 0; j < state.boardSize; j++) {
+                        const tile = document.createElement('div');
+                        tile.className = 'game-tile w-16 h-16 md:w-20 md:h-20 rounded-lg cursor-pointer flex items-center justify-center';
+                        tile.style.backgroundColor = state.board[i][j] || '#e5e7eb';
+                        
+                        tile.dataset.row = i;
+                        tile.dataset.col = j;
+                        
+                        tile.addEventListener('click', () => {
+                            if (state.selectedColor !== null) {
+                                state.board[i][j] = state.selectedColor;
+                                tile.style.backgroundColor = state.selectedColor;
+                                state.moves++;
+                                movesCounter.textContent = state.moves;
+                            }
+                        });
+                        
+                        gameBoard.appendChild(tile);
+                    }
+                }
+            }
+            
+            // Render the target pattern
+            function renderPattern() {
+                patternContainer.innerHTML = '';
+                
+                for (let i = 0; i < state.boardSize; i++) {
+                    for (let j = 0; j < state.boardSize; j++) {
+                        const tile = document.createElement('div');
+                        tile.className = 'pattern-tile w-12 h-12 md:w-14 md:h-14 rounded-lg';
+                        tile.style.backgroundColor = state.targetPattern[i][j] || '#e5e7eb';
+                        patternContainer.appendChild(tile);
+                    }
+                }
+            }
+            
+            // Render the color palette
+            function renderColorPalette() {
+                colorPalette.innerHTML = '';
+                
+                // Limit colors based on level
+                const availableColors = state.colors.slice(0, Math.min(state.level + 2, state.colors.length));
+                
+                availableColors.forEach(color => {
+                    const colorOption = document.createElement('div');
+                    colorOption.className = 'color-option w-12 h-12 rounded-full cursor-pointer';
+                    colorOption.style.backgroundColor = color;
+                    
+                    colorOption.addEventListener('click', () => {
+                        // Deselect all colors
+                        document.querySelectorAll('.color-option').forEach(opt => {
+                            opt.classList.remove('selected');
+                        });
+                        
+                        // Select this color
+                        colorOption.classList.add('selected');
+                        state.selectedColor = color;
+                    });
+                    
+                    colorPalette.appendChild(colorOption);
+                });
+                
+                // Add eraser option
+                const eraser = document.createElement('div');
+                eraser.className = 'color-option w-12 h-12 rounded-full cursor-pointer flex items-center justify-center bg-white border-2 border-gray-300';
+                eraser.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>';
+                
+                eraser.addEventListener('click', () => {
+                    document.querySelectorAll('.color-option').forEach(opt => {
+                        opt.classList.remove('selected');
+                    });
+                    
+                    eraser.classList.add('selected');
+                    state.selectedColor = null;
+                });
+                
+                colorPalette.appendChild(eraser);
+            }
+            
+            // Check if the current board matches the target pattern
+            function checkSolution() {
+                for (let i = 0; i < state.boardSize; i++) {
+                    for (let j = 0; j < state.boardSize; j++) {
+                        if (state.board[i][j] !== state.targetPattern[i][j]) {
+                            return false;
+                        }
+                    }
+                }
+                return true;
+            }
+            
+            // Show level complete modal
+            function showLevelComplete() {
+                completionMoves.textContent = state.moves;
+                levelComplete.classList.remove('hidden');
+                createConfetti();
+            }
+            
+            // Create confetti animation
+            function createConfetti() {
+                const confettiCount = 100;
+                const container = document.body;
+                
+                for (let i = 0; i < confettiCount; i++) {
+                    const confetti = document.createElement('div');
+                    confetti.className = 'confetti';
+                    confetti.style.backgroundColor = state.colors[Math.floor(Math.random() * state.colors.length)];
+                    confetti.style.left = Math.random() * 100 + 'vw';
+                    confetti.style.top = -10 + 'px';
+                    confetti.style.transform = 'rotate(' + Math.random() * 360 + 'deg)';
+                    
+                    container.appendChild(confetti);
+                    
+                    const animation = confetti.animate([
+                        { top: '-10px', opacity: 1 },
+                        { top: '100vh', opacity: 0 }
+                    ], {
+                        duration: 3000 + Math.random() * 2000,
+                        easing: 'cubic-bezier(.215,.61,.355,1)',
+                        delay: Math.random() * 1000
+                    });
+                    
+                    animation.onfinish = () => {
+                        confetti.remove();
+                    };
+                }
+            }
+            
+            // Provide a hint
+            function giveHint() {
+                // Find a random tile that doesn't match the target
+                let mismatches = [];
+                
+                for (let i = 0; i < state.boardSize; i++) {
+                    for (let j = 0; j < state.boardSize; j++) {
+                        if (state.board[i][j] !== state.targetPattern[i][j]) {
+                            mismatches.push({row: i, col: j});
+                        }
+                    }
+                }
+                
+                if (mismatches.length > 0) {
+                    const hint = mismatches[Math.floor(Math.random() * mismatches.length)];
+                    const tileElement = document.querySelector(`.game-tile[data-row="${hint.row}"][data-col="${hint.col}"]`);
+                    
+                    // Highlight the tile
+                    tileElement.classList.add('pulse');
+                    setTimeout(() => {
+                        tileElement.classList.remove('pulse');
+                    }, 2000);
+                }
+            }
+            
+            // Event listeners
+            resetBtn.addEventListener('click', () => {
+                state.board = Array(state.boardSize).fill().map(() => Array(state.boardSize).fill(null));
+                renderBoard();
+            });
+            
+            hintBtn.addEventListener('click', giveHint);
+            
+            checkBtn.addEventListener('click', () => {
+                if (checkSolution()) {
+                    showLevelComplete();
+                } else {
+                    alert('Not quite right. Keep trying!');
+                }
+            });
+            
+            nextLevelBtn.addEventListener('click', () => {
+                state.level++;
+                levelComplete.classList.add('hidden');
+                
+                // Increase board size every 3 levels
+                if (state.level % 3 === 0 && state.boardSize < 5) {
+                    state.boardSize++;
+                }
+                
+                initGame();
+            });
+            
+            // Initialize the game
+            initGame();
+        });
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9560d8f714ec1103',t:'MTc1MDk4NDM0OS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
+
+
