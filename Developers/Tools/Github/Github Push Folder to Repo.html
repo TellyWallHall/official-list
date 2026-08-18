@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GitHub Folder Uploader - Smart Update</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      max-width: 700px;
+      margin: 40px auto;
+      padding: 0 20px;
+      background: #0d1117;
+      color: #c9d1d9;
+    }
+
+    h1 {
+      font-size: 24px;
+      margin-bottom: 20px;
+    }
+
+    input,
+    select,
+    button {
+      width: 100%;
+      padding: 10px;
+      margin: 8px 0;
+      border-radius: 6px;
+      border: 1px solid #30363d;
+      background: #161b22;
+      color: #c9d1d9;
+      font-size: 14px;
+    }
+
+    button {
+      background: #238636;
+      border-color: #238636;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    button:hover:not(:disabled) {
+      background: #2ea043;
+    }
+
+    #log {
+      margin-top: 20px;
+      padding: 12px;
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      font-family: monospace;
+      font-size: 12px;
+      max-height: 300px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+    }
+
+    .step {
+      margin: 20px 0;
+      padding: 16px;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      background: #161b22;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    label {
+      font-weight: 600;
+      font-size: 13px;
+    }
+
+  </style>
+</head>
+
+<body>
+  <h1>Upload Folder to GitHub Repo</h1>
+
+  <div class="step">
+    <label>1. GitHub Personal Access Token</label>
+    <input type="password" id="pat" placeholder="ghp_... with 'repo' scope">
+    <button id="loadRepos">Load Repositories</button>
+  </div>
+
+  <div class="step hidden" id="repoStep">
+    <label>2. Select Repository</label>
+    <select id="repoSelect"></select>
+    <button id="pickFolder">Pick Folder to Upload</button>
+  </div>
+
+  <div class="step hidden" id="uploadStep">
+    <label>3. Upload</label>
+    <div id="folderInfo"></div>
+    <button id="uploadBtn">Upload Changed Files Only</button>
+  </div>
+
+  <div id="log"></div>
+
+  <script>
+    const log = (msg) => {
+      document.getElementById('log').textContent += msg + '\n';
+      document.getElementById('log').scrollTop = document.getElementById('log').scrollHeight;
+    };
+
+    let pat = '';
+    let selectedRepo = '';
+    let owner = '';
+    let filesToUpload = [];
+
+    document.getElementById('loadRepos').onclick = async () => {
+      pat = document.getElementById('pat').value.trim();
+      if (!pat) return alert('Enter your PAT');
+
+      document.getElementById('loadRepos').disabled = true;
+      log('Fetching repositories...');
+
+      try {
+        const res = await fetch('https://api.github.com/user/repos?per_page=100&sort=updated', {
+          headers: {
+            'Authorization': `Bearer ${pat}`,
+            'Accept': 'application/vnd.github.v3+json'
+          }
+        });
+        if (!res.ok) throw new Error(await res.text());
+
+        const repos = await res.json();
+        const select = document.getElementById('repoSelect');
+        select.innerHTML = '';
+        repos.forEach(r => {
+          const opt = document.createElement('option');
+          opt.value = r.full_name;
+          opt.textContent = r.full_name;
+          select.appendChild(opt);
+        });
+
+        document.getElementById('repoStep').classList.remove('hidden');
+        log(`Found ${repos.length} repos`);
+      } catch (e) {
+        log('Error: ' + e.message);
+      } finally {
+        document.getElementById('loadRepos').disabled = false;
+      }
+    };
+
+    document.getElementById('pickFolder').onclick = async () => {
+      if (!window.showDirectoryPicker) {
+        alert('File System Access API not supported. Use Chrome/Edge on desktop.');
+        return;
+      }
+
+      selectedRepo = document.getElementById('repoSelect').value;
+      owner = selectedRepo.split('/')[0];
+
+      try {
+        const dirHandle = await window.showDirectoryPicker();
+        log('Reading folder: ' + dirHandle.name);
+        filesToUpload = [];
+        await walkDirectory(dirHandle, '');
+
+        document.getElementById('folderInfo').textContent = `Found ${filesToUpload.length} files in "${dirHandle.name}"`;
+        document.getElementById('uploadStep').classList.remove('hidden');
+        log('Ready to upload');
+      } catch (e) {
+        if (e.name !== 'AbortError') log('Error: ' + e.message);
+      }
+    };
+
+    async function walkDirectory(dirHandle, path) {
+      for await (const entry of dirHandle.values()) {
+        const entryPath = path ? `${path}/${entry.name}` : entry.name;
+        if (entry.kind === 'file') {
+          const file = await entry.getFile();
+          const arrayBuffer = await file.arrayBuffer();
+          const localSha = await sha1GitBlob(arrayBuffer);
+          filesToUpload.push({
+            path: entryPath,
+            file,
+            localSha
+          });
+        } else if (entry.kind === 'directory') {
+          await walkDirectory(entry, entryPath);
+        }
+      }
+    }
+
+    async function sha1GitBlob(buffer) {
+      // Git blob SHA = sha1("blob " + size + "\0" + content)
+      const header = new TextEncoder().encode(`blob ${buffer.byteLength}\0`);
+      const combined = new Uint8Array(header.length + buffer.byteLength);
+      combined.set(header, 0);
+      combined.set(new Uint8Array(buffer), header.length);
+      const hashBuffer = await crypto.subtle.digest('SHA-1', combined);
+      return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+
+    document.getElementById('uploadBtn').onclick = async () => {
+      const btn = document.getElementById('uploadBtn');
+      btn.disabled = true;
+
+      const repoName = selectedRepo.split('/')[1];
+      log(`Checking and uploading to ${selectedRepo}...`);
+
+      const repoRes = await fetch(`https://api.github.com/repos/${selectedRepo}`, {
+        headers: {
+          'Authorization': `Bearer ${pat}`
+        }
+      });
+      const branch = (await repoRes.json()).default_branch;
+
+      let uploaded = 0,
+        skipped = 0,
+        errors = 0;
+
+      for (let i = 0; i < filesToUpload.length; i++) {
+        const {
+          path,
+          file,
+          localSha
+        } = filesToUpload[i];
+        const url = `https://api.github.com/repos/${selectedRepo}/contents/${encodeURIComponent(path)}`;
+
+        try {
+          // Check if file exists on GitHub
+          const checkRes = await fetch(url + `?ref=${branch}`, {
+            headers: {
+              'Authorization': `Bearer ${pat}`
+            }
+          });
+
+          if (checkRes.status === 404) {
+            // File doesn't exist - create it
+            log(`[${i+1}/${filesToUpload.length}] CREATE ${path}`);
+            await uploadFile(url, file, branch, null);
+            uploaded++;
+          } else if (checkRes.ok) {
+            const remote = await checkRes.json();
+            if (remote.sha === localSha) {
+              // Same content - skip
+              log(`[${i+1}/${filesToUpload.length}] SKIP ${path} - unchanged`);
+              skipped++;
+            } else {
+              // Different content - update
+              log(`[${i+1}/${filesToUpload.length}] UPDATE ${path}`);
+              await uploadFile(url, file, branch, remote.sha);
+              uploaded++;
+            }
+          } else {
+            throw new Error(await checkRes.text());
+          }
+        } catch (e) {
+          log(` Error ${path}: ${e.message}`);
+          errors++;
+        }
+
+        await new Promise(r => setTimeout(r, 100)); // rate limit
+      }
+
+      log(`\nDone! Uploaded: ${uploaded}, Skipped: ${skipped}, Errors: ${errors}`);
+      btn.disabled = false;
+    };
+
+    async function uploadFile(url, file, branch, sha) {
+      if (file.size > 100 * 1024 * 1024) {
+        log(` Skipped: >100MB GitHub limit`);
+        return;
+      }
+
+      const content = await fileToBase64(file);
+      const body = {
+        message: `Update ${file.name}`,
+        content: content,
+        branch: branch
+      };
+      if (sha) body.sha = sha;
+
+      const putRes = await fetch(url, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${pat}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(body)
+      });
+
+      if (!putRes.ok) throw new Error(await putRes.text());
+    }
+
+    function fileToBase64(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result.split(',')[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
+  </script>
+</body>
+
+</html>
