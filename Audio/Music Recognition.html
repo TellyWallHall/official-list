@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ACRCloud Music Recognition</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #1a1a2e;
+      color: #eee;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .container {
+      background: #16213e;
+      border-radius: 16px;
+      padding: 40px;
+      width: 500px;
+      max-width: 95vw;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 8px;
+      font-size: 24px;
+    }
+
+    .subtitle {
+      text-align: center;
+      color: #888;
+      margin-bottom: 30px;
+      font-size: 14px;
+    }
+
+    .config-section {
+      margin-bottom: 20px;
+    }
+
+    .config-section summary {
+      cursor: pointer;
+      color: #a78bfa;
+      font-size: 14px;
+      margin-bottom: 10px;
+    }
+
+    label {
+      display: block;
+      font-size: 13px;
+      color: #aaa;
+      margin-bottom: 4px;
+    }
+
+    input[type="text"],
+    input[type="password"] {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #333;
+      border-radius: 8px;
+      background: #0f0f23;
+      color: #eee;
+      font-size: 14px;
+      margin-bottom: 12px;
+    }
+
+    .upload-area {
+      border: 2px dashed #333;
+      border-radius: 12px;
+      padding: 40px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s;
+      margin-bottom: 20px;
+    }
+
+    .upload-area:hover,
+    .upload-area.dragover {
+      border-color: #a78bfa;
+      background: rgba(167, 139, 250, 0.05);
+    }
+
+    .upload-area.has-file {
+      border-color: #4ade80;
+    }
+
+    .upload-icon {
+      font-size: 48px;
+      margin-bottom: 10px;
+    }
+
+    .upload-text {
+      color: #888;
+      font-size: 14px;
+    }
+
+    .file-name {
+      color: #4ade80;
+      font-size: 14px;
+      margin-top: 8px;
+    }
+
+    input[type="file"] {
+      display: none;
+    }
+
+    button#identify-btn {
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.3s;
+    }
+
+    button#identify-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    button#identify-btn:hover:not(:disabled) {
+      opacity: 0.9;
+    }
+
+    .status {
+      text-align: center;
+      margin-top: 16px;
+      font-size: 14px;
+      color: #888;
+    }
+
+    .result {
+      margin-top: 24px;
+      background: #0f0f23;
+      border-radius: 12px;
+      padding: 20px;
+      display: none;
+    }
+
+    .result.show {
+      display: block;
+    }
+
+    .result h3 {
+      color: #a78bfa;
+      margin-bottom: 12px;
+    }
+
+    .result-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid #1a1a3e;
+      font-size: 14px;
+    }
+
+    .result-row:last-child {
+      border-bottom: none;
+    }
+
+    .result-label {
+      color: #888;
+    }
+
+    .result-value {
+      color: #eee;
+      font-weight: 500;
+      text-align: right;
+      max-width: 60%;
+    }
+
+    .error {
+      color: #f87171;
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid #555;
+      border-top-color: #a78bfa;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      vertical-align: middle;
+      margin-right: 8px;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+    
+    #history {
+      margin-top: 10px;
+      padding: 10px 15px;
+      border-radius: 15px;
+      background: #0f0f34;
+    }
+    
+    #history > div {
+      margin-bottom: 5px;
+    }
+
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <h1>🎵 Music Recognition</h1>
+    <p class="subtitle">Powered by ACRCloud</p>
+
+    <!-- File Upload -->
+    <div class="upload-area" id="upload-area">
+      <div class="upload-icon">📁</div>
+      <div class="upload-text">Click or drag an audio file here</div>
+      <div class="file-name" id="file-name"></div>
+    </div>
+    <input type="file" id="file-input" accept="audio/*,video/*,.mp3,.wav,.flac,.ogg,.m4a,.aac,.wma,.mp4" />
+
+    <!-- Identify Button -->
+    <button id="identify-btn" disabled>Identify Song</button>
+
+    <!-- Status -->
+    <div class="status" id="status"></div>
+
+    <!-- Results -->
+    <div class="result" id="result"></div>
+    <div id="history"></div>
+  </div>
+
+  <script>
+    // Initialize the history array from local storage or create a new one
+    let history = JSON.parse(localStorage.getItem('musicrecoghistory')) || [];
+
+    // --- DOM Elements ---
+    const uploadArea = document.getElementById('upload-area');
+    const fileInput = document.getElementById('file-input');
+    const fileNameEl = document.getElementById('file-name');
+    const identifyBtn = document.getElementById('identify-btn');
+    const statusEl = document.getElementById('status');
+    const resultEl = document.getElementById('result');
+
+    let selectedFile = null;
+
+    // --- File Selection ---
+    uploadArea.addEventListener('click', () => fileInput.click());
+
+    uploadArea.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      uploadArea.classList.add('dragover');
+    });
+
+    uploadArea.addEventListener('dragleave', () => {
+      uploadArea.classList.remove('dragover');
+    });
+
+    uploadArea.addEventListener('drop', (e) => {
+      e.preventDefault();
+      uploadArea.classList.remove('dragover');
+      if (e.dataTransfer.files.length) {
+        handleFile(e.dataTransfer.files[0]);
+      }
+    });
+
+    fileInput.addEventListener('change', () => {
+      if (fileInput.files.length) {
+        handleFile(fileInput.files[0]);
+      }
+    });
+
+    function handleFile(file) {
+      selectedFile = file;
+      fileNameEl.textContent = `${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
+      uploadArea.classList.add('has-file');
+      identifyBtn.disabled = false;
+    }
+
+    // --- HMAC-SHA1 Signature (Web Crypto API) ---
+    async function generateSignature(sigString, accessSecret) {
+      const encoder = new TextEncoder();
+      const keyData = encoder.encode(accessSecret);
+      const msgData = encoder.encode(sigString);
+
+      const cryptoKey = await crypto.subtle.importKey(
+        'raw', keyData, {
+          name: 'HMAC',
+          hash: 'SHA-1'
+        }, false, ['sign']
+      );
+
+      const signature = await crypto.subtle.sign('HMAC', cryptoKey, msgData);
+      return btoa(String.fromCharCode(...new Uint8Array(signature)));
+    }
+
+    // --- identifyy ---
+    identifyBtn.addEventListener('click', async () => {
+      const host = 'identify-us-west-2.acrcloud.com';
+      const accessKey = '9eba4119377612b766239ee017f9127b';
+      const accessSecret = 'YXXEs2lffCr0TlynicUuV6lzPKhdGRmRCFOqQman';
+
+      if (!host || !accessKey || !accessSecret) {
+        statusEl.innerHTML = '<span class="error">Please fill in all API configuration fields.</span>';
+        return;
+      }
+
+      if (!selectedFile) {
+        statusEl.innerHTML = '<span class="error">Please select an audio file.</span>';
+        return;
+      }
+
+      identifyBtn.disabled = true;
+      statusEl.innerHTML = '<span class="spinner"></span> Identifying...';
+      resultEl.classList.remove('show');
+
+      try {
+        const timestamp = Math.floor(Date.now() / 1000);
+        const dataType = 'audio';
+        const signatureVersion = '1';
+
+        // Build the string to sign
+        const sigString = [
+          'POST',
+          '/v1/identify',
+          accessKey,
+          dataType,
+          signatureVersion,
+          timestamp
+        ].join('\n');
+
+        const signature = await generateSignature(sigString, accessSecret);
+
+        // Read file as ArrayBuffer
+        const fileBuffer = await selectedFile.arrayBuffer();
+
+        // Build FormData
+        const formData = new FormData();
+        formData.append('sample', selectedFile);
+        formData.append('sample_bytes', selectedFile.size);
+        formData.append('access_key', accessKey);
+        formData.append('data_type', dataType);
+        formData.append('signature', signature);
+        formData.append('signature_version', signatureVersion);
+        formData.append('timestamp', timestamp);
+
+        // Send request
+        const response = await fetch(`https://${host}/v1/identify`, {
+          method: 'POST',
+          body: formData
+        });
+
+        const data = await response.json();
+        displayResult(data);
+
+      } catch (err) {
+        statusEl.innerHTML = `<span class="error">Error: ${err.message}</span>`;
+      } finally {
+        identifyBtn.disabled = false;
+      }
+    });
+    displayHistory();
+    // --- Display Results ---
+    function displayResult(data) {
+      console.log('ACRCloud response:', data);
+
+      if (data.status && data.status.code !== 0) {
+        statusEl.innerHTML = `<span class="error">❌ ${data.status.msg} (code ${data.status.code})</span>`;
+        resultEl.classList.remove('show');
+        return;
+      }
+
+      statusEl.innerHTML = '✅ Song identified!';
+
+      const music = data.metadata?.music?.[0];
+      if (!music) {
+        statusEl.innerHTML = '<span class="error">No music metadata found in response.</span>';
+        return;
+      }
+
+      const rows = [];
+
+      if (music.title) rows.push(['Title', music.title]);
+      if (music.artists?.length) rows.push(['Artist', music.artists.map(a => a.name).join(', ')]);
+      if (music.album?.name) rows.push(['Album', music.album.name]);
+      if (music.genres?.length) rows.push(['Genre', music.genres.map(g => g.name).join(', ')]);
+      if (music.release_date) rows.push(['Released', music.release_date]);
+      if (music.label) rows.push(['Label', music.label]);
+      if (music.duration_ms) rows.push(['Duration', `${Math.floor(music.duration_ms / 1000 / 60)}:${String(Math.floor(music.duration_ms / 1000) % 60).padStart(2, '0')}`]);
+      if (music.score) rows.push(['Confidence', `${music.score}%`]);
+      addToHistory(`${music.title} by ${music.artists.map(a => a.name).join(', ')}`)
+
+      // External links
+      if (music.external_metadata) {
+        if (music.external_metadata.spotify?.track?.id) {
+          rows.push(['Spotify', `<a href="https://open.spotify.com/track/${music.external_metadata.spotify.track.id}" target="_blank" style="color:#1db954">Open ↗</a>`]);
+        }
+        if (music.external_metadata.youtube?.vid) {
+          rows.push(['YouTube', `<a href="https://www.youtube.com/watch?v=${music.external_metadata.youtube.vid}" target="_blank" style="color:#ff0000">Watch ↗</a>`]);
+        }
+      }
+
+      resultEl.innerHTML = `
+                <h3>🎶 Result</h3>
+                ${rows.map(([label, value]) => `
+                    <div class="result-row">
+                        <span class="result-label">${label}</span>
+                        <span class="result-value">${value}</span>
+                    </div>
+                `).join('')}
+            `;
+      resultEl.classList.add('show');
+    }
+    // Function to add a new entry to the history
+    function addToHistory(entry) {
+      history.push(entry);
+      localStorage.setItem('musicrecoghistory', JSON.stringify(history));
+      displayHistory();
+    }
+
+    // Function to display the history
+    function displayHistory() {
+      const historySection = document.getElementById('history');
+      historySection.innerHTML = ''; // Clear the history section
+      history.forEach((entry, index) => {
+        const entryElement = document.createElement('div');
+        entryElement.textContent = `${index + 1}. ${entry}`;
+        historySection.appendChild(entryElement);
+      });
+    }
+
+  </script>
+</body>
+
+</html>
