@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Pocket Lyrics</title>
+    <style>
+        :root {
+            --bg-color: #121212;
+            --card-bg: #1e1e1e;
+            --accent-color: #1db954; /* Spotify Green */
+            --text-color: #ffffff;
+            --text-secondary: #b3b3b3;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        header {
+            background-color: var(--card-bg);
+            padding: 16px;
+            text-align: center;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            color: var(--accent-color);
+        }
+
+        main {
+            padding: 16px;
+            flex: 1;
+        }
+
+        /* Search View */
+        #search-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 14px 16px;
+            border-radius: 25px;
+            border: none;
+            background-color: var(--card-bg);
+            color: var(--text-color);
+            font-size: 1rem;
+            outline: none;
+            border: 1px solid transparent;
+        }
+
+        input[type="text"]:focus {
+            border-color: var(--accent-color);
+        }
+
+        button {
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 14px 20px;
+            border-radius: 25px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        button:active {
+            opacity: 0.8;
+        }
+
+        /* Results List */
+        .song-card {
+            background-color: var(--card-bg);
+            padding: 16px;
+            border-radius: 12px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+
+        .song-card:active {
+            transform: scale(0.98);
+        }
+
+        .album-art {
+            width: 50px;
+            height: 50px;
+            border-radius: 8px;
+            object-fit: cover;
+            background-color: #333;
+        }
+
+        .song-info {
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .song-title {
+            font-size: 1.1rem;
+            font-weight: bold;
+            margin-bottom: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .song-artist {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        /* Lyrics View */
+        #lyrics-view {
+            display: none;
+        }
+
+        #back-btn {
+            background-color: var(--card-bg);
+            color: var(--text-color);
+            margin-bottom: 20px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        #lyrics-header {
+            text-align: center;
+            margin-bottom: 24px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 16px;
+        }
+
+        #lyrics-title {
+            font-size: 1.6rem;
+            margin-bottom: 8px;
+        }
+
+        #lyrics-artist {
+            color: var(--accent-color);
+            font-size: 1.1rem;
+        }
+
+        #lyrics-text {
+            font-size: 1.1rem;
+            line-height: 1.8;
+            white-space: pre-wrap; /* Crucial for keeping lyric line breaks */
+            text-align: center;
+            padding-bottom: 40px;
+            color: #e0e0e0;
+        }
+
+        /* Utility */
+        .loader {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-secondary);
+            font-size: 1.2rem;
+        }
+        
+        .error {
+            color: #ff5555;
+            text-align: center;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>🎵 Pocket Lyrics</h1>
+    </header>
+
+    <!-- SEARCH VIEW -->
+    <main id="search-view">
+        <div id="search-container">
+            <input type="text" id="search-input" placeholder="Search song or artist..." enterkeyhint="search">
+            <button onclick="searchSongs()">Search</button>
+        </div>
+        <div id="results-container">
+            <div class="loader" id="search-msg">Type a song above to start searching.</div>
+        </div>
+    </main>
+
+    <!-- LYRICS VIEW -->
+    <main id="lyrics-view">
+        <button id="back-btn" onclick="showSearchView()">← Back to Search</button>
+        <div id="lyrics-header">
+            <h2 id="lyrics-title">Song Title</h2>
+            <h3 id="lyrics-artist">Artist</h3>
+        </div>
+        <div id="lyrics-text">Loading lyrics...</div>
+    </main>
+
+    <script>
+        const API_URL = "https://api.lyrics.ovh";
+        const searchInput = document.getElementById("search-input");
+        const resultsContainer = document.getElementById("results-container");
+        const searchView = document.getElementById("search-view");
+        const lyricsView = document.getElementById("lyrics-view");
+        
+        const lyricsTitle = document.getElementById("lyrics-title");
+        const lyricsArtist = document.getElementById("lyrics-artist");
+        const lyricsText = document.getElementById("lyrics-text");
+
+        // Listen for 'Enter' key on mobile keyboard
+        searchInput.addEventListener("keypress", function(e) {
+            if (e.key === "Enter") {
+                searchSongs();
+                searchInput.blur(); // Dismiss mobile keyboard
+            }
+        });
+
+        async function searchSongs() {
+            const query = searchInput.value.trim();
+            if (!query) return;
+
+            resultsContainer.innerHTML = '<div class="loader">Searching... 🔍</div>';
+
+            try {
+                const response = await fetch(`${API_URL}/suggest/${encodeURIComponent(query)}`);
+                const data = await response.json();
+
+                if (data.data.length === 0) {
+                    resultsContainer.innerHTML = '<div class="loader">No songs found 😢</div>';
+                    return;
+                }
+
+                renderResults(data.data);
+            } catch (error) {
+                resultsContainer.innerHTML = '<div class="error">Failed to connect to search API. Please check your internet connection.</div>';
+            }
+        }
+
+        function renderResults(songs) {
+            resultsContainer.innerHTML = "";
+            // Take top 15 results for mobile performance
+            songs.slice(0, 15).forEach(song => {
+                const card = document.createElement("div");
+                card.className = "song-card";
+                card.onclick = () => getLyrics(song.artist.name, song.title);
+
+                card.innerHTML = `
+                    <img class="album-art" src="${song.album.cover_small}" alt="Album Art" loading="lazy">
+                    <div class="song-info">
+                        <div class="song-title">${song.title}</div>
+                        <div class="song-artist">${song.artist.name}</div>
+                    </div>
+                `;
+                resultsContainer.appendChild(card);
+            });
+        }
+
+        async function getLyrics(artist, title) {
+            // Switch views
+            searchView.style.display = "none";
+            lyricsView.style.display = "block";
+            window.scrollTo(0, 0);
+
+            lyricsTitle.innerText = title;
+            lyricsArtist.innerText = artist;
+            lyricsText.innerHTML = '<div class="loader">Fetching lyrics... 🎶</div>';
+
+            try {
+                const response = await fetch(`${API_URL}/v1/${encodeURIComponent(artist)}/${encodeURIComponent(title)}`);
+                const data = await response.json();
+
+                if (data.lyrics) {
+                    // Clean up the lyrics (removes "Paroles de la chanson..." headers sometimes present in this API)
+                    let cleanLyrics = data.lyrics.replace(/Paroles de la chanson.+/g, "").trim();
+                    lyricsText.innerText = cleanLyrics;
+                } else {
+                    lyricsText.innerHTML = `<div class="error">Sorry, lyrics for this song could not be found. 😔</div>`;
+                }
+            } catch (error) {
+                lyricsText.innerHTML = `<div class="error">Failed to load lyrics. Please try again later.</div>`;
+            }
+        }
+
+        function showSearchView() {
+            lyricsView.style.display = "none";
+            searchView.style.display = "block";
+            window.scrollTo(0, 0);
+        }
+    </script>
+</body>
+</html>
