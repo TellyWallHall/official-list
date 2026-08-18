@@ -1,0 +1,600 @@
+<!doctype html>
+<!-- by ImPot8o https://github.com/ImPot8o pot8o.dev -->
+<html lang="en" class="h-full">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dice Roller Pro</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      box-sizing: border-box;
+    }
+    
+    @keyframes rollAnimation {
+      0%, 100% { transform: rotate(0deg) scale(1); }
+      25% { transform: rotate(180deg) scale(1.1); }
+      50% { transform: rotate(360deg) scale(0.9); }
+      75% { transform: rotate(540deg) scale(1.1); }
+    }
+    
+    .rolling {
+      animation: rollAnimation 0.6s ease-in-out;
+    }
+    
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    .result-appear {
+      animation: slideIn 0.3s ease-out;
+    }
+    
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-5px); }
+      75% { transform: translateX(5px); }
+    }
+    
+    .shake {
+      animation: shake 0.3s ease-in-out;
+    }
+  </style>
+  <style>@view-transition { navigation: auto; }</style>
+ </head>
+ <body class="h-full overflow-auto">
+  <div id="app" class="w-full min-h-full"></div>
+  <script>
+    const defaultConfig = {
+      background_color: "#1a1a2e",
+      surface_color: "#16213e",
+      text_color: "#eaeaea",
+      primary_action_color: "#0f4c75",
+      secondary_action_color: "#3282b8",
+      font_family: "system-ui",
+      font_size: 16,
+      app_title: "Dice Roller Pro",
+      favorites_title: "Saved Rolls",
+      roll_button_text: "Roll Dice"
+    };
+
+    let config = { ...defaultConfig };
+    
+    // Dice types
+    const diceTypes = [
+      { sides: 4, name: "D4", icon: "🔺" },
+      { sides: 6, name: "D6", icon: "🎲" },
+      { sides: 8, name: "D8", icon: "🔶" },
+      { sides: 10, name: "D10", icon: "🔟" },
+      { sides: 12, name: "D12", icon: "🌟" },
+      { sides: 20, name: "D20", icon: "⭐" },
+      { sides: 100, name: "D100", icon: "💯" }
+    ];
+    
+    // State
+    let selectedDice = {};
+    let modifier = 0;
+    let rollHistory = [];
+    let savedRolls = [];
+    let currentView = 'roller';
+    let isRolling = false;
+    
+    // Load from localStorage
+    function loadState() {
+      const saved = localStorage.getItem('diceRollerState');
+      if (saved) {
+        try {
+          const state = JSON.parse(saved);
+          rollHistory = state.history || [];
+          savedRolls = state.saved || [];
+        } catch (e) {
+          console.error('Failed to load state');
+        }
+      }
+    }
+    
+    // Save to localStorage
+    function saveState() {
+      localStorage.setItem('diceRollerState', JSON.stringify({
+        history: rollHistory.slice(0, 50), // Keep last 50
+        saved: savedRolls.slice(0, 20) // Keep last 20
+      }));
+    }
+    
+    // Roll dice
+    function rollDice() {
+      if (isRolling) return;
+      
+      const diceCount = Object.values(selectedDice).reduce((sum, count) => sum + count, 0);
+      if (diceCount === 0) {
+        showToast("Add some dice first!", config.secondary_action_color || defaultConfig.secondary_action_color);
+        return;
+      }
+      
+      isRolling = true;
+      
+      // Animate
+      const rollBtn = document.getElementById('roll-button');
+      if (rollBtn) rollBtn.classList.add('rolling');
+      
+      setTimeout(() => {
+        const results = [];
+        let total = 0;
+        
+        for (const [sides, count] of Object.entries(selectedDice)) {
+          if (count > 0) {
+            const rolls = [];
+            for (let i = 0; i < count; i++) {
+              const roll = Math.floor(Math.random() * parseInt(sides)) + 1;
+              rolls.push(roll);
+              total += roll;
+            }
+            results.push({ sides: parseInt(sides), rolls });
+          }
+        }
+        
+        total += modifier;
+        
+        const rollData = {
+          timestamp: Date.now(),
+          results,
+          modifier,
+          total,
+          dice: { ...selectedDice }
+        };
+        
+        rollHistory.unshift(rollData);
+        if (rollHistory.length > 50) rollHistory = rollHistory.slice(0, 50);
+        saveState();
+        
+        if (rollBtn) rollBtn.classList.remove('rolling');
+        isRolling = false;
+        render();
+      }, 600);
+    }
+    
+    // Quick roll preset
+    function quickRoll(dice, mod = 0) {
+      selectedDice = { ...dice };
+      modifier = mod;
+      render();
+      setTimeout(() => rollDice(), 100);
+    }
+    
+    // Save current roll setup
+    function saveCurrentRoll() {
+      const name = prompt("Name this roll:");
+      if (!name) return;
+      
+      const diceCount = Object.values(selectedDice).reduce((sum, count) => sum + count, 0);
+      if (diceCount === 0) {
+        showToast("Add some dice first!", config.secondary_action_color || defaultConfig.secondary_action_color);
+        return;
+      }
+      
+      savedRolls.unshift({
+        id: Date.now(),
+        name,
+        dice: { ...selectedDice },
+        modifier
+      });
+      
+      if (savedRolls.length > 20) savedRolls = savedRolls.slice(0, 20);
+      saveState();
+      render();
+      showToast("Roll saved!", config.primary_action_color || defaultConfig.primary_action_color);
+    }
+    
+    // Delete saved roll
+    function deleteSavedRoll(id) {
+      savedRolls = savedRolls.filter(r => r.id !== id);
+      saveState();
+      render();
+      showToast("Roll deleted", config.secondary_action_color || defaultConfig.secondary_action_color);
+    }
+    
+    // Load saved roll
+    function loadSavedRoll(roll) {
+      selectedDice = { ...roll.dice };
+      modifier = roll.modifier;
+      currentView = 'roller';
+      render();
+      showToast(`Loaded: ${roll.name}`, config.primary_action_color || defaultConfig.primary_action_color);
+    }
+    
+    // Clear history
+    function clearHistory() {
+      rollHistory = [];
+      saveState();
+      render();
+      showToast("History cleared", config.secondary_action_color || defaultConfig.secondary_action_color);
+    }
+    
+    // Toast notification
+    function showToast(message, color) {
+      const existing = document.getElementById('toast');
+      if (existing) existing.remove();
+      
+      const toast = document.createElement('div');
+      toast.id = 'toast';
+      toast.textContent = message;
+      toast.style.cssText = `
+        position: fixed;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: ${color};
+        color: ${config.text_color || defaultConfig.text_color};
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-size: ${(config.font_size || defaultConfig.font_size) * 0.9}px;
+        font-family: ${config.font_family || defaultConfig.font_family}, sans-serif;
+        z-index: 1000;
+        animation: slideIn 0.3s ease-out;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      `;
+      
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 2000);
+    }
+    
+    // Format dice notation
+    function formatDiceNotation(dice, mod) {
+      const parts = [];
+      for (const [sides, count] of Object.entries(dice)) {
+        if (count > 0) {
+          parts.push(`${count}d${sides}`);
+        }
+      }
+      let notation = parts.join(' + ');
+      if (mod > 0) notation += ` + ${mod}`;
+      if (mod < 0) notation += ` - ${Math.abs(mod)}`;
+      return notation;
+    }
+    
+    // Render function
+    function render() {
+      const customFont = config.font_family || defaultConfig.font_family;
+      const baseSize = config.font_size || defaultConfig.font_size;
+      const baseFontStack = 'system-ui, -apple-system, sans-serif';
+      
+      const app = document.getElementById('app');
+      app.style.background = config.background_color || defaultConfig.background_color;
+      app.style.color = config.text_color || defaultConfig.text_color;
+      app.style.fontFamily = `${customFont}, ${baseFontStack}`;
+      app.style.fontSize = `${baseSize}px`;
+      
+      // Navigation
+      const navHtml = `
+        <nav style="background: ${config.surface_color || defaultConfig.surface_color}; padding: 12px 16px; display: flex; gap: 8px; border-bottom: 2px solid ${config.primary_action_color || defaultConfig.primary_action_color}; position: sticky; top: 0; z-index: 100;">
+          <button onclick="currentView='roller'; render();" style="flex: 1; padding: 10px; background: ${currentView === 'roller' ? (config.primary_action_color || defaultConfig.primary_action_color) : 'transparent'}; color: ${config.text_color || defaultConfig.text_color}; border: 2px solid ${config.primary_action_color || defaultConfig.primary_action_color}; border-radius: 8px; font-size: ${baseSize * 0.9}px; font-family: ${customFont}, ${baseFontStack}; font-weight: 600; cursor: pointer;">
+            🎲 Roller
+          </button>
+          <button onclick="currentView='history'; render();" style="flex: 1; padding: 10px; background: ${currentView === 'history' ? (config.primary_action_color || defaultConfig.primary_action_color) : 'transparent'}; color: ${config.text_color || defaultConfig.text_color}; border: 2px solid ${config.primary_action_color || defaultConfig.primary_action_color}; border-radius: 8px; font-size: ${baseSize * 0.9}px; font-family: ${customFont}, ${baseFontStack}; font-weight: 600; cursor: pointer;">
+            📜 History
+          </button>
+          <button onclick="currentView='saved'; render();" style="flex: 1; padding: 10px; background: ${currentView === 'saved' ? (config.primary_action_color || defaultConfig.primary_action_color) : 'transparent'}; color: ${config.text_color || defaultConfig.text_color}; border: 2px solid ${config.primary_action_color || defaultConfig.primary_action_color}; border-radius: 8px; font-size: ${baseSize * 0.9}px; font-family: ${customFont}, ${baseFontStack}; font-weight: 600; cursor: pointer;">
+            ⭐ Saved
+          </button>
+        </nav>
+      `;
+      
+      let contentHtml = '';
+      
+      if (currentView === 'roller') {
+        // Calculate total dice and current notation
+        const totalDice = Object.values(selectedDice).reduce((sum, count) => sum + count, 0);
+        const notation = totalDice > 0 ? formatDiceNotation(selectedDice, modifier) : 'No dice selected';
+        
+        // Latest result
+        let resultHtml = '';
+        if (rollHistory.length > 0) {
+          const latest = rollHistory[0];
+          resultHtml = `
+            <div style="background: ${config.surface_color || defaultConfig.surface_color}; padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 3px solid ${config.primary_action_color || defaultConfig.primary_action_color};" class="result-appear">
+              <div style="font-size: ${baseSize * 2.5}px; font-weight: 700; text-align: center; margin-bottom: 12px; color: ${config.primary_action_color || defaultConfig.primary_action_color};">
+                ${latest.total}
+              </div>
+              <div style="display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 12px;">
+                ${latest.results.map(r => `
+                  <div style="background: ${config.secondary_action_color || defaultConfig.secondary_action_color}; padding: 8px 12px; border-radius: 8px; font-size: ${baseSize * 0.85}px;">
+                    <div style="font-weight: 600; margin-bottom: 4px;">D${r.sides}</div>
+                    <div style="opacity: 0.9;">${r.rolls.join(', ')}</div>
+                  </div>
+                `).join('')}
+              </div>
+              ${latest.modifier !== 0 ? `<div style="text-align: center; font-size: ${baseSize * 0.9}px; opacity: 0.8;">Modifier: ${latest.modifier > 0 ? '+' : ''}${latest.modifier}</div>` : ''}
+            </div>
+          `;
+        }
+        
+        contentHtml = `
+          <div style="padding: 16px;">
+            <h1 style="font-size: ${baseSize * 1.8}px; font-weight: 700; margin-bottom: 20px; text-align: center; font-family: ${customFont}, ${baseFontStack};">
+              ${config.app_title || defaultConfig.app_title}
+            </h1>
+            
+            ${resultHtml}
+            
+            <!-- Current Setup -->
+            <div style="background: ${config.surface_color || defaultConfig.surface_color}; padding: 16px; border-radius: 12px; margin-bottom: 20px;">
+              <div style="font-size: ${baseSize * 1.1}px; font-weight: 600; margin-bottom: 12px; text-align: center;">
+                ${notation}
+              </div>
+              <button id="roll-button" onclick="rollDice()" style="width: 100%; padding: 18px; background: ${config.primary_action_color || defaultConfig.primary_action_color}; color: ${config.text_color || defaultConfig.text_color}; border: none; border-radius: 12px; font-size: ${baseSize * 1.2}px; font-family: ${customFont}, ${baseFontStack}; font-weight: 700; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
+                ${config.roll_button_text || defaultConfig.roll_button_text} 🎲
+              </button>
+            </div>
+            
+            <!-- Dice Selection -->
+            <div style="background: ${config.surface_color || defaultConfig.surface_color}; padding: 16px; border-radius: 12px; margin-bottom: 16px;">
+              <div style="font-size: ${baseSize * 1.1}px; font-weight: 600; margin-bottom: 12px;">Select Dice</div>
+              <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;">
+                ${diceTypes.map(dice => {
+                  const count = selectedDice[dice.sides] || 0;
+                  return `
+                    <div style="background: ${config.background_color || defaultConfig.background_color}; padding: 12px; border-radius: 8px; border: 2px solid ${count > 0 ? (config.primary_action_color || defaultConfig.primary_action_color) : 'transparent'};">
+                      <div style="font-size: ${baseSize * 1.3}px; text-align: center; margin-bottom: 8px;">${dice.icon}</div>
+                      <div style="font-weight: 600; text-align: center; margin-bottom: 8px; font-size: ${baseSize * 0.95}px;">${dice.name}</div>
+                      <div style="display: flex; gap: 4px; align-items: center;">
+                        <button onclick="selectedDice[${dice.sides}] = Math.max(0, (selectedDice[${dice.sides}] || 0) - 1); render();" style="flex: 1; padding: 8px; background: ${config.secondary_action_color || defaultConfig.secondary_action_color}; color: ${config.text_color || defaultConfig.text_color}; border: none; border-radius: 6px; font-size: ${baseSize * 1.1}px; font-weight: 700; cursor: pointer;">−</button>
+                        <div style="flex: 1; text-align: center; font-size: ${baseSize * 1.1}px; font-weight: 700;">${count}</div>
+                        <button onclick="selectedDice[${dice.sides}] = (selectedDice[${dice.sides}] || 0) + 1; render();" style="flex: 1; padding: 8px; background: ${config.primary_action_color || defaultConfig.primary_action_color}; color: ${config.text_color || defaultConfig.text_color}; border: none; border-radius: 6px; font-size: ${baseSize * 1.1}px; font-weight: 700; cursor: pointer;">+</button>
+                      </div>
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+            </div>
+            
+            <!-- Modifier -->
+            <div style="background: ${config.surface_color || defaultConfig.surface_color}; padding: 16px; border-radius: 12px; margin-bottom: 16px;">
+              <div style="font-size: ${baseSize * 1.1}px; font-weight: 600; margin-bottom: 12px;">Modifier</div>
+              <div style="display: flex; gap: 8px; align-items: center;">
+                <button onclick="modifier = Math.max(-99, modifier - 1); render();" style="padding: 12px 16px; background: ${config.secondary_action_color || defaultConfig.secondary_action_color}; color: ${config.text_color || defaultConfig.text_color}; border: none; border-radius: 8px; font-size: ${baseSize * 1.2}px; font-weight: 700; cursor: pointer;">−</button>
+                <div style="flex: 1; text-align: center; font-size: ${baseSize * 1.5}px; font-weight: 700; padding: 12px; background: ${config.background_color || defaultConfig.background_color}; border-radius: 8px;">${modifier > 0 ? '+' : ''}${modifier}</div>
+                <button onclick="modifier = Math.min(99, modifier + 1); render();" style="padding: 12px 16px; background: ${config.primary_action_color || defaultConfig.primary_action_color}; color: ${config.text_color || defaultConfig.text_color}; border: none; border-radius: 8px; font-size: ${baseSize * 1.2}px; font-weight: 700; cursor: pointer;">+</button>
+              </div>
+              <div style="display: flex; gap: 8px; margin-top: 12px;">
+                <button onclick="modifier = -5; render();" style="flex: 1; padding: 8px; background: ${config.background_color || defaultConfig.background_color}; color: ${config.text_color || defaultConfig.text_color}; border: 1px solid ${config.secondary_action_color || defaultConfig.secondary_action_color}; border-radius: 6px; font-size: ${baseSize * 0.85}px; cursor: pointer;">-5</button>
+                <button onclick="modifier = 0; render();" style="flex: 1; padding: 8px; background: ${config.background_color || defaultConfig.background_color}; color: ${config.text_color || defaultConfig.text_color}; border: 1px solid ${config.secondary_action_color || defaultConfig.secondary_action_color}; border-radius: 6px; font-size: ${baseSize * 0.85}px; cursor: pointer;">0</button>
+                <button onclick="modifier = 5; render();" style="flex: 1; padding: 8px; background: ${config.background_color || defaultConfig.background_color}; color: ${config.text_color || defaultConfig.text_color}; border: 1px solid ${config.secondary_action_color || defaultConfig.secondary_action_color}; border-radius: 6px; font-size: ${baseSize * 0.85}px; cursor: pointer;">+5</button>
+              </div>
+            </div>
+            
+            <!-- Quick Actions -->
+            <div style="background: ${config.surface_color || defaultConfig.surface_color}; padding: 16px; border-radius: 12px; margin-bottom: 16px;">
+              <div style="font-size: ${baseSize * 1.1}px; font-weight: 600; margin-bottom: 12px;">Quick Actions</div>
+              <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <button onclick="selectedDice = {}; modifier = 0; render();" style="flex: 1; min-width: 120px; padding: 12px; background: ${config.secondary_action_color || defaultConfig.secondary_action_color}; color: ${config.text_color || defaultConfig.text_color}; border: none; border-radius: 8px; font-size: ${baseSize * 0.9}px; font-family: ${customFont}, ${baseFontStack}; font-weight: 600; cursor: pointer;">
+                  Clear All
+                </button>
+                <button onclick="saveCurrentRoll();" style="flex: 1; min-width: 120px; padding: 12px; background: ${config.primary_action_color || defaultConfig.primary_action_color}; color: ${config.text_color || defaultConfig.text_color}; border: none; border-radius: 8px; font-size: ${baseSize * 0.9}px; font-family: ${customFont}, ${baseFontStack}; font-weight: 600; cursor: pointer;">
+                  💾 Save Roll
+                </button>
+              </div>
+            </div>
+            
+            <!-- Quick Presets -->
+            <div style="background: ${config.surface_color || defaultConfig.surface_color}; padding: 16px; border-radius: 12px;">
+              <div style="font-size: ${baseSize * 1.1}px; font-weight: 600; margin-bottom: 12px;">Quick Presets</div>
+              <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;">
+                <button onclick="quickRoll({20: 1}, 0);" style="padding: 12px; background: ${config.background_color || defaultConfig.background_color}; color: ${config.text_color || defaultConfig.text_color}; border: 1px solid ${config.primary_action_color || defaultConfig.primary_action_color}; border-radius: 8px; font-size: ${baseSize * 0.85}px; font-family: ${customFont}, ${baseFontStack}; cursor: pointer;">
+                  1d20
+                </button>
+                <button onclick="quickRoll({20: 1}, 5);" style="padding: 12px; background: ${config.background_color || defaultConfig.background_color}; color: ${config.text_color || defaultConfig.text_color}; border: 1px solid ${config.primary_action_color || defaultConfig.primary_action_color}; border-radius: 8px; font-size: ${baseSize * 0.85}px; font-family: ${customFont}, ${baseFontStack}; cursor: pointer;">
+                  1d20+5
+                </button>
+                <button onclick="quickRoll({6: 2}, 0);" style="padding: 12px; background: ${config.background_color || defaultConfig.background_color}; color: ${config.text_color || defaultConfig.text_color}; border: 1px solid ${config.primary_action_color || defaultConfig.primary_action_color}; border-radius: 8px; font-size: ${baseSize * 0.85}px; font-family: ${customFont}, ${baseFontStack}; cursor: pointer;">
+                  2d6
+                </button>
+                <button onclick="quickRoll({6: 3}, 0);" style="padding: 12px; background: ${config.background_color || defaultConfig.background_color}; color: ${config.text_color || defaultConfig.text_color}; border: 1px solid ${config.primary_action_color || defaultConfig.primary_action_color}; border-radius: 8px; font-size: ${baseSize * 0.85}px; font-family: ${customFont}, ${baseFontStack}; cursor: pointer;">
+                  3d6
+                </button>
+                <button onclick="quickRoll({6: 4}, 0);" style="padding: 12px; background: ${config.background_color || defaultConfig.background_color}; color: ${config.text_color || defaultConfig.text_color}; border: 1px solid ${config.primary_action_color || defaultConfig.primary_action_color}; border-radius: 8px; font-size: ${baseSize * 0.85}px; font-family: ${customFont}, ${baseFontStack}; cursor: pointer;">
+                  4d6
+                </button>
+                <button onclick="quickRoll({8: 1}, 3);" style="padding: 12px; background: ${config.background_color || defaultConfig.background_color}; color: ${config.text_color || defaultConfig.text_color}; border: 1px solid ${config.primary_action_color || defaultConfig.primary_action_color}; border-radius: 8px; font-size: ${baseSize * 0.85}px; font-family: ${customFont}, ${baseFontStack}; cursor: pointer;">
+                  1d8+3
+                </button>
+                <button onclick="quickRoll({10: 1}, 0);" style="padding: 12px; background: ${config.background_color || defaultConfig.background_color}; color: ${config.text_color || defaultConfig.text_color}; border: 1px solid ${config.primary_action_color || defaultConfig.primary_action_color}; border-radius: 8px; font-size: ${baseSize * 0.85}px; font-family: ${customFont}, ${baseFontStack}; cursor: pointer;">
+                  1d10
+                </button>
+                <button onclick="quickRoll({100: 1}, 0);" style="padding: 12px; background: ${config.background_color || defaultConfig.background_color}; color: ${config.text_color || defaultConfig.text_color}; border: 1px solid ${config.primary_action_color || defaultConfig.primary_action_color}; border-radius: 8px; font-size: ${baseSize * 0.85}px; font-family: ${customFont}, ${baseFontStack}; cursor: pointer;">
+                  1d100
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+      } else if (currentView === 'history') {
+        contentHtml = `
+          <div style="padding: 16px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+              <h2 style="font-size: ${baseSize * 1.5}px; font-weight: 700; font-family: ${customFont}, ${baseFontStack};">Roll History</h2>
+              ${rollHistory.length > 0 ? `<button onclick="clearHistory();" style="padding: 8px 16px; background: ${config.secondary_action_color || defaultConfig.secondary_action_color}; color: ${config.text_color || defaultConfig.text_color}; border: none; border-radius: 8px; font-size: ${baseSize * 0.85}px; font-family: ${customFont}, ${baseFontStack}; cursor: pointer;">Clear All</button>` : ''}
+            </div>
+            
+            ${rollHistory.length === 0 ? `
+              <div style="text-align: center; padding: 60px 20px; opacity: 0.6;">
+                <div style="font-size: ${baseSize * 3}px; margin-bottom: 16px;">🎲</div>
+                <div style="font-size: ${baseSize * 1.1}px; font-family: ${customFont}, ${baseFontStack};">No rolls yet</div>
+                <div style="font-size: ${baseSize * 0.9}px; margin-top: 8px;">Start rolling some dice!</div>
+              </div>
+            ` : rollHistory.map((roll, idx) => {
+              const date = new Date(roll.timestamp);
+              return `
+                <div style="background: ${config.surface_color || defaultConfig.surface_color}; padding: 16px; border-radius: 12px; margin-bottom: 12px;">
+                  <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+                    <div>
+                      <div style="font-size: ${baseSize * 1.5}px; font-weight: 700; color: ${config.primary_action_color || defaultConfig.primary_action_color}; margin-bottom: 4px;">
+                        ${roll.total}
+                      </div>
+                      <div style="font-size: ${baseSize * 0.85}px; opacity: 0.7;">
+                        ${formatDiceNotation(roll.dice, roll.modifier)}
+                      </div>
+                    </div>
+                    <div style="font-size: ${baseSize * 0.75}px; opacity: 0.5;">
+                      ${date.toLocaleTimeString()}
+                    </div>
+                  </div>
+                  <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                    ${roll.results.map(r => `
+                      <div style="background: ${config.background_color || defaultConfig.background_color}; padding: 6px 10px; border-radius: 6px; font-size: ${baseSize * 0.8}px;">
+                        <span style="font-weight: 600;">D${r.sides}:</span> ${r.rolls.join(', ')}
+                      </div>
+                    `).join('')}
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        `;
+      } else if (currentView === 'saved') {
+        contentHtml = `
+          <div style="padding: 16px;">
+            <h2 style="font-size: ${baseSize * 1.5}px; font-weight: 700; margin-bottom: 20px; font-family: ${customFont}, ${baseFontStack};">
+              ${config.favorites_title || defaultConfig.favorites_title}
+            </h2>
+            
+            ${savedRolls.length === 0 ? `
+              <div style="text-align: center; padding: 60px 20px; opacity: 0.6;">
+                <div style="font-size: ${baseSize * 3}px; margin-bottom: 16px;">⭐</div>
+                <div style="font-size: ${baseSize * 1.1}px; font-family: ${customFont}, ${baseFontStack};">No saved rolls</div>
+                <div style="font-size: ${baseSize * 0.9}px; margin-top: 8px;">Save your favorite roll setups!</div>
+              </div>
+            ` : savedRolls.map(roll => `
+              <div style="background: ${config.surface_color || defaultConfig.surface_color}; padding: 16px; border-radius: 12px; margin-bottom: 12px;">
+                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+                  <div style="flex: 1;">
+                    <div style="font-size: ${baseSize * 1.2}px; font-weight: 600; margin-bottom: 4px; font-family: ${customFont}, ${baseFontStack};">
+                      ${roll.name}
+                    </div>
+                    <div style="font-size: ${baseSize * 0.9}px; opacity: 0.7;">
+                      ${formatDiceNotation(roll.dice, roll.modifier)}
+                    </div>
+                  </div>
+                  <button onclick="deleteSavedRoll(${roll.id});" style="padding: 8px 12px; background: transparent; color: ${config.text_color || defaultConfig.text_color}; border: 1px solid ${config.secondary_action_color || defaultConfig.secondary_action_color}; border-radius: 6px; font-size: ${baseSize * 0.8}px; cursor: pointer;">
+                    🗑️
+                  </button>
+                </div>
+                <button onclick="loadSavedRoll(savedRolls.find(r => r.id === ${roll.id}));" style="width: 100%; padding: 12px; background: ${config.primary_action_color || defaultConfig.primary_action_color}; color: ${config.text_color || defaultConfig.text_color}; border: none; border-radius: 8px; font-size: ${baseSize * 0.95}px; font-family: ${customFont}, ${baseFontStack}; font-weight: 600; cursor: pointer;">
+                  Load & Roll
+                </button>
+              </div>
+            `).join('')}
+          </div>
+        `;
+      }
+      
+      app.innerHTML = navHtml + contentHtml;
+    }
+    
+    // Element SDK implementation
+    async function onConfigChange(newConfig) {
+      Object.assign(config, newConfig);
+      render();
+    }
+    
+    function mapToCapabilities(cfg) {
+      return {
+        recolorables: [
+          {
+            get: () => cfg.background_color || defaultConfig.background_color,
+            set: (value) => {
+              cfg.background_color = value;
+              if (window.elementSdk) {
+                window.elementSdk.setConfig({ background_color: value });
+              }
+            }
+          },
+          {
+            get: () => cfg.surface_color || defaultConfig.surface_color,
+            set: (value) => {
+              cfg.surface_color = value;
+              if (window.elementSdk) {
+                window.elementSdk.setConfig({ surface_color: value });
+              }
+            }
+          },
+          {
+            get: () => cfg.text_color || defaultConfig.text_color,
+            set: (value) => {
+              cfg.text_color = value;
+              if (window.elementSdk) {
+                window.elementSdk.setConfig({ text_color: value });
+              }
+            }
+          },
+          {
+            get: () => cfg.primary_action_color || defaultConfig.primary_action_color,
+            set: (value) => {
+              cfg.primary_action_color = value;
+              if (window.elementSdk) {
+                window.elementSdk.setConfig({ primary_action_color: value });
+              }
+            }
+          },
+          {
+            get: () => cfg.secondary_action_color || defaultConfig.secondary_action_color,
+            set: (value) => {
+              cfg.secondary_action_color = value;
+              if (window.elementSdk) {
+                window.elementSdk.setConfig({ secondary_action_color: value });
+              }
+            }
+          }
+        ],
+        borderables: [],
+        fontEditable: {
+          get: () => cfg.font_family || defaultConfig.font_family,
+          set: (value) => {
+            cfg.font_family = value;
+            if (window.elementSdk) {
+              window.elementSdk.setConfig({ font_family: value });
+            }
+          }
+        },
+        fontSizeable: {
+          get: () => cfg.font_size || defaultConfig.font_size,
+          set: (value) => {
+            cfg.font_size = value;
+            if (window.elementSdk) {
+              window.elementSdk.setConfig({ font_size: value });
+            }
+          }
+        }
+      };
+    }
+    
+    function mapToEditPanelValues(cfg) {
+      return new Map([
+        ["app_title", cfg.app_title || defaultConfig.app_title],
+        ["favorites_title", cfg.favorites_title || defaultConfig.favorites_title],
+        ["roll_button_text", cfg.roll_button_text || defaultConfig.roll_button_text]
+      ]);
+    }
+    
+    // Initialize
+    loadState();
+    
+    if (window.elementSdk) {
+      window.elementSdk.init({
+        defaultConfig,
+        onConfigChange,
+        mapToCapabilities,
+        mapToEditPanelValues
+      });
+    }
+    
+    render();
+  </script>
+ </body>
+</html>
