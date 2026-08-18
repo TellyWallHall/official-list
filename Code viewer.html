@@ -1,0 +1,1114 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Large File Viewer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-beautify/1.14.9/beautify.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-beautify/1.14.9/beautify-css.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-beautify/1.14.9/beautify-html.min.js"></script>
+    <style>
+        .file-content {
+            font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+            line-height: 1.6;
+        }
+        .highlight {
+            background-color: rgba(59, 130, 246, 0.3) !important;
+            animation: flash 0.8s ease-in-out;
+        }
+        @keyframes flash {
+            0% { background-color: rgba(59, 130, 246, 0.6) !important; }
+            100% { background-color: rgba(59, 130, 246, 0.3) !important; }
+        }
+        
+        @keyframes searchPulse {
+            0% { 
+                background-color: rgba(255, 235, 59, 0.6);
+                border-color: rgba(255, 235, 59, 0.8);
+                transform: scale(1.02);
+            }
+            50% { 
+                background-color: rgba(255, 235, 59, 0.4);
+                border-color: rgba(255, 235, 59, 0.6);
+                transform: scale(1);
+            }
+            100% { 
+                background-color: rgba(255, 235, 59, 0.2);
+                border-color: rgba(255, 235, 59, 0.4);
+                transform: scale(1);
+            }
+        }
+        
+        /* Custom scrollbar for dark theme */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1f2937;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #4b5563;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #6b7280;
+        }
+        
+        /* Custom vibrant syntax highlighting theme */
+        pre[class*="language-"] {
+            background: #0d1117 !important;
+            border: 1px solid #30363d !important;
+            border-radius: 8px !important;
+        }
+        
+        .line-numbers .line-numbers-rows {
+            border-right: 1px solid #30363d !important;
+        }
+        
+        .line-numbers-rows > span:before {
+            color: #7d8590 !important;
+        }
+        
+        /* Enhanced colorful syntax highlighting */
+        .token.comment,
+        .token.prolog,
+        .token.doctype,
+        .token.cdata {
+            color: #7c7c7c !important;
+            font-style: italic !important;
+        }
+        
+        .token.punctuation {
+            color: #c9d1d9 !important;
+        }
+        
+        .token.property,
+        .token.tag,
+        .token.boolean,
+        .token.number,
+        .token.constant,
+        .token.symbol,
+        .token.deleted {
+            color: #79c0ff !important;
+        }
+        
+        .token.selector,
+        .token.attr-name,
+        .token.string,
+        .token.char,
+        .token.builtin,
+        .token.inserted {
+            color: #a5d6ff !important;
+        }
+        
+        .token.operator,
+        .token.entity,
+        .token.url,
+        .language-css .token.string,
+        .style .token.string {
+            color: #ff7b72 !important;
+        }
+        
+        .token.atrule,
+        .token.attr-value,
+        .token.keyword {
+            color: #ff7b72 !important;
+            font-weight: bold !important;
+        }
+        
+        .token.function,
+        .token.class-name {
+            color: #d2a8ff !important;
+            font-weight: bold !important;
+        }
+        
+        .token.regex,
+        .token.important,
+        .token.variable {
+            color: #ffa657 !important;
+        }
+        
+        .token.important,
+        .token.bold {
+            font-weight: bold !important;
+        }
+        
+        .token.italic {
+            font-style: italic !important;
+        }
+        
+        .token.entity {
+            cursor: help !important;
+        }
+        
+        /* JSON specific colors */
+        .language-json .token.property {
+            color: #79c0ff !important;
+        }
+        
+        .language-json .token.string {
+            color: #a5d6ff !important;
+        }
+        
+        .language-json .token.number {
+            color: #ffa657 !important;
+        }
+        
+        .language-json .token.boolean {
+            color: #ff7b72 !important;
+        }
+        
+        /* HTML specific colors */
+        .language-html .token.tag .token.tag {
+            color: #7ee787 !important;
+        }
+        
+        .language-html .token.attr-name {
+            color: #79c0ff !important;
+        }
+        
+        .language-html .token.attr-value {
+            color: #a5d6ff !important;
+        }
+        
+        /* CSS specific colors */
+        .language-css .token.selector {
+            color: #7ee787 !important;
+        }
+        
+        .language-css .token.property {
+            color: #79c0ff !important;
+        }
+        
+        .language-css .token.string,
+        .language-css .token.url {
+            color: #a5d6ff !important;
+        }
+        
+        /* JavaScript specific colors */
+        .language-javascript .token.keyword {
+            color: #ff7b72 !important;
+        }
+        
+        .language-javascript .token.function {
+            color: #d2a8ff !important;
+        }
+        
+        .language-javascript .token.string {
+            color: #a5d6ff !important;
+        }
+        
+        .language-javascript .token.number {
+            color: #ffa657 !important;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 min-h-screen text-gray-100">
+    <div class="container mx-auto p-6 max-w-7xl">
+        <!-- Header -->
+        <div class="bg-gray-800 rounded-lg shadow-lg border border-gray-700 p-6 mb-6">
+            <h1 class="text-2xl font-light text-gray-100 mb-4">📄 File Viewer</h1>
+            
+            <!-- File Upload -->
+            <div class="mb-4">
+                <input type="file" id="fileInput" class="block w-full text-sm text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-gray-700 file:text-gray-200 hover:file:bg-gray-600 cursor-pointer bg-gray-700 border border-gray-600 rounded-lg p-2">
+            </div>
+            
+            <!-- File Info -->
+            <div id="fileInfo" class="hidden bg-gray-700 rounded-lg p-4 mb-4 border border-gray-600">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                    <div><span class="font-medium text-gray-300">File:</span> <span id="fileName" class="text-gray-100"></span></div>
+                    <div><span class="font-medium text-gray-300">Size:</span> <span id="fileSize" class="text-gray-100"></span></div>
+                    <div><span class="font-medium text-gray-300">Lines:</span> <span id="lineCount" class="text-gray-100"></span></div>
+                </div>
+            </div>
+            
+            <!-- Controls -->
+            <div id="controls" class="hidden space-y-4">
+                <!-- Mobile-friendly grid layout -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <!-- Go to line -->
+                    <div class="flex flex-col gap-2">
+                        <label class="text-sm font-medium text-gray-300">Go to line:</label>
+                        <div class="flex gap-2">
+                            <input type="number" id="gotoLine" min="1" class="flex-1 px-3 py-2 border border-gray-600 rounded-lg text-sm bg-gray-700 text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            <button id="gotoBtn" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-500 transition-colors font-medium">Go</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Chunk size -->
+                    <div class="flex flex-col gap-2">
+                        <label class="text-sm font-medium text-gray-300">Lines per chunk:</label>
+                        <select id="chunkSize" class="px-3 py-2 border border-gray-600 rounded-lg text-sm bg-gray-700 text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            <option value="500">500 lines</option>
+                            <option value="1000">1,000 lines</option>
+                            <option value="2500">2,500 lines</option>
+                            <option value="5000" selected>5,000 lines</option>
+                            <option value="7500">7,500 lines</option>
+                            <option value="10000">10,000 lines</option>
+                            <option value="15000">15,000 lines</option>
+                            <option value="20000">20,000 lines</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Auto Format -->
+                    <div class="flex flex-col gap-2">
+                        <label class="text-sm font-medium text-gray-300">Options:</label>
+                        <label class="flex items-center gap-3 text-sm font-medium text-gray-300 cursor-pointer bg-gray-700 px-3 py-2 rounded-lg border border-gray-600 hover:bg-gray-600 transition-colors">
+                            <input type="checkbox" id="autoFormat" class="rounded bg-gray-700 border-gray-600 text-blue-600 focus:ring-blue-500">
+                            Auto Format Code
+                        </label>
+                    </div>
+                    
+                    <!-- Search Options -->
+                    <div class="flex flex-col gap-2">
+                        <label class="text-sm font-medium text-gray-300">Search Options:</label>
+                        <div class="flex gap-2">
+                            <label class="flex items-center gap-2 text-xs text-gray-400 cursor-pointer">
+                                <input type="checkbox" id="caseSensitive" class="rounded bg-gray-700 border-gray-600 text-blue-600 focus:ring-blue-500">
+                                Case
+                            </label>
+                            <label class="flex items-center gap-2 text-xs text-gray-400 cursor-pointer">
+                                <input type="checkbox" id="useRegex" class="rounded bg-gray-700 border-gray-600 text-blue-600 focus:ring-blue-500">
+                                Regex
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Enhanced Search Bar -->
+                <div class="bg-gray-700 rounded-lg p-4 border border-gray-600">
+                    <div class="flex flex-col sm:flex-row gap-3">
+                        <div class="flex-1">
+                            <div class="relative">
+                                <input type="text" id="searchInput" placeholder="Search text or regex pattern..." class="w-full px-4 py-3 pr-12 border border-gray-600 rounded-lg text-sm bg-gray-800 text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                                <button id="clearSearch" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-200 transition-colors">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="flex gap-2">
+                            <button id="searchBtn" class="px-6 py-3 bg-green-600 text-white rounded-lg text-sm hover:bg-green-500 transition-colors font-medium flex items-center gap-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                                </svg>
+                                Find
+                            </button>
+                            <button id="replaceBtn" class="px-6 py-3 bg-purple-600 text-white rounded-lg text-sm hover:bg-purple-500 transition-colors font-medium">Replace</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Replace functionality -->
+                    <div id="replaceSection" class="hidden mt-3 pt-3 border-t border-gray-600">
+                        <div class="flex flex-col sm:flex-row gap-3">
+                            <input type="text" id="replaceInput" placeholder="Replace with..." class="flex-1 px-4 py-2 border border-gray-600 rounded-lg text-sm bg-gray-800 text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                            <div class="flex gap-2">
+                                <button id="replaceOneBtn" class="px-4 py-2 bg-purple-600 text-white rounded-lg text-sm hover:bg-purple-500 transition-colors">Replace</button>
+                                <button id="replaceAllBtn" class="px-4 py-2 bg-purple-700 text-white rounded-lg text-sm hover:bg-purple-600 transition-colors">Replace All</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Search Results -->
+                    <div id="searchResults" class="hidden mt-3 pt-3 border-t border-gray-600">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div class="flex items-center gap-3">
+                                <span id="searchStatus" class="text-sm text-gray-300"></span>
+                                <div class="flex gap-1">
+                                    <button id="prevResult" class="p-2 bg-gray-600 text-white rounded hover:bg-gray-500 transition-colors disabled:bg-gray-800 disabled:text-gray-500 disabled:cursor-not-allowed">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                                        </svg>
+                                    </button>
+                                    <button id="nextResult" class="p-2 bg-gray-600 text-white rounded hover:bg-gray-500 transition-colors disabled:bg-gray-800 disabled:text-gray-500 disabled:cursor-not-allowed">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                            <button id="closeSearch" class="text-sm text-gray-400 hover:text-gray-200 transition-colors">Close</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Viewer -->
+        <div id="viewer" class="hidden bg-gray-800 rounded-lg shadow-lg border border-gray-700">
+            <!-- Navigation -->
+            <div class="flex items-center justify-between p-4 border-b border-gray-600 bg-gray-700">
+                <div class="flex items-center gap-4">
+                    <button id="prevChunk" class="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-500 disabled:bg-gray-800 disabled:text-gray-500 disabled:cursor-not-allowed transition-colors">← Previous</button>
+                    <span id="chunkInfo" class="text-sm text-gray-300"></span>
+                    <button id="nextChunk" class="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-500 disabled:bg-gray-800 disabled:text-gray-500 disabled:cursor-not-allowed transition-colors">Next →</button>
+                </div>
+                
+                <div class="flex items-center gap-2">
+                    <span class="text-sm text-gray-300">Viewing lines:</span>
+                    <span id="lineRange" class="font-medium text-gray-100"></span>
+                </div>
+            </div>
+            
+            <!-- Content -->
+            <div class="overflow-auto max-h-96" style="max-height: 70vh;">
+                <div id="fileContent" class="file-content text-sm p-4 line-numbers"></div>
+            </div>
+            
+            <!-- Progress Bar -->
+            <div class="p-4 border-t border-gray-600 bg-gray-700">
+                <div class="flex items-center gap-2 mb-2">
+                    <span class="text-sm text-gray-300">Progress:</span>
+                    <span id="progressText" class="text-sm font-medium text-gray-100"></span>
+                </div>
+                <div class="w-full bg-gray-600 rounded-full h-2">
+                    <div id="progressBar" class="bg-blue-500 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Loading -->
+        <div id="loading" class="hidden text-center py-12">
+            <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+            <p class="mt-2 text-gray-300">Processing file...</p>
+        </div>
+    </div>
+
+    <script>
+        class LargeFileViewer {
+            constructor() {
+                this.fileContent = '';
+                this.lines = [];
+                this.currentChunk = 0;
+                this.chunkSize = 5000;
+                this.totalChunks = 0;
+                this.searchMatches = [];
+                this.currentSearchIndex = 0;
+                
+                this.initializeElements();
+                this.bindEvents();
+            }
+            
+            initializeElements() {
+                this.fileInput = document.getElementById('fileInput');
+                this.fileInfo = document.getElementById('fileInfo');
+                this.fileName = document.getElementById('fileName');
+                this.fileSize = document.getElementById('fileSize');
+                this.lineCount = document.getElementById('lineCount');
+                this.controls = document.getElementById('controls');
+                this.viewer = document.getElementById('viewer');
+                this.loading = document.getElementById('loading');
+                this.fileContentDiv = document.getElementById('fileContent');
+                this.prevBtn = document.getElementById('prevChunk');
+                this.nextBtn = document.getElementById('nextChunk');
+                this.chunkInfo = document.getElementById('chunkInfo');
+                this.lineRange = document.getElementById('lineRange');
+                this.progressBar = document.getElementById('progressBar');
+                this.progressText = document.getElementById('progressText');
+                this.gotoLine = document.getElementById('gotoLine');
+                this.gotoBtn = document.getElementById('gotoBtn');
+                this.searchInput = document.getElementById('searchInput');
+                this.searchBtn = document.getElementById('searchBtn');
+                this.chunkSizeSelect = document.getElementById('chunkSize');
+                this.autoFormatCheckbox = document.getElementById('autoFormat');
+                
+                // Enhanced search elements
+                this.caseSensitiveCheckbox = document.getElementById('caseSensitive');
+                this.useRegexCheckbox = document.getElementById('useRegex');
+                this.clearSearchBtn = document.getElementById('clearSearch');
+                this.replaceBtn = document.getElementById('replaceBtn');
+                this.replaceSection = document.getElementById('replaceSection');
+                this.replaceInput = document.getElementById('replaceInput');
+                this.replaceOneBtn = document.getElementById('replaceOneBtn');
+                this.replaceAllBtn = document.getElementById('replaceAllBtn');
+                this.searchResults = document.getElementById('searchResults');
+                this.searchStatus = document.getElementById('searchStatus');
+                this.prevResultBtn = document.getElementById('prevResult');
+                this.nextResultBtn = document.getElementById('nextResult');
+                this.closeSearchBtn = document.getElementById('closeSearch');
+            }
+            
+            bindEvents() {
+                this.fileInput.addEventListener('change', (e) => this.handleFileSelect(e));
+                this.prevBtn.addEventListener('click', () => this.previousChunk());
+                this.nextBtn.addEventListener('click', () => this.nextChunk());
+                this.gotoBtn.addEventListener('click', () => this.goToLine());
+                this.searchBtn.addEventListener('click', () => this.searchText());
+                this.chunkSizeSelect.addEventListener('change', (e) => this.changeChunkSize(e));
+                this.autoFormatCheckbox.addEventListener('change', () => this.displayChunk());
+                
+                // Enhanced search events
+                this.clearSearchBtn.addEventListener('click', () => this.clearSearch());
+                this.replaceBtn.addEventListener('click', () => this.toggleReplace());
+                this.replaceOneBtn.addEventListener('click', () => this.replaceOne());
+                this.replaceAllBtn.addEventListener('click', () => this.replaceAll());
+                this.prevResultBtn.addEventListener('click', () => this.previousSearchResult());
+                this.nextResultBtn.addEventListener('click', () => this.nextSearchResult());
+                this.closeSearchBtn.addEventListener('click', () => this.closeSearch());
+                
+                // Keyboard shortcuts
+                document.addEventListener('keydown', (e) => {
+                    if (e.ctrlKey || e.metaKey) {
+                        if (e.key === 'f') {
+                            e.preventDefault();
+                            this.searchInput.focus();
+                            this.searchInput.select();
+                        }
+                        if (e.key === 'h') {
+                            e.preventDefault();
+                            this.toggleReplace();
+                            this.searchInput.focus();
+                        }
+                    }
+                    if (e.key === 'Enter' && document.activeElement === this.searchInput) {
+                        this.searchText();
+                    }
+                    if (e.key === 'Enter' && document.activeElement === this.gotoLine) {
+                        this.goToLine();
+                    }
+                    if (e.key === 'Enter' && document.activeElement === this.replaceInput) {
+                        this.replaceOne();
+                    }
+                    if (e.key === 'Escape') {
+                        this.closeSearch();
+                    }
+                    if (e.key === 'F3' || (e.ctrlKey && e.key === 'g')) {
+                        e.preventDefault();
+                        if (e.shiftKey) {
+                            this.previousSearchResult();
+                        } else {
+                            this.nextSearchResult();
+                        }
+                    }
+                });
+            }
+            
+            async handleFileSelect(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+                
+                this.showLoading(true);
+                
+                try {
+                    // Read file content
+                    const text = await this.readFileAsText(file);
+                    this.fileContent = text;
+                    this.lines = text.split('\n');
+                    
+                    // Update file info
+                    this.currentFileName = file.name;
+                    this.fileName.textContent = file.name;
+                    this.fileSize.textContent = this.formatFileSize(file.size);
+                    this.lineCount.textContent = this.lines.length.toLocaleString();
+                    
+                    // Calculate chunks
+                    this.totalChunks = Math.ceil(this.lines.length / this.chunkSize);
+                    this.currentChunk = 0;
+                    
+                    // Show UI elements
+                    this.fileInfo.classList.remove('hidden');
+                    this.controls.classList.remove('hidden');
+                    this.viewer.classList.remove('hidden');
+                    
+                    // Set max value for goto line input
+                    this.gotoLine.max = this.lines.length;
+                    
+                    // Display first chunk
+                    this.displayChunk();
+                    
+                } catch (error) {
+                    alert('Error reading file: ' + error.message);
+                } finally {
+                    this.showLoading(false);
+                }
+            }
+            
+            readFileAsText(file) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => resolve(e.target.result);
+                    reader.onerror = (e) => reject(new Error('Failed to read file'));
+                    reader.readAsText(file);
+                });
+            }
+            
+            displayChunk() {
+                const startLine = this.currentChunk * this.chunkSize;
+                const endLine = Math.min(startLine + this.chunkSize, this.lines.length);
+                const chunkLines = this.lines.slice(startLine, endLine);
+                
+                // Detect file language for syntax highlighting
+                const language = this.detectLanguage();
+                let codeContent = chunkLines.join('\n');
+                
+                // Auto-format code if enabled
+                if (this.autoFormatCheckbox.checked) {
+                    codeContent = this.formatCode(codeContent, language);
+                }
+                
+                // Create pre element with Prism classes
+                const preElement = document.createElement('pre');
+                preElement.className = `language-${language} line-numbers`;
+                preElement.style.margin = '0';
+                preElement.style.background = '#0d1117';
+                preElement.style.border = '1px solid #30363d';
+                preElement.style.borderRadius = '8px';
+                
+                const codeElement = document.createElement('code');
+                codeElement.className = `language-${language}`;
+                codeElement.textContent = codeContent;
+                
+                preElement.appendChild(codeElement);
+                this.fileContentDiv.innerHTML = '';
+                this.fileContentDiv.appendChild(preElement);
+                
+                // Apply syntax highlighting
+                if (window.Prism) {
+                    Prism.highlightElement(codeElement);
+                }
+                
+                // Store line mapping for search functionality
+                this.currentStartLine = startLine;
+                
+                // Update navigation info
+                this.chunkInfo.textContent = `Chunk ${this.currentChunk + 1} of ${this.totalChunks}`;
+                this.lineRange.textContent = `${startLine + 1} - ${endLine}`;
+                
+                // Update progress
+                const progress = ((this.currentChunk + 1) / this.totalChunks) * 100;
+                this.progressBar.style.width = `${progress}%`;
+                this.progressText.textContent = `${Math.round(progress)}%`;
+                
+                // Update navigation buttons
+                this.prevBtn.disabled = this.currentChunk === 0;
+                this.nextBtn.disabled = this.currentChunk === this.totalChunks - 1;
+            }
+            
+            previousChunk() {
+                if (this.currentChunk > 0) {
+                    this.currentChunk--;
+                    this.displayChunk();
+                }
+            }
+            
+            nextChunk() {
+                if (this.currentChunk < this.totalChunks - 1) {
+                    this.currentChunk++;
+                    this.displayChunk();
+                }
+            }
+            
+            detectLanguage() {
+                if (!this.currentFileName) return 'text';
+                
+                const extension = this.currentFileName.split('.').pop()?.toLowerCase();
+                const languageMap = {
+                    'js': 'javascript',
+                    'jsx': 'jsx',
+                    'ts': 'typescript',
+                    'tsx': 'tsx',
+                    'py': 'python',
+                    'java': 'java',
+                    'c': 'c',
+                    'cpp': 'cpp',
+                    'cc': 'cpp',
+                    'cxx': 'cpp',
+                    'cs': 'csharp',
+                    'php': 'php',
+                    'rb': 'ruby',
+                    'go': 'go',
+                    'rs': 'rust',
+                    'swift': 'swift',
+                    'kt': 'kotlin',
+                    'scala': 'scala',
+                    'html': 'html',
+                    'htm': 'html',
+                    'xml': 'xml',
+                    'css': 'css',
+                    'scss': 'scss',
+                    'sass': 'sass',
+                    'less': 'less',
+                    'json': 'json',
+                    'yaml': 'yaml',
+                    'yml': 'yaml',
+                    'toml': 'toml',
+                    'ini': 'ini',
+                    'cfg': 'ini',
+                    'conf': 'ini',
+                    'sh': 'bash',
+                    'bash': 'bash',
+                    'zsh': 'bash',
+                    'fish': 'bash',
+                    'ps1': 'powershell',
+                    'sql': 'sql',
+                    'md': 'markdown',
+                    'markdown': 'markdown',
+                    'tex': 'latex',
+                    'r': 'r',
+                    'matlab': 'matlab',
+                    'm': 'matlab',
+                    'pl': 'perl',
+                    'lua': 'lua',
+                    'vim': 'vim',
+                    'dockerfile': 'docker',
+                    'makefile': 'makefile',
+                    'cmake': 'cmake'
+                };
+                
+                return languageMap[extension] || 'text';
+            }
+            
+            goToLine() {
+                const lineNumber = parseInt(this.gotoLine.value);
+                if (lineNumber >= 1 && lineNumber <= this.lines.length) {
+                    const targetChunk = Math.floor((lineNumber - 1) / this.chunkSize);
+                    this.currentChunk = targetChunk;
+                    this.displayChunk();
+                    
+                    // Highlight the target line by scrolling to approximate position
+                    setTimeout(() => {
+                        const relativeLineInChunk = lineNumber - (this.currentChunk * this.chunkSize);
+                        const codeElement = this.fileContentDiv.querySelector('code');
+                        if (codeElement) {
+                            const lines = codeElement.textContent.split('\n');
+                            const targetLineContent = lines[relativeLineInChunk - 1];
+                            if (targetLineContent) {
+                                // Scroll to approximate position
+                                const lineHeight = 24; // approximate line height
+                                const scrollPosition = (relativeLineInChunk - 1) * lineHeight;
+                                this.fileContentDiv.scrollTop = scrollPosition;
+                            }
+                        }
+                    }, 100);
+                }
+            }
+            
+            searchText() {
+                const searchTerm = this.searchInput.value.trim();
+                if (!searchTerm) {
+                    this.closeSearch();
+                    return;
+                }
+                
+                this.searchMatches = [];
+                const caseSensitive = this.caseSensitiveCheckbox.checked;
+                const useRegex = this.useRegexCheckbox.checked;
+                
+                try {
+                    let searchPattern;
+                    if (useRegex) {
+                        const flags = caseSensitive ? 'g' : 'gi';
+                        searchPattern = new RegExp(searchTerm, flags);
+                    } else {
+                        const escapedTerm = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                        const flags = caseSensitive ? 'g' : 'gi';
+                        searchPattern = new RegExp(escapedTerm, flags);
+                    }
+                    
+                    this.lines.forEach((line, lineIndex) => {
+                        let match;
+                        const searchLine = line;
+                        searchPattern.lastIndex = 0; // Reset regex state
+                        
+                        while ((match = searchPattern.exec(searchLine)) !== null) {
+                            this.searchMatches.push({
+                                lineNumber: lineIndex + 1,
+                                columnStart: match.index,
+                                columnEnd: match.index + match[0].length,
+                                matchText: match[0],
+                                lineText: line
+                            });
+                            
+                            // Prevent infinite loop for zero-length matches
+                            if (match.index === searchPattern.lastIndex) {
+                                searchPattern.lastIndex++;
+                            }
+                        }
+                    });
+                    
+                    if (this.searchMatches.length > 0) {
+                        this.currentSearchIndex = 0;
+                        this.showSearchResults();
+                        this.goToSearchResult();
+                    } else {
+                        this.showSearchResults();
+                    }
+                    
+                } catch (error) {
+                    this.searchStatus.textContent = `Invalid regex pattern: ${error.message}`;
+                    this.searchResults.classList.remove('hidden');
+                }
+            }
+            
+            showSearchResults() {
+                this.searchResults.classList.remove('hidden');
+                
+                if (this.searchMatches.length > 0) {
+                    this.searchStatus.textContent = `${this.searchMatches.length} matches found`;
+                    this.updateSearchNavigation();
+                } else {
+                    this.searchStatus.textContent = 'No matches found';
+                    this.prevResultBtn.disabled = true;
+                    this.nextResultBtn.disabled = true;
+                }
+            }
+            
+            updateSearchNavigation() {
+                if (this.searchMatches.length === 0) {
+                    this.prevResultBtn.disabled = true;
+                    this.nextResultBtn.disabled = true;
+                    return;
+                }
+                
+                this.prevResultBtn.disabled = this.currentSearchIndex === 0;
+                this.nextResultBtn.disabled = this.currentSearchIndex === this.searchMatches.length - 1;
+                
+                this.searchStatus.textContent = `Match ${this.currentSearchIndex + 1} of ${this.searchMatches.length}`;
+            }
+            
+            goToSearchResult() {
+                if (this.searchMatches.length === 0) return;
+                
+                const match = this.searchMatches[this.currentSearchIndex];
+                this.gotoLine.value = match.lineNumber;
+                this.goToLine();
+                
+                // Highlight the match in the current chunk
+                setTimeout(() => {
+                    this.highlightSearchMatch(match);
+                }, 100);
+            }
+            
+            highlightSearchMatch(match) {
+                const codeElement = this.fileContentDiv.querySelector('code');
+                if (!codeElement) return;
+                
+                const relativeLineInChunk = match.lineNumber - (this.currentChunk * this.chunkSize);
+                if (relativeLineInChunk < 1) return;
+                
+                // Get the text content and split into lines
+                const lines = codeElement.textContent.split('\n');
+                const targetLineIndex = relativeLineInChunk - 1;
+                
+                if (targetLineIndex >= 0 && targetLineIndex < lines.length) {
+                    // Create a temporary element to measure text
+                    const measureElement = document.createElement('span');
+                    measureElement.style.font = window.getComputedStyle(codeElement).font;
+                    measureElement.style.visibility = 'hidden';
+                    measureElement.style.position = 'absolute';
+                    measureElement.style.whiteSpace = 'pre';
+                    document.body.appendChild(measureElement);
+                    
+                    // Calculate line height
+                    measureElement.textContent = 'M';
+                    const lineHeight = measureElement.offsetHeight * 1.6; // Account for line-height
+                    
+                    // Calculate the vertical position of the target line
+                    const lineTop = targetLineIndex * lineHeight;
+                    
+                    // Get the container height
+                    const containerHeight = this.fileContentDiv.parentElement.offsetHeight;
+                    
+                    // Scroll to center the line in the viewport
+                    const scrollTop = Math.max(0, lineTop - (containerHeight / 2));
+                    this.fileContentDiv.parentElement.scrollTop = scrollTop;
+                    
+                    // Clean up
+                    document.body.removeChild(measureElement);
+                    
+                    // Add visual highlight to the line
+                    this.addLineHighlight(targetLineIndex, match);
+                }
+            }
+            
+            addLineHighlight(lineIndex, match) {
+                // Remove any existing highlights
+                this.removeLineHighlights();
+                
+                const codeElement = this.fileContentDiv.querySelector('code');
+                if (!codeElement) return;
+                
+                // Create a highlight overlay
+                const highlight = document.createElement('div');
+                highlight.className = 'search-highlight-overlay';
+                highlight.style.cssText = `
+                    position: absolute;
+                    left: 0;
+                    right: 0;
+                    background-color: rgba(255, 235, 59, 0.3);
+                    border: 2px solid rgba(255, 235, 59, 0.6);
+                    border-radius: 4px;
+                    pointer-events: none;
+                    z-index: 10;
+                    animation: searchPulse 1.5s ease-in-out;
+                `;
+                
+                // Calculate position
+                const lineHeight = parseFloat(window.getComputedStyle(codeElement).lineHeight) || 24;
+                const top = lineIndex * lineHeight;
+                highlight.style.top = `${top}px`;
+                highlight.style.height = `${lineHeight}px`;
+                
+                // Position relative to the code element
+                const codeRect = codeElement.getBoundingClientRect();
+                const containerRect = this.fileContentDiv.getBoundingClientRect();
+                
+                // Make the code element container relative if it isn't already
+                if (window.getComputedStyle(this.fileContentDiv).position === 'static') {
+                    this.fileContentDiv.style.position = 'relative';
+                }
+                
+                this.fileContentDiv.appendChild(highlight);
+                
+                // Auto-remove highlight after animation
+                setTimeout(() => {
+                    this.removeLineHighlights();
+                }, 3000);
+            }
+            
+            removeLineHighlights() {
+                const highlights = this.fileContentDiv.querySelectorAll('.search-highlight-overlay');
+                highlights.forEach(highlight => highlight.remove());
+            }
+            
+            previousSearchResult() {
+                if (this.searchMatches.length === 0) return;
+                
+                if (this.currentSearchIndex > 0) {
+                    this.currentSearchIndex--;
+                    this.goToSearchResult();
+                    this.updateSearchNavigation();
+                }
+            }
+            
+            nextSearchResult() {
+                if (this.searchMatches.length === 0) return;
+                
+                if (this.currentSearchIndex < this.searchMatches.length - 1) {
+                    this.currentSearchIndex++;
+                    this.goToSearchResult();
+                    this.updateSearchNavigation();
+                }
+            }
+            
+            clearSearch() {
+                this.searchInput.value = '';
+                this.replaceInput.value = '';
+                this.closeSearch();
+            }
+            
+            closeSearch() {
+                this.searchResults.classList.add('hidden');
+                this.replaceSection.classList.add('hidden');
+                this.searchMatches = [];
+                this.currentSearchIndex = 0;
+            }
+            
+            toggleReplace() {
+                this.replaceSection.classList.toggle('hidden');
+                if (!this.replaceSection.classList.contains('hidden')) {
+                    this.replaceInput.focus();
+                }
+            }
+            
+            replaceOne() {
+                if (this.searchMatches.length === 0 || !this.replaceInput.value) return;
+                
+                const match = this.searchMatches[this.currentSearchIndex];
+                const lineIndex = match.lineNumber - 1;
+                const line = this.lines[lineIndex];
+                
+                // Replace the specific match
+                const newLine = line.substring(0, match.columnStart) + 
+                               this.replaceInput.value + 
+                               line.substring(match.columnEnd);
+                
+                this.lines[lineIndex] = newLine;
+                
+                // Update file content and re-search
+                this.fileContent = this.lines.join('\n');
+                this.displayChunk();
+                
+                // Re-run search to update match positions
+                setTimeout(() => {
+                    this.searchText();
+                }, 100);
+            }
+            
+            replaceAll() {
+                if (this.searchMatches.length === 0 || !this.replaceInput.value) return;
+                
+                const searchTerm = this.searchInput.value.trim();
+                const replaceTerm = this.replaceInput.value;
+                const caseSensitive = this.caseSensitiveCheckbox.checked;
+                const useRegex = this.useRegexCheckbox.checked;
+                
+                try {
+                    let searchPattern;
+                    if (useRegex) {
+                        const flags = caseSensitive ? 'g' : 'gi';
+                        searchPattern = new RegExp(searchTerm, flags);
+                    } else {
+                        const escapedTerm = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                        const flags = caseSensitive ? 'g' : 'gi';
+                        searchPattern = new RegExp(escapedTerm, flags);
+                    }
+                    
+                    const replacedCount = this.searchMatches.length;
+                    
+                    // Replace all matches
+                    this.lines = this.lines.map(line => line.replace(searchPattern, replaceTerm));
+                    this.fileContent = this.lines.join('\n');
+                    
+                    // Update display
+                    this.displayChunk();
+                    
+                    // Clear search results and show success message
+                    this.closeSearch();
+                    this.searchStatus.textContent = `Replaced ${replacedCount} matches`;
+                    this.searchResults.classList.remove('hidden');
+                    
+                    setTimeout(() => {
+                        this.closeSearch();
+                    }, 2000);
+                    
+                } catch (error) {
+                    this.searchStatus.textContent = `Replace failed: ${error.message}`;
+                    this.searchResults.classList.remove('hidden');
+                }
+            }
+            
+            changeChunkSize(event) {
+                this.chunkSize = parseInt(event.target.value);
+                this.totalChunks = Math.ceil(this.lines.length / this.chunkSize);
+                
+                // Adjust current chunk to maintain approximate position
+                const currentLine = this.currentChunk * parseInt(this.chunkSizeSelect.options[this.chunkSizeSelect.selectedIndex].previousElementSibling?.value || 5000) + 1;
+                this.currentChunk = Math.floor((currentLine - 1) / this.chunkSize);
+                
+                if (this.lines.length > 0) {
+                    this.displayChunk();
+                }
+            }
+            
+            formatFileSize(bytes) {
+                const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+                if (bytes === 0) return '0 Bytes';
+                const i = Math.floor(Math.log(bytes) / Math.log(1024));
+                return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
+            }
+            
+            escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+            
+            formatCode(code, language) {
+                try {
+                    switch (language) {
+                        case 'javascript':
+                        case 'jsx':
+                        case 'typescript':
+                        case 'tsx':
+                            if (window.js_beautify) {
+                                return js_beautify(code, {
+                                    indent_size: 2,
+                                    indent_char: ' ',
+                                    max_preserve_newlines: 2,
+                                    preserve_newlines: true,
+                                    keep_array_indentation: false,
+                                    break_chained_methods: false,
+                                    indent_scripts: 'normal',
+                                    brace_style: 'collapse',
+                                    space_before_conditional: true,
+                                    unescape_strings: false,
+                                    jslint_happy: false,
+                                    end_with_newline: false,
+                                    wrap_line_length: 0,
+                                    indent_inner_html: false,
+                                    comma_first: false,
+                                    e4x: false,
+                                    indent_empty_lines: false
+                                });
+                            }
+                            break;
+                        case 'html':
+                        case 'xml':
+                            if (window.html_beautify) {
+                                return html_beautify(code, {
+                                    indent_size: 2,
+                                    indent_char: ' ',
+                                    max_preserve_newlines: 2,
+                                    preserve_newlines: true,
+                                    indent_inner_html: true,
+                                    brace_style: 'collapse',
+                                    indent_scripts: 'normal',
+                                    wrap_line_length: 0,
+                                    wrap_attributes: 'auto',
+                                    wrap_attributes_indent_size: 2,
+                                    end_with_newline: false
+                                });
+                            }
+                            break;
+                        case 'css':
+                        case 'scss':
+                        case 'less':
+                            if (window.css_beautify) {
+                                return css_beautify(code, {
+                                    indent_size: 2,
+                                    indent_char: ' ',
+                                    max_preserve_newlines: 2,
+                                    preserve_newlines: true,
+                                    newline_between_rules: true,
+                                    end_with_newline: false,
+                                    indent_empty_lines: false,
+                                    space_around_combinator: true
+                                });
+                            }
+                            break;
+                        case 'json':
+                            try {
+                                const parsed = JSON.parse(code);
+                                return JSON.stringify(parsed, null, 2);
+                            } catch (e) {
+                                // If JSON is invalid, return original
+                                return code;
+                            }
+                        default:
+                            return code;
+                    }
+                } catch (error) {
+                    console.warn('Formatting failed:', error);
+                    return code;
+                }
+                return code;
+            }
+            
+            showLoading(show) {
+                if (show) {
+                    this.loading.classList.remove('hidden');
+                    this.viewer.classList.add('hidden');
+                } else {
+                    this.loading.classList.add('hidden');
+                }
+            }
+        }
+        
+        // Initialize the viewer when the page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            new LargeFileViewer();
+        });
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'974b1f81f1a800f8',t:'MTc1NjEyNTI2MS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
