@@ -1,0 +1,1253 @@
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mobile Game Collection</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap');
+        
+        body {
+            font-family: 'Fredoka', sans-serif;
+            touch-action: manipulation;
+            overscroll-behavior: none;
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            min-height: 100vh;
+        }
+        
+        .game-container {
+            max-width: 500px;
+            margin: 0 auto;
+            height: 400px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .game-button {
+            transition: transform 0.1s;
+        }
+        
+        .game-button:active {
+            transform: scale(0.95);
+        }
+        
+        /* Snake Game */
+        .snake-cell {
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        /* Tic Tac Toe */
+        .ttt-cell {
+            border: 2px solid white;
+        }
+        
+        /* Memory Game */
+        .memory-card {
+            perspective: 1000px;
+            transform-style: preserve-3d;
+            transition: transform 0.5s;
+        }
+        
+        .memory-card.flipped {
+            transform: rotateY(180deg);
+        }
+        
+        .memory-card-front, .memory-card-back {
+            backface-visibility: hidden;
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .memory-card-front {
+            transform: rotateY(180deg);
+        }
+        
+        /* Rock Paper Scissors */
+        .rps-option {
+            transition: all 0.2s;
+        }
+        
+        .rps-option:active {
+            transform: scale(0.9);
+        }
+        
+        .rps-selected {
+            transform: scale(1.1);
+            box-shadow: 0 0 15px rgba(255,255,255,0.7);
+        }
+        
+        /* Whack-a-Mole */
+        .mole-hole {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .mole {
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%) translateY(100%);
+            transition: transform 0.1s;
+        }
+        
+        .mole.active {
+            transform: translateX(-50%) translateY(0);
+        }
+        
+        .mole:active {
+            transform: translateX(-50%) translateY(20%);
+        }
+        
+        /* Pong Game */
+        #pongCanvas {
+            background-color: #111827;
+            border-radius: 12px;
+        }
+        
+        /* Flappy Bird */
+        #flappyCanvas {
+            background-color: #0284c7;
+            border-radius: 12px;
+        }
+    </style>
+</head>
+<body class="text-white p-4">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-4xl font-bold text-center mb-2 text-white">🎮 Mobile Game Collection</h1>
+        <p class="text-center mb-6 text-white/80">Tap a game to play! All games are optimized for mobile.</p>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+            <!-- Game Selection -->
+            <button onclick="showGame('snake')" class="game-button bg-indigo-600 hover:bg-indigo-700 p-4 rounded-xl shadow-lg flex items-center">
+                <div class="w-12 h-12 bg-indigo-500 rounded-full flex items-center justify-center mr-4 text-2xl">🐍</div>
+                <div>
+                    <h3 class="font-bold text-xl">Snake</h3>
+                    <p class="text-indigo-200">Single player classic</p>
+                </div>
+            </button>
+            
+            <button onclick="showGame('tictactoe')" class="game-button bg-purple-600 hover:bg-purple-700 p-4 rounded-xl shadow-lg flex items-center">
+                <div class="w-12 h-12 bg-purple-500 rounded-full flex items-center justify-center mr-4 text-2xl">⭕</div>
+                <div>
+                    <h3 class="font-bold text-xl">Tic Tac Toe</h3>
+                    <p class="text-purple-200">2 player turn-based</p>
+                </div>
+            </button>
+            
+            <button onclick="showGame('memory')" class="game-button bg-blue-600 hover:bg-blue-700 p-4 rounded-xl shadow-lg flex items-center">
+                <div class="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center mr-4 text-2xl">🧠</div>
+                <div>
+                    <h3 class="font-bold text-xl">Memory Match</h3>
+                    <p class="text-blue-200">Test your memory</p>
+                </div>
+            </button>
+            
+            <button onclick="showGame('rps')" class="game-button bg-cyan-600 hover:bg-cyan-700 p-4 rounded-xl shadow-lg flex items-center">
+                <div class="w-12 h-12 bg-cyan-500 rounded-full flex items-center justify-center mr-4 text-2xl">✂️</div>
+                <div>
+                    <h3 class="font-bold text-xl">Rock Paper Scissors</h3>
+                    <p class="text-cyan-200">Play against AI</p>
+                </div>
+            </button>
+            
+            <button onclick="showGame('whackamole')" class="game-button bg-teal-600 hover:bg-teal-700 p-4 rounded-xl shadow-lg flex items-center">
+                <div class="w-12 h-12 bg-teal-500 rounded-full flex items-center justify-center mr-4 text-2xl">🔨</div>
+                <div>
+                    <h3 class="font-bold text-xl">Whack-a-Mole</h3>
+                    <p class="text-teal-200">Tap quickly!</p>
+                </div>
+            </button>
+            
+            <button onclick="showGame('pong')" class="game-button bg-emerald-600 hover:bg-emerald-700 p-4 rounded-xl shadow-lg flex items-center">
+                <div class="w-12 h-12 bg-emerald-500 rounded-full flex items-center justify-center mr-4 text-2xl">🏓</div>
+                <div>
+                    <h3 class="font-bold text-xl">Pong</h3>
+                    <p class="text-emerald-200">Classic arcade game</p>
+                </div>
+            </button>
+            
+            <button onclick="showGame('flappy')" class="game-button bg-sky-600 hover:bg-sky-700 p-4 rounded-xl shadow-lg flex items-center">
+                <div class="w-12 h-12 bg-sky-500 rounded-full flex items-center justify-center mr-4 text-2xl">🐦</div>
+                <div>
+                    <h3 class="font-bold text-xl">Flappy Bird</h3>
+                    <p class="text-sky-200">Tap to fly</p>
+                </div>
+            </button>
+            
+            <button onclick="showGame('quiz')" class="game-button bg-pink-600 hover:bg-pink-700 p-4 rounded-xl shadow-lg flex items-center">
+                <div class="w-12 h-12 bg-pink-500 rounded-full flex items-center justify-center mr-4 text-2xl">❓</div>
+                <div>
+                    <h3 class="font-bold text-xl">Quiz Game</h3>
+                    <p class="text-pink-200">Test your knowledge</p>
+                </div>
+            </button>
+        </div>
+        
+        <!-- Game Display Area -->
+        <div id="gameArea" class="bg-gray-900 rounded-2xl p-4 shadow-2xl mb-6">
+            <div id="gameHeader" class="flex justify-between items-center mb-4">
+                <h2 id="gameTitle" class="text-2xl font-bold">Select a Game</h2>
+                <div class="flex items-center">
+                    <span id="gameScore" class="mr-4 font-bold text-xl">Score: 0</span>
+                    <button id="backButton" onclick="showGameSelection()" class="bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded-lg hidden">
+                        Back
+                    </button>
+                </div>
+            </div>
+            
+            <div id="gameSelection" class="text-center py-16">
+                <div class="text-6xl mb-4">👆</div>
+                <p class="text-xl">Select a game from above to start playing!</p>
+            </div>
+            
+            <!-- Snake Game -->
+            <div id="snake" class="game-container hidden">
+                <div id="snakeGrid" class="grid grid-cols-15 h-full bg-gray-800 rounded-xl"></div>
+                <div class="mt-4 flex justify-center gap-2">
+                    <div class="grid grid-cols-3 gap-2">
+                        <div></div>
+                        <button id="snakeUp" class="bg-indigo-600 hover:bg-indigo-700 p-3 rounded-lg text-2xl">⬆️</button>
+                        <div></div>
+                        <button id="snakeLeft" class="bg-indigo-600 hover:bg-indigo-700 p-3 rounded-lg text-2xl">⬅️</button>
+                        <button id="snakeDown" class="bg-indigo-600 hover:bg-indigo-700 p-3 rounded-lg text-2xl">⬇️</button>
+                        <button id="snakeRight" class="bg-indigo-600 hover:bg-indigo-700 p-3 rounded-lg text-2xl">➡️</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Tic Tac Toe -->
+            <div id="tictactoe" class="game-container hidden">
+                <div class="flex flex-col h-full justify-center">
+                    <div id="tttStatus" class="text-center mb-4 text-xl font-bold">Player X's turn</div>
+                    <div id="tttBoard" class="grid grid-cols-3 gap-2 w-64 mx-auto"></div>
+                    <button id="tttReset" class="mt-6 bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded-lg mx-auto">
+                        Reset Game
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Memory Game -->
+            <div id="memory" class="game-container hidden">
+                <div id="memoryBoard" class="grid grid-cols-4 gap-2 h-full"></div>
+                <button id="memoryReset" class="mt-4 bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg mx-auto block">
+                    New Game
+                </button>
+            </div>
+            
+            <!-- Rock Paper Scissors -->
+            <div id="rps" class="game-container hidden">
+                <div class="flex flex-col h-full justify-center items-center">
+                    <div id="rpsResult" class="text-2xl font-bold mb-6 h-8">Choose your move!</div>
+                    <div class="flex justify-center items-center gap-6 mb-8">
+                        <div id="playerChoice" class="w-24 h-24 bg-cyan-800 rounded-full flex items-center justify-center text-4xl">
+                            ?
+                        </div>
+                        <div class="text-2xl font-bold">VS</div>
+                        <div id="computerChoice" class="w-24 h-24 bg-cyan-800 rounded-full flex items-center justify-center text-4xl">
+                            ?
+                        </div>
+                    </div>
+                    <div class="flex gap-4">
+                        <button class="rps-option bg-cyan-600 hover:bg-cyan-700 w-20 h-20 rounded-full flex items-center justify-center text-3xl" data-choice="rock">
+                            👊
+                        </button>
+                        <button class="rps-option bg-cyan-600 hover:bg-cyan-700 w-20 h-20 rounded-full flex items-center justify-center text-3xl" data-choice="paper">
+                            ✋
+                        </button>
+                        <button class="rps-option bg-cyan-600 hover:bg-cyan-700 w-20 h-20 rounded-full flex items-center justify-center text-3xl" data-choice="scissors">
+                            ✌️
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Whack-a-Mole -->
+            <div id="whackamole" class="game-container hidden">
+                <div class="flex flex-col h-full">
+                    <div id="moleTimer" class="text-center mb-4 text-xl">Time: 30s</div>
+                    <div id="moleGrid" class="grid grid-cols-3 gap-3 flex-grow"></div>
+                    <button id="moleStart" class="mt-4 bg-teal-600 hover:bg-teal-700 px-4 py-2 rounded-lg mx-auto block">
+                        Start Game
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Pong Game -->
+            <div id="pong" class="game-container hidden">
+                <canvas id="pongCanvas" width="400" height="300"></canvas>
+                <div class="mt-4 flex justify-center">
+                    <button id="pongStart" class="bg-emerald-600 hover:bg-emerald-700 px-4 py-2 rounded-lg">
+                        Start Game
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Flappy Bird -->
+            <div id="flappy" class="game-container hidden">
+                <canvas id="flappyCanvas" width="400" height="300"></canvas>
+                <div class="mt-4 flex justify-center">
+                    <button id="flappyStart" class="bg-sky-600 hover:bg-sky-700 px-4 py-2 rounded-lg">
+                        Start Game
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Quiz Game -->
+            <div id="quiz" class="game-container hidden">
+                <div class="flex flex-col h-full justify-center">
+                    <div id="quizQuestion" class="text-xl font-bold mb-6 text-center"></div>
+                    <div id="quizOptions" class="grid grid-cols-1 gap-3"></div>
+                    <div id="quizFeedback" class="mt-4 text-center h-8 font-bold"></div>
+                    <button id="quizNext" class="mt-4 bg-pink-600 hover:bg-pink-700 px-4 py-2 rounded-lg mx-auto hidden">
+                        Next Question
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Game management
+        let currentGame = null;
+        let score = 0;
+        
+        function showGame(gameId) {
+            document.getElementById('gameSelection').classList.add('hidden');
+            document.getElementById('backButton').classList.remove('hidden');
+            
+            // Hide all games
+            document.querySelectorAll('.game-container').forEach(game => {
+                game.classList.add('hidden');
+            });
+            
+            // Show selected game
+            document.getElementById(gameId).classList.remove('hidden');
+            currentGame = gameId;
+            
+            // Update title
+            const titles = {
+                snake: '🐍 Snake',
+                tictactoe: '⭕ Tic Tac Toe',
+                memory: '🧠 Memory Match',
+                rps: '✂️ Rock Paper Scissors',
+                whackamole: '🔨 Whack-a-Mole',
+                pong: '🏓 Pong',
+                flappy: '🐦 Flappy Bird',
+                quiz: '❓ Quiz Game'
+            };
+            
+            document.getElementById('gameTitle').textContent = titles[gameId];
+            
+            // Reset score
+            score = 0;
+            updateScore();
+            
+            // Initialize the game
+            switch(gameId) {
+                case 'snake':
+                    initSnake();
+                    break;
+                case 'tictactoe':
+                    initTicTacToe();
+                    break;
+                case 'memory':
+                    initMemory();
+                    break;
+                case 'rps':
+                    initRPS();
+                    break;
+                case 'whackamole':
+                    initWhackAMole();
+                    break;
+                case 'pong':
+                    initPong();
+                    break;
+                case 'flappy':
+                    initFlappy();
+                    break;
+                case 'quiz':
+                    initQuiz();
+                    break;
+            }
+        }
+        
+        function showGameSelection() {
+            document.getElementById('gameSelection').classList.remove('hidden');
+            document.getElementById('backButton').classList.add('hidden');
+            document.getElementById('gameTitle').textContent = 'Select a Game';
+            
+            // Hide all games
+            document.querySelectorAll('.game-container').forEach(game => {
+                game.classList.add('hidden');
+            });
+            
+            // Stop any running games
+            if (currentGame === 'snake') {
+                clearInterval(snakeInterval);
+            } else if (currentGame === 'whackamole') {
+                clearInterval(moleInterval);
+            } else if (currentGame === 'pong') {
+                cancelAnimationFrame(pongAnimationId);
+            } else if (currentGame === 'flappy') {
+                cancelAnimationFrame(flappyAnimationId);
+            }
+            
+            currentGame = null;
+        }
+        
+        function updateScore() {
+            document.getElementById('gameScore').textContent = `Score: ${score}`;
+        }
+        
+        // Snake Game
+        let snakeGrid = [];
+        let snake = [];
+        let food = {};
+        let direction = 'right';
+        let nextDirection = 'right';
+        let snakeInterval;
+        const gridSize = 15;
+        
+        function initSnake() {
+            // Create grid
+            const grid = document.getElementById('snakeGrid');
+            grid.innerHTML = '';
+            grid.style.gridTemplateColumns = `repeat(${gridSize}, 1fr)`;
+            
+            snakeGrid = [];
+            for (let i = 0; i < gridSize; i++) {
+                for (let j = 0; j < gridSize; j++) {
+                    const cell = document.createElement('div');
+                    cell.classList.add('snake-cell');
+                    cell.style.width = '100%';
+                    cell.style.aspectRatio = '1/1';
+                    grid.appendChild(cell);
+                    snakeGrid.push(cell);
+                }
+            }
+            
+            // Initialize snake
+            snake = [
+                {x: 7, y: 7},
+                {x: 6, y: 7},
+                {x: 5, y: 7}
+            ];
+            
+            direction = 'right';
+            nextDirection = 'right';
+            score = 0;
+            updateScore();
+            
+            // Place food
+            placeFood();
+            
+            // Draw initial state
+            drawSnake();
+            
+            // Start game loop
+            if (snakeInterval) clearInterval(snakeInterval);
+            snakeInterval = setInterval(updateSnake, 200);
+            
+            // Set up controls
+            document.getElementById('snakeUp').onclick = () => { if (direction !== 'down') nextDirection = 'up'; };
+            document.getElementById('snakeDown').onclick = () => { if (direction !== 'up') nextDirection = 'down'; };
+            document.getElementById('snakeLeft').onclick = () => { if (direction !== 'right') nextDirection = 'left'; };
+            document.getElementById('snakeRight').onclick = () => { if (direction !== 'left') nextDirection = 'right'; };
+            
+            // Keyboard controls
+            document.onkeydown = (e) => {
+                if (currentGame !== 'snake') return;
+                
+                switch(e.key) {
+                    case 'ArrowUp':
+                        if (direction !== 'down') nextDirection = 'up';
+                        break;
+                    case 'ArrowDown':
+                        if (direction !== 'up') nextDirection = 'down';
+                        break;
+                    case 'ArrowLeft':
+                        if (direction !== 'right') nextDirection = 'left';
+                        break;
+                    case 'ArrowRight':
+                        if (direction !== 'left') nextDirection = 'right';
+                        break;
+                }
+            };
+        }
+        
+        function placeFood() {
+            let x, y;
+            do {
+                x = Math.floor(Math.random() * gridSize);
+                y = Math.floor(Math.random() * gridSize);
+            } while (snake.some(segment => segment.x === x && segment.y === y));
+            
+            food = { x, y };
+        }
+        
+        function drawSnake() {
+            // Clear grid
+            snakeGrid.forEach(cell => {
+                cell.style.backgroundColor = '';
+            });
+            
+            // Draw snake
+            snake.forEach((segment, index) => {
+                const cellIndex = segment.y * gridSize + segment.x;
+                if (cellIndex >= 0 && cellIndex < snakeGrid.length) {
+                    snakeGrid[cellIndex].style.backgroundColor = index === 0 ? '#4f46e5' : '#6366f1';
+                }
+            });
+            
+            // Draw food
+            const foodIndex = food.y * gridSize + food.x;
+            if (foodIndex >= 0 && foodIndex < snakeGrid.length) {
+                snakeGrid[foodIndex].style.backgroundColor = '#ef4444';
+            }
+        }
+        
+        function updateSnake() {
+            direction = nextDirection;
+            
+            // Calculate new head position
+            const head = { ...snake[0] };
+            
+            switch(direction) {
+                case 'up': head.y--; break;
+                case 'down': head.y++; break;
+                case 'left': head.x--; break;
+                case 'right': head.x++; break;
+            }
+            
+            // Check for collision with walls
+            if (head.x < 0 || head.x >= gridSize || head.y < 0 || head.y >= gridSize) {
+                gameOver();
+                return;
+            }
+            
+            // Check for collision with self
+            if (snake.some(segment => segment.x === head.x && segment.y === head.y)) {
+                gameOver();
+                return;
+            }
+            
+            // Add new head
+            snake.unshift(head);
+            
+            // Check if food is eaten
+            if (head.x === food.x && head.y === food.y) {
+                score++;
+                updateScore();
+                placeFood();
+            } else {
+                // Remove tail if no food eaten
+                snake.pop();
+            }
+            
+            // Update display
+            drawSnake();
+        }
+        
+        function gameOver() {
+            clearInterval(snakeInterval);
+            alert(`Game Over! Your score: ${score}`);
+            initSnake();
+        }
+        
+        // Tic Tac Toe
+        let tttBoard = ['', '', '', '', '', '', '', '', ''];
+        let tttCurrentPlayer = 'X';
+        let tttGameActive = true;
+        
+        function initTicTacToe() {
+            tttBoard = ['', '', '', '', '', '', '', '', ''];
+            tttCurrentPlayer = 'X';
+            tttGameActive = true;
+            
+            const board = document.getElementById('tttBoard');
+            board.innerHTML = '';
+            
+            for (let i = 0; i < 9; i++) {
+                const cell = document.createElement('div');
+                cell.classList.add('ttt-cell', 'w-20', 'h-20', 'flex', 'items-center', 'justify-center', 'text-3xl', 'font-bold', 'bg-gray-800');
+                cell.dataset.index = i;
+                cell.addEventListener('click', handleTttCellClick);
+                board.appendChild(cell);
+            }
+            
+            document.getElementById('tttStatus').textContent = `Player ${tttCurrentPlayer}'s turn`;
+            document.getElementById('tttReset').addEventListener('click', initTicTacToe);
+        }
+        
+        function handleTttCellClick(e) {
+            const index = parseInt(e.target.dataset.index);
+            
+            if (tttBoard[index] !== '' || !tttGameActive) return;
+            
+            tttBoard[index] = tttCurrentPlayer;
+            e.target.textContent = tttCurrentPlayer;
+            e.target.classList.add(tttCurrentPlayer === 'X' ? 'text-purple-400' : 'text-purple-200');
+            
+            if (checkTttWin()) {
+                document.getElementById('tttStatus').textContent = `Player ${tttCurrentPlayer} wins!`;
+                tttGameActive = false;
+                return;
+            }
+            
+            if (tttBoard.every(cell => cell !== '')) {
+                document.getElementById('tttStatus').textContent = "It's a draw!";
+                tttGameActive = false;
+                return;
+            }
+            
+            tttCurrentPlayer = tttCurrentPlayer === 'X' ? 'O' : 'X';
+            document.getElementById('tttStatus').textContent = `Player ${tttCurrentPlayer}'s turn`;
+        }
+        
+        function checkTttWin() {
+            const winPatterns = [
+                [0, 1, 2], [3, 4, 5], [6, 7, 8], // rows
+                [0, 3, 6], [1, 4, 7], [2, 5, 8], // columns
+                [0, 4, 8], [2, 4, 6]             // diagonals
+            ];
+            
+            return winPatterns.some(pattern => {
+                return pattern.every(index => {
+                    return tttBoard[index] === tttCurrentPlayer;
+                });
+            });
+        }
+        
+        // Memory Game
+        let memoryCards = [];
+        let memoryFlipped = [];
+        let memoryMatched = [];
+        let memoryLocked = false;
+        
+        function initMemory() {
+            const emojis = ['🍎', '🍌', '🍇', '🍊', '🍓', '🍉', '🍒', '🥝'];
+            memoryCards = [...emojis, ...emojis];
+            memoryFlipped = [];
+            memoryMatched = [];
+            memoryLocked = false;
+            score = 0;
+            updateScore();
+            
+            // Shuffle cards
+            for (let i = memoryCards.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [memoryCards[i], memoryCards[j]] = [memoryCards[j], memoryCards[i]];
+            }
+            
+            const board = document.getElementById('memoryBoard');
+            board.innerHTML = '';
+            
+            memoryCards.forEach((emoji, index) => {
+                const card = document.createElement('div');
+                card.classList.add('memory-card', 'bg-blue-800', 'rounded-lg');
+                card.dataset.index = index;
+                card.dataset.value = emoji;
+                
+                const front = document.createElement('div');
+                front.classList.add('memory-card-front', 'bg-blue-600', 'rounded-lg', 'text-3xl');
+                front.textContent = emoji;
+                
+                const back = document.createElement('div');
+                back.classList.add('memory-card-back', 'bg-blue-800', 'rounded-lg', 'text-3xl');
+                back.textContent = '?';
+                
+                card.appendChild(front);
+                card.appendChild(back);
+                card.addEventListener('click', flipMemoryCard);
+                
+                board.appendChild(card);
+            });
+            
+            document.getElementById('memoryReset').addEventListener('click', initMemory);
+        }
+        
+        function flipMemoryCard() {
+            if (memoryLocked) return;
+            if (memoryFlipped.length === 2) return;
+            if (memoryMatched.includes(parseInt(this.dataset.index))) return;
+            if (memoryFlipped.includes(parseInt(this.dataset.index))) return;
+            
+            const index = parseInt(this.dataset.index);
+            memoryFlipped.push(index);
+            this.classList.add('flipped');
+            
+            if (memoryFlipped.length === 2) {
+                memoryLocked = true;
+                
+                const [index1, index2] = memoryFlipped;
+                const card1 = document.querySelector(`.memory-card[data-index="${index1}"]`);
+                const card2 = document.querySelector(`.memory-card[data-index="${index2}"]`);
+                
+                if (card1.dataset.value === card2.dataset.value) {
+                    // Match found
+                    memoryMatched.push(index1, index2);
+                    memoryFlipped = [];
+                    memoryLocked = false;
+                    score++;
+                    updateScore();
+                    
+                    if (memoryMatched.length === memoryCards.length) {
+                        setTimeout(() => {
+                            alert('Congratulations! You matched all cards!');
+                        }, 500);
+                    }
+                } else {
+                    // No match
+                    setTimeout(() => {
+                        card1.classList.remove('flipped');
+                        card2.classList.remove('flipped');
+                        memoryFlipped = [];
+                        memoryLocked = false;
+                    }, 1000);
+                }
+            }
+        }
+        
+        // Rock Paper Scissors
+        function initRPS() {
+            const options = document.querySelectorAll('.rps-option');
+            options.forEach(option => {
+                option.addEventListener('click', playRPS);
+            });
+            
+            document.getElementById('playerChoice').textContent = '?';
+            document.getElementById('computerChoice').textContent = '?';
+            document.getElementById('rpsResult').textContent = 'Choose your move!';
+            score = 0;
+            updateScore();
+        }
+        
+        function playRPS() {
+            const playerChoice = this.dataset.choice;
+            const choices = ['rock', 'paper', 'scissors'];
+            const computerChoice = choices[Math.floor(Math.random() * 3)];
+            
+            const emojis = {
+                rock: '👊',
+                paper: '✋',
+                scissors: '✌️'
+            };
+            
+            document.getElementById('playerChoice').textContent = emojis[playerChoice];
+            document.getElementById('computerChoice').textContent = emojis[computerChoice];
+            
+            // Determine winner
+            let result;
+            if (playerChoice === computerChoice) {
+                result = "It's a tie!";
+            } else if (
+                (playerChoice === 'rock' && computerChoice === 'scissors') ||
+                (playerChoice === 'paper' && computerChoice === 'rock') ||
+                (playerChoice === 'scissors' && computerChoice === 'paper')
+            ) {
+                result = 'You win!';
+                score++;
+                updateScore();
+            } else {
+                result = 'Computer wins!';
+            }
+            
+            document.getElementById('rpsResult').textContent = result;
+        }
+        
+        // Whack-a-Mole
+        let moleInterval;
+        let moleTimer = 30;
+        let moleActive = null;
+        
+        function initWhackAMole() {
+            const grid = document.getElementById('moleGrid');
+            grid.innerHTML = '';
+            
+            for (let i = 0; i < 9; i++) {
+                const hole = document.createElement('div');
+                hole.classList.add('mole-hole', 'bg-teal-900', 'rounded-full', 'aspect-square');
+                
+                const mole = document.createElement('div');
+                mole.classList.add('mole', 'bg-teal-600', 'w-4/5', 'h-4/5', 'rounded-full');
+                mole.dataset.index = i;
+                mole.innerHTML = '<div class="text-3xl mt-2">🐹</div>';
+                mole.addEventListener('click', whackMole);
+                
+                hole.appendChild(mole);
+                grid.appendChild(hole);
+            }
+            
+            document.getElementById('moleTimer').textContent = `Time: ${moleTimer}s`;
+            document.getElementById('moleStart').addEventListener('click', startWhackAMole);
+            score = 0;
+            updateScore();
+        }
+        
+        function startWhackAMole() {
+            if (moleInterval) clearInterval(moleInterval);
+            
+            moleTimer = 30;
+            score = 0;
+            updateScore();
+            document.getElementById('moleTimer').textContent = `Time: ${moleTimer}s`;
+            document.getElementById('moleStart').disabled = true;
+            document.getElementById('moleStart').classList.add('opacity-50');
+            
+            moleInterval = setInterval(() => {
+                moleTimer--;
+                document.getElementById('moleTimer').textContent = `Time: ${moleTimer}s`;
+                
+                if (moleTimer <= 0) {
+                    clearInterval(moleInterval);
+                    document.getElementById('moleStart').disabled = false;
+                    document.getElementById('moleStart').classList.remove('opacity-50');
+                    if (moleActive !== null) {
+                        document.querySelectorAll('.mole')[moleActive].classList.remove('active');
+                        moleActive = null;
+                    }
+                    alert(`Game Over! Your score: ${score}`);
+                    return;
+                }
+                
+                // Hide current mole
+                if (moleActive !== null) {
+                    document.querySelectorAll('.mole')[moleActive].classList.remove('active');
+                }
+                
+                // Show new mole
+                moleActive = Math.floor(Math.random() * 9);
+                document.querySelectorAll('.mole')[moleActive].classList.add('active');
+            }, 1000);
+        }
+        
+        function whackMole() {
+            if (moleActive === parseInt(this.dataset.index)) {
+                score++;
+                updateScore();
+                this.classList.remove('active');
+                moleActive = null;
+            }
+        }
+        
+        // Pong Game
+        let pongCanvas, pongCtx;
+        let pongPaddleHeight, pongPaddleWidth;
+        let pongLeftPaddleY, pongRightPaddleY;
+        let pongBallX, pongBallY, pongBallDX, pongBallDY;
+        let pongBallRadius;
+        let pongAnimationId;
+        let pongTouchY;
+        
+        function initPong() {
+            pongCanvas = document.getElementById('pongCanvas');
+            pongCtx = pongCanvas.getContext('2d');
+            
+            pongPaddleHeight = 60;
+            pongPaddleWidth = 10;
+            pongLeftPaddleY = pongCanvas.height / 2 - pongPaddleHeight / 2;
+            pongRightPaddleY = pongCanvas.height / 2 - pongPaddleHeight / 2;
+            
+            pongBallRadius = 8;
+            resetPongBall();
+            
+            score = 0;
+            updateScore();
+            
+            document.getElementById('pongStart').addEventListener('click', startPong);
+            
+            // Draw initial state
+            drawPong();
+            
+            // Touch controls
+            pongCanvas.addEventListener('touchstart', handlePongTouch);
+            pongCanvas.addEventListener('touchmove', handlePongTouch);
+        }
+        
+        function resetPongBall() {
+            pongBallX = pongCanvas.width / 2;
+            pongBallY = pongCanvas.height / 2;
+            pongBallDX = 4;
+            pongBallDY = 4 * (Math.random() > 0.5 ? 1 : -1);
+        }
+        
+        function startPong() {
+            if (pongAnimationId) cancelAnimationFrame(pongAnimationId);
+            resetPongBall();
+            score = 0;
+            updateScore();
+            animatePong();
+        }
+        
+        function drawPong() {
+            // Clear canvas
+            pongCtx.clearRect(0, 0, pongCanvas.width, pongCanvas.height);
+            
+            // Draw paddles
+            pongCtx.fillStyle = '#10b981';
+            pongCtx.fillRect(0, pongLeftPaddleY, pongPaddleWidth, pongPaddleHeight);
+            pongCtx.fillRect(pongCanvas.width - pongPaddleWidth, pongRightPaddleY, pongPaddleWidth, pongPaddleHeight);
+            
+            // Draw ball
+            pongCtx.beginPath();
+            pongCtx.arc(pongBallX, pongBallY, pongBallRadius, 0, Math.PI * 2);
+            pongCtx.fillStyle = '#ffffff';
+            pongCtx.fill();
+            pongCtx.closePath();
+            
+            // Draw center line
+            pongCtx.beginPath();
+            pongCtx.setLineDash([5, 15]);
+            pongCtx.moveTo(pongCanvas.width / 2, 0);
+            pongCtx.lineTo(pongCanvas.width / 2, pongCanvas.height);
+            pongCtx.strokeStyle = '#ffffff';
+            pongCtx.stroke();
+            pongCtx.closePath();
+            pongCtx.setLineDash([]);
+        }
+        
+        function animatePong() {
+            // Move ball
+            pongBallX += pongBallDX;
+            pongBallY += pongBallDY;
+            
+            // Ball collision with top and bottom
+            if (pongBallY - pongBallRadius < 0 || pongBallY + pongBallRadius > pongCanvas.height) {
+                pongBallDY = -pongBallDY;
+            }
+            
+            // Ball collision with paddles
+            if (
+                pongBallX - pongBallRadius < pongPaddleWidth && 
+                pongBallY > pongLeftPaddleY && 
+                pongBallY < pongLeftPaddleY + pongPaddleHeight
+            ) {
+                pongBallDX = -pongBallDX;
+                score++;
+                updateScore();
+            }
+            
+            if (
+                pongBallX + pongBallRadius > pongCanvas.width - pongPaddleWidth && 
+                pongBallY > pongRightPaddleY && 
+                pongBallY < pongRightPaddleY + pongPaddleHeight
+            ) {
+                pongBallDX = -pongBallDX;
+            }
+            
+            // Ball out of bounds
+            if (pongBallX < 0 || pongBallX > pongCanvas.width) {
+                resetPongBall();
+            }
+            
+            // AI for right paddle
+            if (pongRightPaddleY + pongPaddleHeight / 2 < pongBallY - 35) {
+                pongRightPaddleY += 3;
+            } else if (pongRightPaddleY + pongPaddleHeight / 2 > pongBallY + 35) {
+                pongRightPaddleY -= 3;
+            }
+            
+            // Keep paddles in bounds
+            if (pongLeftPaddleY < 0) pongLeftPaddleY = 0;
+            if (pongLeftPaddleY + pongPaddleHeight > pongCanvas.height) pongLeftPaddleY = pongCanvas.height - pongPaddleHeight;
+            if (pongRightPaddleY < 0) pongRightPaddleY = 0;
+            if (pongRightPaddleY + pongPaddleHeight > pongCanvas.height) pongRightPaddleY = pongCanvas.height - pongPaddleHeight;
+            
+            // Draw everything
+            drawPong();
+            
+            // Continue animation
+            pongAnimationId = requestAnimationFrame(animatePong);
+        }
+        
+        function handlePongTouch(e) {
+            e.preventDefault();
+            const rect = pongCanvas.getBoundingClientRect();
+            const touchY = e.touches[0].clientY - rect.top;
+            pongLeftPaddleY = touchY - pongPaddleHeight / 2;
+        }
+        
+        // Flappy Bird
+        let flappyCanvas, flappyCtx;
+        let flappyBird = {};
+        let flappyPipes = [];
+        let flappyGravity, flappyJump;
+        let flappyAnimationId;
+        let flappyGameOver = false;
+        
+        function initFlappy() {
+            flappyCanvas = document.getElementById('flappyCanvas');
+            flappyCtx = flappyCanvas.getContext('2d');
+            
+            flappyBird = {
+                x: 50,
+                y: flappyCanvas.height / 2,
+                width: 30,
+                height: 24,
+                velocity: 0
+            };
+            
+            flappyPipes = [];
+            flappyGravity = 0.5;
+            flappyJump = -8;
+            flappyGameOver = false;
+            
+            score = 0;
+            updateScore();
+            
+            document.getElementById('flappyStart').addEventListener('click', startFlappy);
+            flappyCanvas.addEventListener('click', flappyJumpHandler);
+            flappyCanvas.addEventListener('touchstart', flappyJumpHandler);
+            
+            // Draw initial state
+            drawFlappy();
+        }
+        
+        function startFlappy() {
+            if (flappyAnimationId) cancelAnimationFrame(flappyAnimationId);
+            
+            flappyBird = {
+                x: 50,
+                y: flappyCanvas.height / 2,
+                width: 30,
+                height: 24,
+                velocity: 0
+            };
+            
+            flappyPipes = [];
+            flappyGameOver = false;
+            score = 0;
+            updateScore();
+            
+            animateFlappy();
+        }
+        
+        function drawFlappy() {
+            // Clear canvas
+            flappyCtx.clearRect(0, 0, flappyCanvas.width, flappyCanvas.height);
+            
+            // Draw background
+            flappyCtx.fillStyle = '#0284c7';
+            flappyCtx.fillRect(0, 0, flappyCanvas.width, flappyCanvas.height);
+            
+            // Draw ground
+            flappyCtx.fillStyle = '#854d0e';
+            flappyCtx.fillRect(0, flappyCanvas.height - 20, flappyCanvas.width, 20);
+            
+            // Draw bird
+            flappyCtx.fillStyle = '#fbbf24';
+            flappyCtx.fillRect(flappyBird.x, flappyBird.y, flappyBird.width, flappyBird.height);
+            
+            // Draw pipes
+            flappyCtx.fillStyle = '#15803d';
+            flappyPipes.forEach(pipe => {
+                flappyCtx.fillRect(pipe.x, 0, pipe.width, pipe.top);
+                flappyCtx.fillRect(pipe.x, pipe.bottom, pipe.width, flappyCanvas.height - pipe.bottom);
+            });
+            
+            // Draw game over
+            if (flappyGameOver) {
+                flappyCtx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+                flappyCtx.fillRect(0, 0, flappyCanvas.width, flappyCanvas.height);
+                flappyCtx.fillStyle = '#ffffff';
+                flappyCtx.font = '24px Fredoka';
+                flappyCtx.textAlign = 'center';
+                flappyCtx.fillText('Game Over', flappyCanvas.width / 2, flappyCanvas.height / 2);
+                flappyCtx.font = '18px Fredoka';
+                flappyCtx.fillText(`Score: ${score}`, flappyCanvas.width / 2, flappyCanvas.height / 2 + 30);
+            }
+        }
+        
+        function animateFlappy() {
+            if (flappyGameOver) return;
+            
+            // Apply gravity
+            flappyBird.velocity += flappyGravity;
+            flappyBird.y += flappyBird.velocity;
+            
+            // Check for collision with ground
+            if (flappyBird.y + flappyBird.height > flappyCanvas.height - 20) {
+                flappyBird.y = flappyCanvas.height - 20 - flappyBird.height;
+                flappyGameOver = true;
+            }
+            
+            // Check for collision with ceiling
+            if (flappyBird.y < 0) {
+                flappyBird.y = 0;
+                flappyBird.velocity = 0;
+            }
+            
+            // Add new pipes
+            if (flappyPipes.length === 0 || flappyPipes[flappyPipes.length - 1].x < flappyCanvas.width - 200) {
+                const gap = 120;
+                const pipeTop = Math.floor(Math.random() * (flappyCanvas.height - gap - 120)) + 60;
+                
+                flappyPipes.push({
+                    x: flappyCanvas.width,
+                    width: 50,
+                    top: pipeTop,
+                    bottom: pipeTop + gap,
+                    passed: false
+                });
+            }
+            
+            // Move pipes
+            flappyPipes.forEach(pipe => {
+                pipe.x -= 2;
+                
+                // Check for collision with pipes
+                if (
+                    flappyBird.x + flappyBird.width > pipe.x && 
+                    flappyBird.x < pipe.x + pipe.width && 
+                    (flappyBird.y < pipe.top || flappyBird.y + flappyBird.height > pipe.bottom)
+                ) {
+                    flappyGameOver = true;
+                }
+                
+                // Check if passed pipe
+                if (!pipe.passed && flappyBird.x > pipe.x + pipe.width) {
+                    pipe.passed = true;
+                    score++;
+                    updateScore();
+                }
+            });
+            
+            // Remove off-screen pipes
+            if (flappyPipes.length > 0 && flappyPipes[0].x + flappyPipes[0].width < 0) {
+                flappyPipes.shift();
+            }
+            
+            // Draw everything
+            drawFlappy();
+            
+            // Continue animation
+            flappyAnimationId = requestAnimationFrame(animateFlappy);
+        }
+        
+        function flappyJumpHandler(e) {
+            e.preventDefault();
+            if (!flappyGameOver) {
+                flappyBird.velocity = flappyJump;
+            }
+        }
+        
+        // Quiz Game
+        let quizQuestions = [
+            {
+                question: "What is the capital of France?",
+                options: ["London", "Berlin", "Paris", "Madrid"],
+                answer: 2
+            },
+            {
+                question: "Which planet is known as the Red Planet?",
+                options: ["Venus", "Mars", "Jupiter", "Saturn"],
+                answer: 1
+            },
+            {
+                question: "What is the largest mammal?",
+                options: ["Elephant", "Giraffe", "Blue Whale", "Hippopotamus"],
+                answer: 2
+            },
+            {
+                question: "Which of these is not a programming language?",
+                options: ["Java", "Python", "Banana", "JavaScript"],
+                answer: 2
+            },
+            {
+                question: "How many sides does a hexagon have?",
+                options: ["5", "6", "7", "8"],
+                answer: 1
+            }
+        ];
+        
+        let currentQuizQuestion = 0;
+        
+        function initQuiz() {
+            currentQuizQuestion = 0;
+            score = 0;
+            updateScore();
+            
+            showQuizQuestion();
+            
+            document.getElementById('quizNext').addEventListener('click', nextQuizQuestion);
+        }
+        
+        function showQuizQuestion() {
+            const question = quizQuestions[currentQuizQuestion];
+            
+            document.getElementById('quizQuestion').textContent = question.question;
+            document.getElementById('quizFeedback').textContent = '';
+            document.getElementById('quizNext').classList.add('hidden');
+            
+            const optionsContainer = document.getElementById('quizOptions');
+            optionsContainer.innerHTML = '';
+            
+            question.options.forEach((option, index) => {
+                const button = document.createElement('button');
+                button.classList.add('bg-pink-600', 'hover:bg-pink-700', 'p-3', 'rounded-lg', 'text-white', 'font-bold');
+                button.textContent = option;
+                button.dataset.index = index;
+                button.addEventListener('click', checkQuizAnswer);
+                optionsContainer.appendChild(button);
+            });
+        }
+        
+        function checkQuizAnswer() {
+            const selectedIndex = parseInt(this.dataset.index);
+            const question = quizQuestions[currentQuizQuestion];
+            
+            document.querySelectorAll('#quizOptions button').forEach(button => {
+                button.disabled = true;
+                
+                if (parseInt(button.dataset.index) === question.answer) {
+                    button.classList.remove('bg-pink-600', 'hover:bg-pink-700');
+                    button.classList.add('bg-green-600');
+                } else if (parseInt(button.dataset.index) === selectedIndex) {
+                    button.classList.remove('bg-pink-600', 'hover:bg-pink-700');
+                    button.classList.add('bg-red-600');
+                }
+            });
+            
+            if (selectedIndex === question.answer) {
+                document.getElementById('quizFeedback').textContent = 'Correct!';
+                document.getElementById('quizFeedback').classList.add('text-green-400');
+                document.getElementById('quizFeedback').classList.remove('text-red-400');
+                score++;
+                updateScore();
+            } else {
+                document.getElementById('quizFeedback').textContent = 'Wrong!';
+                document.getElementById('quizFeedback').classList.add('text-red-400');
+                document.getElementById('quizFeedback').classList.remove('text-green-400');
+            }
+            
+            document.getElementById('quizNext').classList.remove('hidden');
+        }
+        
+        function nextQuizQuestion() {
+            currentQuizQuestion++;
+            
+            if (currentQuizQuestion < quizQuestions.length) {
+                showQuizQuestion();
+            } else {
+                document.getElementById('quizQuestion').textContent = `Quiz Complete! Your score: ${score}/${quizQuestions.length}`;
+                document.getElementById('quizOptions').innerHTML = '';
+                document.getElementById('quizFeedback').textContent = '';
+                document.getElementById('quizNext').classList.add('hidden');
+                
+                const restartButton = document.createElement('button');
+                restartButton.classList.add('bg-pink-600', 'hover:bg-pink-700', 'px-4', 'py-2', 'rounded-lg', 'mx-auto', 'block', 'mt-4');
+                restartButton.textContent = 'Play Again';
+                restartButton.addEventListener('click', initQuiz);
+                document.getElementById('quizOptions').appendChild(restartButton);
+            }
+        }
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'94cab36a25e862b7',t:'MTc0OTQwOTk0Ny4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
