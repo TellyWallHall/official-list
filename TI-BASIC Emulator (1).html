@@ -1,0 +1,628 @@
+<!doctype html>
+<html lang="en">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TI-BASIC Emulator</title>
+  <style>
+    body {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Courier New', monospace;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 1200px;
+      padding: 2rem;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+    }
+
+    .calculator {
+      background: #2d3748;
+      border-radius: 1rem;
+      padding: 1.5rem;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    }
+
+    .screen {
+      background: #9ca89e;
+      border: 3px solid #1a202c;
+      border-radius: 0.5rem;
+      padding: 1rem;
+      min-height: 200px;
+      font-family: 'Courier New', monospace;
+      font-size: 0.9rem;
+      color: #000;
+      margin-bottom: 1.5rem;
+      overflow-y: auto;
+      max-height: 300px;
+    }
+
+    .screen-line {
+      margin: 0.25rem 0;
+      word-wrap: break-word;
+    }
+
+    .editor-section {
+      background: #1a202c;
+      border-radius: 1rem;
+      padding: 1.5rem;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    }
+
+    h1, h2 {
+      color: #fff;
+      margin-top: 0;
+      margin-bottom: 1rem;
+    }
+
+    h1 {
+      font-size: 1.5rem;
+    }
+
+    h2 {
+      font-size: 1.2rem;
+    }
+
+    .program-list {
+      background: #2d3748;
+      border-radius: 0.5rem;
+      padding: 1rem;
+      max-height: 150px;
+      overflow-y: auto;
+      margin-bottom: 1rem;
+    }
+
+    .program-item {
+      background: #4a5568;
+      padding: 0.75rem;
+      margin-bottom: 0.5rem;
+      border-radius: 0.25rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .program-item:hover {
+      background: #718096;
+    }
+
+    .program-item.selected {
+      background: #667eea;
+      color: #fff;
+    }
+
+    .program-name {
+      font-weight: bold;
+      color: #fff;
+    }
+
+    .program-actions {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .btn {
+      padding: 0.5rem 1rem;
+      border: none;
+      border-radius: 0.25rem;
+      cursor: pointer;
+      font-family: 'Courier New', monospace;
+      font-size: 0.9rem;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background: #667eea;
+      color: #fff;
+    }
+
+    .btn-primary:hover {
+      background: #5568d3;
+    }
+
+    .btn-secondary {
+      background: #48bb78;
+      color: #fff;
+    }
+
+    .btn-secondary:hover {
+      background: #38a169;
+    }
+
+    .btn-danger {
+      background: #f56565;
+      color: #fff;
+      padding: 0.25rem 0.5rem;
+      font-size: 0.8rem;
+    }
+
+    .btn-danger:hover {
+      background: #e53e3e;
+    }
+
+    .btn-small {
+      padding: 0.25rem 0.5rem;
+      font-size: 0.8rem;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 250px;
+      background: #2d3748;
+      color: #e2e8f0;
+      border: 2px solid #4a5568;
+      border-radius: 0.5rem;
+      padding: 1rem;
+      font-family: 'Courier New', monospace;
+      font-size: 0.9rem;
+      resize: vertical;
+      margin-bottom: 1rem;
+    }
+
+    textarea:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 0.75rem;
+      background: #2d3748;
+      color: #e2e8f0;
+      border: 2px solid #4a5568;
+      border-radius: 0.5rem;
+      font-family: 'Courier New', monospace;
+      font-size: 0.9rem;
+      margin-bottom: 1rem;
+    }
+
+    input[type="text"]:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+
+    .button-grid {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      margin-bottom: 1rem;
+    }
+
+    .empty-state {
+      color: #a0aec0;
+      text-align: center;
+      padding: 2rem;
+    }
+
+    .error-message {
+      background: #feb2b2;
+      color: #742a2a;
+      padding: 0.75rem;
+      border-radius: 0.25rem;
+      margin-bottom: 1rem;
+    }
+
+    .loading {
+      opacity: 0.5;
+      pointer-events: none;
+    }
+
+    @media (max-width: 768px) {
+      .container {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+  <style>@view-transition { navigation: auto; }</style>
+  <script src="https://cdn.tailwindcss.com" type="text/javascript"></script>
+ </head>
+ <body>
+  <div class="container">
+   <div class="calculator">
+    <h1 id="emulator-title">TI-BASIC Emulator</h1>
+    <div class="screen" id="screen">
+     <div class="screen-line" id="welcome-message">
+      Welcome to TI-BASIC
+     </div>
+    </div>
+    <div class="button-grid"><button class="btn btn-secondary" onclick="runProgram()">▶ Run</button> <button class="btn btn-primary" onclick="clearScreen()">Clear Screen</button>
+    </div>
+   </div>
+   <div class="editor-section">
+    <h2>Program Editor</h2>
+    <div id="error-container"></div><input type="text" id="program-name-input" placeholder="Program Name (e.g., HELLO)" maxlength="8"> <textarea id="code-editor" placeholder="Enter TI-BASIC code here...
+Example:
+:Disp &quot;HELLO WORLD&quot;
+:Input &quot;NAME: &quot;,N
+:Disp &quot;HI &quot;,N"></textarea>
+    <div class="button-grid"><button class="btn btn-primary" onclick="saveProgram()">💾 Save Program</button> <button class="btn btn-secondary" onclick="newProgram()">+ New</button>
+    </div>
+    <h2>Saved Programs</h2>
+    <div class="program-list" id="program-list">
+     <div class="empty-state">
+      No programs saved yet
+     </div>
+    </div>
+   </div>
+  </div>
+  <script>
+    const defaultConfig = {
+      title_text: "TI-BASIC Emulator",
+      welcome_message: "Welcome to TI-BASIC",
+      background_color: "#667eea",
+      surface_color: "#2d3748",
+      text_color: "#ffffff",
+      primary_action_color: "#667eea",
+      secondary_action_color: "#48bb78"
+    };
+
+    let config = { ...defaultConfig };
+    let programs = [];
+    let selectedProgramId = null;
+    let variables = {};
+    let screenOutput = [];
+
+    const dataHandler = {
+      onDataChanged(data) {
+        programs = data;
+        renderProgramList();
+      }
+    };
+
+    async function initializeApp() {
+      const initResult = await window.dataSdk.init(dataHandler);
+      if (!initResult.isOk) {
+        showError("Failed to initialize data storage");
+      }
+
+      if (window.elementSdk) {
+        window.elementSdk.init({
+          defaultConfig,
+          onConfigChange: async (newConfig) => {
+            config = newConfig;
+            updateUI();
+          },
+          mapToCapabilities: (cfg) => ({
+            recolorables: [
+              {
+                get: () => cfg.background_color || defaultConfig.background_color,
+                set: (value) => {
+                  cfg.background_color = value;
+                  window.elementSdk.setConfig({ background_color: value });
+                }
+              },
+              {
+                get: () => cfg.surface_color || defaultConfig.surface_color,
+                set: (value) => {
+                  cfg.surface_color = value;
+                  window.elementSdk.setConfig({ surface_color: value });
+                }
+              },
+              {
+                get: () => cfg.text_color || defaultConfig.text_color,
+                set: (value) => {
+                  cfg.text_color = value;
+                  window.elementSdk.setConfig({ text_color: value });
+                }
+              },
+              {
+                get: () => cfg.primary_action_color || defaultConfig.primary_action_color,
+                set: (value) => {
+                  cfg.primary_action_color = value;
+                  window.elementSdk.setConfig({ primary_action_color: value });
+                }
+              },
+              {
+                get: () => cfg.secondary_action_color || defaultConfig.secondary_action_color,
+                set: (value) => {
+                  cfg.secondary_action_color = value;
+                  window.elementSdk.setConfig({ secondary_action_color: value });
+                }
+              }
+            ],
+            borderables: [],
+            fontEditable: undefined,
+            fontSizeable: undefined
+          }),
+          mapToEditPanelValues: (cfg) => new Map([
+            ["title_text", cfg.title_text || defaultConfig.title_text],
+            ["welcome_message", cfg.welcome_message || defaultConfig.welcome_message]
+          ])
+        });
+      }
+      
+      updateUI();
+    }
+
+    function updateUI() {
+      document.getElementById('emulator-title').textContent = config.title_text || defaultConfig.title_text;
+      document.getElementById('welcome-message').textContent = config.welcome_message || defaultConfig.welcome_message;
+      
+      document.body.style.background = `linear-gradient(135deg, ${config.background_color || defaultConfig.background_color} 0%, ${config.primary_action_color || defaultConfig.primary_action_color} 100%)`;
+      
+      const calculators = document.querySelectorAll('.calculator, .editor-section');
+      calculators.forEach(el => el.style.background = config.surface_color || defaultConfig.surface_color);
+      
+      const programList = document.querySelector('.program-list');
+      if (programList) programList.style.background = config.surface_color || defaultConfig.surface_color;
+      
+      document.querySelectorAll('h1, h2, .program-name').forEach(el => {
+        el.style.color = config.text_color || defaultConfig.text_color;
+      });
+      
+      document.querySelectorAll('.btn-primary').forEach(btn => {
+        btn.style.background = config.primary_action_color || defaultConfig.primary_action_color;
+      });
+      
+      document.querySelectorAll('.btn-secondary').forEach(btn => {
+        btn.style.background = config.secondary_action_color || defaultConfig.secondary_action_color;
+      });
+    }
+
+    function renderProgramList() {
+      const listEl = document.getElementById('program-list');
+      
+      if (programs.length === 0) {
+        listEl.innerHTML = '<div class="empty-state">No programs saved yet</div>';
+        return;
+      }
+
+      listEl.innerHTML = programs.map(prog => `
+        <div class="program-item ${selectedProgramId === prog.__backendId ? 'selected' : ''}" 
+             onclick="loadProgram('${prog.__backendId}')">
+          <span class="program-name">${prog.program_name}</span>
+          <div class="program-actions">
+            <button class="btn btn-small btn-primary" onclick="event.stopPropagation(); loadProgram('${prog.__backendId}')">Load</button>
+            <button class="btn btn-small btn-danger" onclick="event.stopPropagation(); deleteProgram('${prog.__backendId}')">Delete</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function loadProgram(backendId) {
+      const program = programs.find(p => p.__backendId === backendId);
+      if (program) {
+        selectedProgramId = backendId;
+        document.getElementById('program-name-input').value = program.program_name;
+        document.getElementById('code-editor').value = program.code;
+        renderProgramList();
+      }
+    }
+
+    async function deleteProgram(backendId) {
+      const program = programs.find(p => p.__backendId === backendId);
+      if (program) {
+        const deleteBtn = event.target;
+        deleteBtn.textContent = 'Confirm?';
+        deleteBtn.onclick = async (e) => {
+          e.stopPropagation();
+          deleteBtn.disabled = true;
+          deleteBtn.textContent = 'Deleting...';
+          
+          const result = await window.dataSdk.delete(program);
+          if (result.isOk) {
+            if (selectedProgramId === backendId) {
+              newProgram();
+            }
+          } else {
+            showError('Failed to delete program');
+            deleteBtn.disabled = false;
+            deleteBtn.textContent = 'Delete';
+          }
+        };
+        
+        setTimeout(() => {
+          deleteBtn.textContent = 'Delete';
+          deleteBtn.onclick = (e) => {
+            e.stopPropagation();
+            deleteProgram(backendId);
+          };
+        }, 3000);
+      }
+    }
+
+    async function saveProgram() {
+      if (programs.length >= 999) {
+        showError('Maximum limit of 999 programs reached. Please delete some programs first.');
+        return;
+      }
+
+      const programName = document.getElementById('program-name-input').value.trim().toUpperCase();
+      const code = document.getElementById('code-editor').value;
+
+      if (!programName) {
+        showError('Please enter a program name');
+        return;
+      }
+
+      if (!code.trim()) {
+        showError('Please enter some code');
+        return;
+      }
+
+      const saveBtn = event.target;
+      saveBtn.disabled = true;
+      saveBtn.textContent = '💾 Saving...';
+
+      const now = new Date().toISOString();
+      
+      if (selectedProgramId) {
+        const program = programs.find(p => p.__backendId === selectedProgramId);
+        if (program) {
+          program.program_name = programName;
+          program.code = code;
+          program.last_modified = now;
+          
+          const result = await window.dataSdk.update(program);
+          if (!result.isOk) {
+            showError('Failed to update program');
+          }
+        }
+      } else {
+        const result = await window.dataSdk.create({
+          program_name: programName,
+          code: code,
+          created_at: now,
+          last_modified: now
+        });
+        
+        if (!result.isOk) {
+          showError('Failed to save program');
+        }
+      }
+
+      saveBtn.disabled = false;
+      saveBtn.textContent = '💾 Save Program';
+    }
+
+    function newProgram() {
+      selectedProgramId = null;
+      document.getElementById('program-name-input').value = '';
+      document.getElementById('code-editor').value = '';
+      renderProgramList();
+    }
+
+    function showError(message) {
+      const container = document.getElementById('error-container');
+      container.innerHTML = `<div class="error-message">${message}</div>`;
+      setTimeout(() => {
+        container.innerHTML = '';
+      }, 5000);
+    }
+
+    function addToScreen(text) {
+      screenOutput.push(text);
+      updateScreen();
+    }
+
+    function updateScreen() {
+      const screenEl = document.getElementById('screen');
+      screenEl.innerHTML = screenOutput.map(line => 
+        `<div class="screen-line">${line}</div>`
+      ).join('');
+      screenEl.scrollTop = screenEl.scrollHeight;
+    }
+
+    function clearScreen() {
+      screenOutput = [config.welcome_message || defaultConfig.welcome_message];
+      updateScreen();
+    }
+
+    async function runProgram() {
+      const code = document.getElementById('code-editor').value;
+      if (!code.trim()) {
+        showError('No code to run');
+        return;
+      }
+
+      clearScreen();
+      variables = {};
+      
+      const lines = code.split('\n').filter(line => line.trim().startsWith(':'));
+      
+      try {
+        for (let line of lines) {
+          await executeLine(line.trim().substring(1));
+        }
+      } catch (error) {
+        addToScreen(`ERROR: ${error.message}`);
+      }
+    }
+
+    async function executeLine(line) {
+      line = line.trim();
+      
+      if (line.startsWith('Disp ')) {
+        const content = line.substring(5).trim();
+        const parts = content.split(',').map(p => p.trim());
+        let output = '';
+        
+        for (let part of parts) {
+          if (part.startsWith('"') && part.endsWith('"')) {
+            output += part.slice(1, -1);
+          } else {
+            const value = variables[part];
+            output += value !== undefined ? value : part;
+          }
+        }
+        
+        addToScreen(output);
+      }
+      else if (line.startsWith('Input ')) {
+        const match = line.match(/Input\s+"(.+?)",\s*([A-Z])/i);
+        if (match) {
+          const prompt = match[1];
+          const varName = match[2].toUpperCase();
+          
+          addToScreen(prompt);
+          const userInput = await getInput();
+          variables[varName] = userInput;
+          addToScreen(userInput);
+        }
+      }
+      else if (line.includes('->')) {
+        const parts = line.split('->').map(p => p.trim());
+        if (parts.length === 2) {
+          const value = evaluateExpression(parts[0]);
+          variables[parts[1].toUpperCase()] = value;
+        }
+      }
+      else if (line.startsWith('ClrHome')) {
+        clearScreen();
+      }
+    }
+
+    function evaluateExpression(expr) {
+      expr = expr.trim();
+      
+      if (expr.startsWith('"') && expr.endsWith('"')) {
+        return expr.slice(1, -1);
+      }
+      
+      for (let varName in variables) {
+        expr = expr.replace(new RegExp(varName, 'g'), variables[varName]);
+      }
+      
+      try {
+        return eval(expr);
+      } catch {
+        return expr;
+      }
+    }
+
+    function getInput() {
+      return new Promise((resolve) => {
+        const inputDiv = document.createElement('div');
+        inputDiv.className = 'screen-line';
+        inputDiv.innerHTML = '<input type="text" style="width: 80%; background: #fff; color: #000; border: 1px solid #000; padding: 2px;" id="user-input" />';
+        document.getElementById('screen').appendChild(inputDiv);
+        
+        const input = document.getElementById('user-input');
+        input.focus();
+        
+        input.addEventListener('keypress', (e) => {
+          if (e.key === 'Enter') {
+            const value = input.value;
+            inputDiv.remove();
+            resolve(value);
+          }
+        });
+      });
+    }
+
+    initializeApp();
+  </script>
+</body>
+</html>
