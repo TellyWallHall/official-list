@@ -1,0 +1,3244 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5">
+  <title>Steam Browser</title>
+  <style>
+    :root {
+      --bg: #0e141b;
+      --surface: #1b2838;
+      --border: #2a475e;
+      --accent: #66c0f4;
+      --text: #c6d4df;
+      --muted: #8f98a0;
+      --green: #a4d007;
+      --green-bg: #4c6b22;
+      --red: #ff6b6b;
+      --nav-h: 58px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent
+    }
+
+    html,
+    body {
+      overflow-x: hidden;
+      width: 100%;
+      height: 100%
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text)
+    }
+
+    /* TOP BAR */
+    .topbar {
+      background: #000;
+      padding: 10px 16px;
+      text-align: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      border-bottom: 2px solid var(--border)
+    }
+
+    .topbar h1 {
+      color: var(--accent);
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: 1px
+    }
+
+    /* BOTTOM NAV */
+    .bnav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: var(--nav-h);
+      background: #000;
+      border-top: 2px solid var(--border);
+      display: flex;
+      z-index: 150
+    }
+
+    .bnav-btn {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 8px;
+      font-weight: 600;
+      padding: 4px 1px;
+      border: none;
+      background: none;
+      min-width: 0
+    }
+
+    .bnav-btn.active {
+      color: var(--accent)
+    }
+
+    .bnav-btn .icon {
+      font-size: 17px;
+      line-height: 1
+    }
+
+    /* VIEWS */
+    .view {
+      display: none;
+      padding: 14px 14px calc(var(--nav-h) + 16px);
+      max-width: 680px;
+      margin: 0 auto
+    }
+
+    .view.active {
+      display: block
+    }
+
+    /* SEARCH BAR */
+    .sbar {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 18px
+    }
+
+    .sbar input {
+      flex: 1;
+      padding: 13px 14px;
+      font-size: 16px;
+      border-radius: 10px;
+      border: 2px solid var(--border);
+      background: var(--surface);
+      color: white;
+      outline: none;
+      min-width: 0;
+      -webkit-appearance: none
+    }
+
+    .sbar input:focus {
+      border-color: var(--accent)
+    }
+
+    .sbar input::placeholder {
+      color: #5a6a7a
+    }
+
+    .sbar button,
+    .sbar .sbtn {
+      padding: 13px 16px;
+      font-size: 14px;
+      border-radius: 10px;
+      border: none;
+      background: var(--accent);
+      color: var(--bg);
+      font-weight: 700;
+      cursor: pointer;
+      flex-shrink: 0
+    }
+
+    .sbar button:disabled,
+    .sbar .sbtn:disabled {
+      opacity: .4
+    }
+
+    /* SECTION HEADERS */
+    .sec-hdr {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .7px;
+      margin-bottom: 10px;
+      margin-top: 18px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid var(--border)
+    }
+
+    .sec-hdr:first-child {
+      margin-top: 0
+    }
+
+    /* CARDS */
+    .card {
+      background: var(--surface);
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 13px;
+      cursor: pointer
+    }
+
+    .card:active {
+      border-color: var(--accent)
+    }
+
+    .card-img {
+      width: 100%;
+      aspect-ratio: 460/215;
+      object-fit: cover;
+      background: var(--bg);
+      display: block
+    }
+
+    .card-body {
+      padding: 13px
+    }
+
+    .card-title {
+      font-size: 15px;
+      color: white;
+      font-weight: 700;
+      margin-bottom: 6px;
+      line-height: 1.3
+    }
+
+    .card-desc {
+      font-size: 12px;
+      color: #acb2b8;
+      line-height: 1.5;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      margin-bottom: 8px
+    }
+
+    .price-row {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      flex-wrap: wrap;
+      margin-bottom: 7px
+    }
+
+    .price {
+      font-size: 18px;
+      color: var(--accent);
+      font-weight: 700
+    }
+
+    .price.free {
+      color: var(--green)
+    }
+
+    .disc {
+      background: var(--green-bg);
+      color: var(--green);
+      padding: 3px 7px;
+      border-radius: 5px;
+      font-size: 12px;
+      font-weight: 700
+    }
+
+    .old-price {
+      text-decoration: line-through;
+      opacity: .5;
+      font-size: 13px
+    }
+
+    .card-meta {
+      font-size: 11px;
+      color: var(--muted)
+    }
+
+    .card-foot {
+      padding: 0 13px 13px
+    }
+
+    /* WISH BTN */
+    .btn-wish {
+      width: 100%;
+      padding: 10px;
+      font-size: 13px;
+      border-radius: 8px;
+      border: 2px solid var(--accent);
+      cursor: pointer;
+      font-weight: 600;
+      background: transparent;
+      color: var(--accent)
+    }
+
+    .btn-wish.saved {
+      background: var(--green-bg);
+      color: var(--green);
+      border-color: var(--green-bg)
+    }
+
+    .btn-wish:active {
+      transform: scale(.97)
+    }
+
+    /* STATUS */
+    .loading {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--accent);
+      font-size: 14px
+    }
+
+    .spinner {
+      width: 26px;
+      height: 26px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      margin: 12px auto 0;
+      animation: spin .8s linear infinite
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg)
+      }
+    }
+
+    .spinner.sm {
+      width: 18px;
+      height: 18px;
+      border-width: 2px;
+      margin: 0 auto
+    }
+
+    .err-box {
+      background: var(--surface);
+      border: 2px solid var(--red);
+      border-radius: 10px;
+      padding: 20px 16px;
+      text-align: center;
+      margin: 14px 0
+    }
+
+    .err-box .ei {
+      font-size: 32px;
+      margin-bottom: 7px
+    }
+
+    .err-box .et {
+      color: var(--red);
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 4px
+    }
+
+    .err-box .em {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.6
+    }
+
+    .count-lbl {
+      text-align: center;
+      color: var(--muted);
+      font-size: 12px;
+      margin-bottom: 12px;
+      padding: 6px 12px;
+      background: var(--surface);
+      border-radius: 8px
+    }
+
+    .empty-st {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--muted)
+    }
+
+    .empty-st .ei {
+      font-size: 40px;
+      margin-bottom: 10px
+    }
+
+    .empty-st p {
+      font-size: 13px;
+      line-height: 1.6
+    }
+
+    .inline-spinner-row {
+      text-align: center;
+      padding: 18px 0;
+      color: var(--muted);
+      font-size: 12px
+    }
+
+    .end-lbl {
+      text-align: center;
+      color: var(--muted);
+      font-size: 12px;
+      padding: 16px 0
+    }
+
+    /* SETUP GATE */
+    .setup-banner {
+      background: rgba(255, 107, 107, .08);
+      border: 2px solid var(--red);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 16px
+    }
+
+    .setup-banner .st {
+      color: var(--red);
+      font-weight: 800;
+      font-size: 14px;
+      margin-bottom: 6px
+    }
+
+    .setup-banner .sd {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.7
+    }
+
+    .gate-card {
+      background: var(--surface);
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      padding: 24px 18px;
+      text-align: center;
+      margin-bottom: 14px
+    }
+
+    .gate-card .gi {
+      font-size: 36px;
+      margin-bottom: 10px
+    }
+
+    .gate-card .gt {
+      font-size: 16px;
+      font-weight: 800;
+      color: white;
+      margin-bottom: 8px
+    }
+
+    .gate-card .gd {
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.7;
+      margin-bottom: 14px
+    }
+
+    .gate-card button {
+      padding: 12px 22px;
+      border-radius: 9px;
+      border: none;
+      background: var(--accent);
+      color: var(--bg);
+      font-weight: 700;
+      cursor: pointer;
+      font-size: 13px
+    }
+
+    /* MODAL */
+    .modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, .97);
+      z-index: 200;
+      overflow-y: auto;
+      overflow-x: hidden;
+      display: none
+    }
+
+    .modal.open {
+      display: block
+    }
+
+    .modal-inner {
+      max-width: 680px;
+      margin: 0 auto;
+      background: var(--bg);
+      min-height: 100vh
+    }
+
+    /* MEDIA */
+    .media-sec {
+      position: relative;
+      background: #000
+    }
+
+    .media-close {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: rgba(14, 20, 27, .92);
+      border: 2px solid var(--border);
+      color: white;
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      font-size: 20px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10
+    }
+
+    .media-close:active {
+      transform: scale(.9)
+    }
+
+    .media-hero {
+      width: 100%;
+      aspect-ratio: 460/215;
+      object-fit: cover;
+      display: block;
+      background: #000;
+      cursor: zoom-in
+    }
+
+    .media-video {
+      width: 100%;
+      aspect-ratio: 16/9;
+      display: block;
+      background: #000
+    }
+
+    .media-thumbs-wrap {
+      display: flex;
+      gap: 7px;
+      padding: 8px;
+      overflow-x: auto;
+      background: #000
+    }
+
+    .media-thumbs-wrap::-webkit-scrollbar {
+      height: 3px
+    }
+
+    .media-thumbs-wrap::-webkit-scrollbar-thumb {
+      background: var(--border)
+    }
+
+    .mthumb {
+      flex-shrink: 0;
+      position: relative;
+      cursor: pointer
+    }
+
+    .mthumb img {
+      width: 78px;
+      height: 44px;
+      object-fit: cover;
+      border-radius: 5px;
+      border: 2px solid transparent;
+      opacity: .6;
+      display: block
+    }
+
+    .mthumb.active img {
+      border-color: var(--accent);
+      opacity: 1
+    }
+
+    .mthumb .play-ov {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      pointer-events: none;
+      color: white;
+      text-shadow: 0 1px 4px rgba(0, 0, 0, .8)
+    }
+
+    /* LIGHTBOX (photos-app style viewer) */
+    .lightbox {
+      position: fixed;
+      inset: 0;
+      background: #000;
+      z-index: 400;
+      display: none;
+      flex-direction: column
+    }
+
+    .lightbox.open {
+      display: flex
+    }
+
+    .lb-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 14px;
+      z-index: 5;
+      background: linear-gradient(rgba(0, 0, 0, .6), transparent)
+    }
+
+    .lb-counter {
+      color: #fff;
+      font-size: 12px;
+      font-weight: 700;
+      opacity: .85
+    }
+
+    .lb-close {
+      background: rgba(255, 255, 255, .12);
+      border: none;
+      color: #fff;
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      font-size: 18px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center
+    }
+
+    .lb-stage {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+      touch-action: none;
+      display: flex;
+      align-items: center;
+      justify-content: center
+    }
+
+    .lb-img {
+      max-width: 100%;
+      max-height: 100%;
+      user-select: none;
+      -webkit-user-drag: none;
+      will-change: transform;
+      transform-origin: center center
+    }
+
+    .lb-nav {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      background: rgba(255, 255, 255, .1);
+      border: none;
+      color: #fff;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      font-size: 18px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 5
+    }
+
+    .lb-nav.prev {
+      left: 10px
+    }
+
+    .lb-nav.next {
+      right: 10px
+    }
+
+    .lb-hint {
+      position: absolute;
+      bottom: 14px;
+      left: 0;
+      right: 0;
+      text-align: center;
+      color: rgba(255, 255, 255, .5);
+      font-size: 11px;
+      pointer-events: none
+    }
+
+    /* STAT BAR below media */
+    .stat-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 14px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      flex-wrap: wrap;
+      min-height: 38px
+    }
+
+    .player-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      border: 1px solid var(--border);
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 700;
+      background: var(--bg)
+    }
+
+    .player-pill.on {
+      border-color: var(--green-bg);
+      color: var(--green)
+    }
+
+    .player-pill.off {
+      color: var(--muted)
+    }
+
+    .pdot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--muted);
+      flex-shrink: 0
+    }
+
+    .pdot.on {
+      background: var(--green);
+      box-shadow: 0 0 5px var(--green)
+    }
+
+    .review-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+      border: 1px solid
+    }
+
+    .review-pos {
+      background: rgba(100, 200, 100, .1);
+      color: #6bc97e;
+      border-color: rgba(100, 200, 100, .3)
+    }
+
+    .review-mix {
+      background: rgba(200, 200, 100, .1);
+      color: #c9c97e;
+      border-color: rgba(200, 200, 100, .3)
+    }
+
+    .review-neg {
+      background: rgba(200, 100, 100, .1);
+      color: #c97e7e;
+      border-color: rgba(200, 100, 100, .3)
+    }
+
+    /* MODAL BODY */
+    .modal-body {
+      padding: 16px
+    }
+
+    .modal-title {
+      font-size: 21px;
+      color: white;
+      font-weight: 800;
+      margin-bottom: 10px;
+      line-height: 1.3;
+      word-break: break-word
+    }
+
+    .modal-price-row {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      flex-wrap: wrap;
+      margin-bottom: 16px
+    }
+
+    .modal-price {
+      font-size: 22px;
+      color: var(--accent);
+      font-weight: 700
+    }
+
+    /* TABS */
+    .tabs {
+      display: flex;
+      border-bottom: 2px solid var(--border);
+      margin-bottom: 16px;
+      overflow-x: auto
+    }
+
+    .tabs::-webkit-scrollbar {
+      display: none
+    }
+
+    .tab-btn {
+      padding: 10px 14px;
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-weight: 600;
+      cursor: pointer;
+      border-bottom: 3px solid transparent;
+      margin-bottom: -2px;
+      font-size: 12px;
+      white-space: nowrap;
+      flex-shrink: 0
+    }
+
+    .tab-btn.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent)
+    }
+
+    .tab-pane {
+      display: none
+    }
+
+    .tab-pane.active {
+      display: block
+    }
+
+    /* DETAIL ROWS */
+    .det-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--surface);
+      gap: 10px
+    }
+
+    .det-row span:first-child {
+      color: var(--muted);
+      font-size: 12px;
+      flex-shrink: 0
+    }
+
+    .det-row span:last-child {
+      color: var(--text);
+      font-size: 12px;
+      text-align: right;
+      word-break: break-word
+    }
+
+    .tag-list {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-top: 8px
+    }
+
+    .tag {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 4px 9px;
+      border-radius: 5px;
+      font-size: 11px;
+      color: var(--text)
+    }
+
+    .game-desc {
+      font-size: 13px;
+      line-height: 1.7;
+      color: #acb2b8;
+      word-break: break-word
+    }
+
+    .game-desc img,
+    .game-desc video,
+    .game-desc iframe {
+      max-width: 100% !important;
+      height: auto !important;
+      border-radius: 7px;
+      display: block;
+      margin: 8px 0
+    }
+
+    /* SYS REQ */
+    .sysreq-section {
+      margin-bottom: 16px
+    }
+
+    .sysreq-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--accent);
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: .5px
+    }
+
+    .sysreq-body {
+      font-size: 12px;
+      line-height: 1.8;
+      color: #acb2b8;
+      background: var(--surface);
+      padding: 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border)
+    }
+
+    .sysreq-body ul {
+      list-style: none;
+      padding: 0
+    }
+
+    .sysreq-body li::before {
+      content: '• ';
+      color: var(--accent)
+    }
+
+    .sysreq-body strong {
+      color: var(--text)
+    }
+
+    /* REVIEWS */
+    .rev-filter-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 14px
+    }
+
+    .rev-filter-btn {
+      flex: 1;
+      padding: 9px;
+      font-size: 12px;
+      font-weight: 700;
+      border-radius: 8px;
+      border: 2px solid var(--border);
+      background: var(--surface);
+      color: var(--muted);
+      cursor: pointer
+    }
+
+    .rev-filter-btn.active {
+      border-color: var(--accent);
+      color: var(--accent)
+    }
+
+    .rev-summary {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap
+    }
+
+    .rev-score-big {
+      font-size: 30px;
+      font-weight: 800;
+      line-height: 1
+    }
+
+    .rev-score-big.pos {
+      color: #6bc97e
+    }
+
+    .rev-score-big.mix {
+      color: #c9c97e
+    }
+
+    .rev-score-big.neg {
+      color: #c97e7e
+    }
+
+    .rev-summary-info {
+      flex: 1;
+      min-width: 120px
+    }
+
+    .rev-desc {
+      font-size: 14px;
+      font-weight: 700;
+      color: white;
+      margin-bottom: 3px
+    }
+
+    .rev-counts {
+      font-size: 11px;
+      color: var(--muted)
+    }
+
+    .rev-bar {
+      height: 6px;
+      border-radius: 3px;
+      background: var(--border);
+      margin-top: 6px;
+      overflow: hidden
+    }
+
+    .rev-bar-fill {
+      height: 100%;
+      border-radius: 3px;
+      background: var(--green)
+    }
+
+    .rev-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+      margin-bottom: 10px
+    }
+
+    .rev-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 10px;
+      margin-bottom: 8px
+    }
+
+    .rev-verdict {
+      font-size: 13px;
+      font-weight: 700
+    }
+
+    .rev-verdict.up {
+      color: #6bc97e
+    }
+
+    .rev-verdict.down {
+      color: #c97e7e
+    }
+
+    .rev-meta {
+      font-size: 10px;
+      color: var(--muted);
+      text-align: right;
+      line-height: 1.7
+    }
+
+    .rev-text {
+      font-size: 12px;
+      line-height: 1.6;
+      color: #acb2b8;
+      word-break: break-word;
+      overflow: hidden;
+      max-height: 100px;
+      position: relative
+    }
+
+    .rev-text.clip::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 30px;
+      background: linear-gradient(transparent, var(--surface))
+    }
+
+    .rev-text.expanded {
+      max-height: none
+    }
+
+    .rev-expand {
+      font-size: 11px;
+      color: var(--accent);
+      cursor: pointer;
+      margin-top: 4px;
+      display: inline-block;
+      background: none;
+      border: none;
+      padding: 0
+    }
+
+    .rev-helpful {
+      font-size: 10px;
+      color: var(--muted);
+      margin-top: 8px
+    }
+
+    .rev-dev {
+      background: rgba(102, 192, 244, .06);
+      border-left: 3px solid var(--accent);
+      padding: 8px 10px;
+      margin-top: 8px;
+      border-radius: 0 6px 6px 0;
+      font-size: 11px;
+      color: #acb2b8
+    }
+
+    .rev-dev strong {
+      color: var(--accent);
+      display: block;
+      margin-bottom: 3px
+    }
+
+    .load-more-btn {
+      width: 100%;
+      padding: 13px;
+      background: var(--surface);
+      border: 2px solid var(--border);
+      color: var(--accent);
+      border-radius: 9px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 8px
+    }
+
+    .load-more-btn:hover {
+      border-color: var(--accent)
+    }
+
+    .load-more-btn:disabled {
+      opacity: .4;
+      cursor: default
+    }
+
+    /* NEWS */
+    .news-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 14px;
+      border-radius: 10px;
+      margin-bottom: 12px;
+      cursor: pointer
+    }
+
+    .news-item:active {
+      border-color: var(--accent)
+    }
+
+    .news-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: white;
+      margin-bottom: 5px;
+      line-height: 1.4;
+      word-break: break-word
+    }
+
+    .news-date {
+      font-size: 11px;
+      color: var(--accent);
+      margin-bottom: 8px;
+      font-weight: 600
+    }
+
+    .news-preview {
+      font-size: 12px;
+      line-height: 1.6;
+      color: #acb2b8;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden
+    }
+
+    .news-open-hint {
+      font-size: 11px;
+      color: var(--accent);
+      margin-top: 8px;
+      font-weight: 600
+    }
+
+    /* NEWS READER */
+    .news-reader {
+      position: fixed;
+      inset: 0;
+      background: var(--bg);
+      z-index: 400;
+      display: none;
+      flex-direction: column
+    }
+
+    .news-reader.open {
+      display: flex
+    }
+
+    .nr-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 14px;
+      background: #000;
+      border-bottom: 2px solid var(--border);
+      flex-shrink: 0
+    }
+
+    .nr-back {
+      background: rgba(255, 255, 255, .08);
+      border: none;
+      color: #fff;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      font-size: 16px;
+      cursor: pointer;
+      flex-shrink: 0
+    }
+
+    .nr-pos {
+      flex: 1;
+      font-size: 11px;
+      color: var(--muted);
+      text-align: center
+    }
+
+    .nr-fontbtns {
+      display: flex;
+      gap: 6px;
+      flex-shrink: 0
+    }
+
+    .nr-fontbtns button {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      width: 30px;
+      height: 30px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer
+    }
+
+    .nr-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px 16px calc(var(--nav-h) + 60px);
+      max-width: 680px;
+      margin: 0 auto;
+      width: 100%
+    }
+
+    .nr-title {
+      font-size: 20px;
+      font-weight: 800;
+      color: white;
+      line-height: 1.3;
+      margin-bottom: 8px
+    }
+
+    .nr-date {
+      font-size: 12px;
+      color: var(--accent);
+      font-weight: 600;
+      margin-bottom: 18px
+    }
+
+    .nr-content {
+      line-height: 1.85;
+      color: #dbe3ea;
+      word-break: break-word
+    }
+
+    .nr-content * {
+      max-width: 100% !important
+    }
+
+    .nr-content img,
+    .nr-content video,
+    .nr-content iframe {
+      max-width: 100% !important;
+      width: 100% !important;
+      height: auto !important;
+      border-radius: 8px;
+      display: block;
+      margin: 12px 0
+    }
+
+    .nr-content pre,
+    .nr-content code {
+      max-width: 100%;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      background: var(--surface);
+      padding: 10px;
+      border-radius: 6px;
+      display: block;
+      font-size: 12px
+    }
+
+    .nr-navrow {
+      display: flex;
+      gap: 10px;
+      margin-top: 26px
+    }
+
+    .nr-navrow button {
+      flex: 1;
+      padding: 12px;
+      border-radius: 9px;
+      border: 2px solid var(--border);
+      background: var(--surface);
+      color: var(--accent);
+      font-weight: 700;
+      cursor: pointer;
+      font-size: 12px
+    }
+
+    .nr-navrow button:disabled {
+      opacity: .35;
+      cursor: default
+    }
+
+    .news-link {
+      display: inline-block;
+      margin-top: 16px;
+      color: var(--accent);
+      text-decoration: none;
+      font-size: 12px;
+      font-weight: 600
+    }
+
+    /* ── STEAM-STYLE PROFILE ── */
+    .sprof-outer {
+      background: var(--surface);
+      border: 2px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+      margin-bottom: 16px
+    }
+
+    .sprof-bg {
+      background: linear-gradient(160deg, #1a3045 0%, #2a475e 50%, #152231 100%);
+      padding: 22px 18px 0;
+      display: flex;
+      gap: 14px;
+      align-items: flex-end
+    }
+
+    .sprof-avatar-wrap {
+      position: relative;
+      flex-shrink: 0;
+      margin-bottom: -22px
+    }
+
+    .sprof-avatar {
+      width: 80px;
+      height: 80px;
+      border-radius: 6px;
+      border: 3px solid var(--border);
+      background: var(--bg);
+      display: block
+    }
+
+    .sprof-online-dot {
+      position: absolute;
+      bottom: 2px;
+      right: 2px;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--muted);
+      border: 2px solid var(--surface)
+    }
+
+    .sprof-online-dot.on {
+      background: var(--green)
+    }
+
+    .sprof-online-dot.ingame {
+      background: #a0bf4f
+    }
+
+    .sprof-header-info {
+      flex: 1;
+      min-width: 0;
+      padding-bottom: 8px
+    }
+
+    .sprof-name {
+      font-size: 20px;
+      font-weight: 800;
+      color: white;
+      line-height: 1.2;
+      word-break: break-word
+    }
+
+    .sprof-realname {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 2px
+    }
+
+    .sprof-level {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: rgba(0, 0, 0, .4);
+      border: 1px solid var(--border);
+      padding: 3px 9px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--accent);
+      margin-top: 6px
+    }
+
+    .sprof-body {
+      padding: 26px 16px 16px
+    }
+
+    .sprof-status {
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 10px
+    }
+
+    .sprof-status.online {
+      color: var(--green)
+    }
+
+    .sprof-status.ingame {
+      color: #a0bf4f
+    }
+
+    .sprof-status.offline {
+      color: var(--muted)
+    }
+
+    .sprof-meta-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      margin-bottom: 12px
+    }
+
+    .sprof-meta-item {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 10px
+    }
+
+    .sprof-meta-item .lbl {
+      font-size: 10px;
+      color: var(--muted);
+      margin-bottom: 2px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .4px
+    }
+
+    .sprof-meta-item .val {
+      font-size: 13px;
+      color: var(--text);
+      font-weight: 600;
+      word-break: break-word
+    }
+
+    .sprof-summary {
+      background: rgba(255, 255, 255, .03);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      font-size: 12px;
+      line-height: 1.7;
+      color: #acb2b8;
+      word-break: break-word;
+      margin-bottom: 12px
+    }
+
+    .sprof-vacrisk {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255, 107, 107, .1);
+      border: 1px solid rgba(255, 107, 107, .3);
+      border-radius: 8px;
+      padding: 9px 12px;
+      margin-bottom: 10px;
+      font-size: 12px;
+      color: var(--red);
+      font-weight: 700
+    }
+
+    /* Recent games */
+    .rgame-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      margin-bottom: 8px;
+      cursor: pointer
+    }
+
+    .rgame-row:active {
+      border-color: var(--accent)
+    }
+
+    .rgame-logo {
+      width: 90px;
+      height: 34px;
+      object-fit: contain;
+      border-radius: 4px;
+      background: var(--surface);
+      flex-shrink: 0
+    }
+
+    .rgame-info {
+      flex: 1;
+      min-width: 0
+    }
+
+    .rgame-name {
+      font-size: 13px;
+      font-weight: 700;
+      color: white;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis
+    }
+
+    .rgame-hrs {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 2px
+    }
+
+    .rgame-ach {
+      font-size: 10px;
+      color: var(--accent);
+      margin-top: 2px
+    }
+
+    .rgame-arrow {
+      color: var(--muted);
+      font-size: 16px;
+      flex-shrink: 0
+    }
+
+    /* Wishlist row */
+    .wl-row {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      display: flex;
+      gap: 10px;
+      padding: 10px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      align-items: center
+    }
+
+    .wl-row:active {
+      border-color: var(--accent)
+    }
+
+    .wl-img {
+      width: 88px;
+      height: 41px;
+      object-fit: cover;
+      border-radius: 5px;
+      flex-shrink: 0;
+      background: var(--bg)
+    }
+
+    .wl-info {
+      flex: 1;
+      min-width: 0
+    }
+
+    .wl-name {
+      font-size: 13px;
+      font-weight: 700;
+      color: white;
+      margin-bottom: 3px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis
+    }
+
+    .wl-price {
+      font-size: 13px;
+      color: var(--accent);
+      font-weight: 600
+    }
+
+    .wl-rev {
+      font-size: 10px;
+      color: var(--muted);
+      margin-top: 2px
+    }
+
+    /* Account candidates (fuzzy player search results) */
+    .acc-cand {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      display: flex;
+      gap: 10px;
+      padding: 10px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      align-items: center
+    }
+
+    .acc-cand:active {
+      border-color: var(--accent)
+    }
+
+    .acc-cand img {
+      width: 52px;
+      height: 52px;
+      border-radius: 6px;
+      background: var(--bg);
+      flex-shrink: 0;
+      object-fit: cover
+    }
+
+    .acc-cand-info {
+      flex: 1;
+      min-width: 0
+    }
+
+    .acc-cand-name {
+      font-size: 13px;
+      font-weight: 700;
+      color: white;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis
+    }
+
+    .acc-cand-sub {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 2px
+    }
+
+    /* SETTINGS */
+    .setting-row {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px;
+      margin-bottom: 12px
+    }
+
+    .setting-label {
+      font-size: 13px;
+      font-weight: 700;
+      color: white;
+      margin-bottom: 4px
+    }
+
+    .setting-desc {
+      font-size: 11px;
+      color: var(--muted);
+      margin-bottom: 10px;
+      line-height: 1.6
+    }
+
+    .setting-input {
+      width: 100%;
+      padding: 11px 14px;
+      font-size: 14px;
+      border-radius: 8px;
+      border: 2px solid var(--border);
+      background: var(--bg);
+      color: white;
+      outline: none;
+      -webkit-appearance: none
+    }
+
+    .setting-input:focus {
+      border-color: var(--accent)
+    }
+
+    .setting-save {
+      padding: 10px 20px;
+      font-size: 13px;
+      border-radius: 8px;
+      border: none;
+      background: var(--accent);
+      color: var(--bg);
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 8px
+    }
+
+    .setting-save:active {
+      opacity: .8
+    }
+
+    .setting-clear {
+      padding: 10px 20px;
+      font-size: 13px;
+      border-radius: 8px;
+      border: 2px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 8px;
+      margin-left: 8px
+    }
+
+    .setting-status {
+      font-size: 12px;
+      margin-top: 8px;
+      color: var(--green)
+    }
+
+    .setting-status.bad {
+      color: var(--red)
+    }
+
+    .setting-section {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .7px;
+      margin: 20px 0 10px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid var(--border)
+    }
+
+    .proxy-active-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(100, 200, 100, .1);
+      border: 1px solid rgba(100, 200, 100, .3);
+      color: #6bc97e;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 700;
+      margin-bottom: 12px
+    }
+
+  </style>
+</head>
+
+<body>
+
+  <div class="topbar">
+    <h1>⬡ STEAM BROWSER</h1>
+  </div>
+
+  <!-- BROWSE (search + popular merged) -->
+  <div class="view active" id="v-browse">
+    <div class="sbar">
+      <input id="q" placeholder="Search Steam games..." type="search" autocomplete="off" autocorrect="off" autocapitalize="off">
+      <button class="sbtn" id="clearBtn" onclick="clearSearch()" style="display:none">✕</button>
+    </div>
+    <div id="browseContent">
+      <div class="loading">Loading...<div class="spinner"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SALES -->
+  <div class="view" id="v-sales">
+    <div id="salesContent">
+      <div class="loading">Loading...<div class="spinner"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ACCOUNT -->
+  <div class="view" id="v-account">
+    <div class="sbar">
+      <input id="steamInput" placeholder="Steam ID, name, vanity URL, or profile link..." type="text" autocorrect="off" autocapitalize="off">
+      <button class="sbtn" onclick="lookupAccount()">Go</button>
+    </div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:14px;line-height:1.7">
+      Enter a 17-digit Steam ID, a display name, a custom URL name, or paste a full Steam profile URL. Profile must be set to public.
+    </div>
+    <div id="accountContent"></div>
+  </div>
+
+  <!-- WISHLIST -->
+  <div class="view" id="v-wishlist">
+    <div id="wishlistContent"></div>
+  </div>
+
+  <!-- SETTINGS -->
+  <div class="view" id="v-settings">
+    <div id="setupBanner" class="setup-banner" style="display:none">
+      <div class="st">⚠️ Setup required</div>
+      <div class="sd">You need a CORS proxy before this app can load any Steam data. Deploy the free Cloudflare Worker below, then paste its URL in the box and save.</div>
+    </div>
+    <div class="setting-section">CORS Proxy</div>
+    <div class="setting-row">
+      <div class="setting-label">Cloudflare Worker URL</div>
+      <div class="setting-desc">
+        Required to load Steam data. No proxy is bundled with this app — you must create your own free Cloudflare Worker that forwards requests, then enter its URL here.
+      </div>
+      <div id="proxyActivePill"></div>
+      <input class="setting-input" id="proxyInput" type="text" placeholder="your-worker.workers.dev" autocorrect="off" autocapitalize="off" autocomplete="off">
+      <div>
+        <button class="setting-save" onclick="saveProxy()">Save Proxy</button>
+        <button class="setting-clear" onclick="clearProxy()">Clear</button>
+      </div>
+      <div class="setting-status" id="proxyStatus"></div>
+    </div>
+    <div class="setting-row" style="background:rgba(102,192,244,.05)">
+      <div class="setting-label" style="color:var(--accent)">How to create your worker</div>
+      <div class="setting-desc" style="margin-bottom:0;line-height:1.8">
+        1. Go to <strong style="color:white">cloudflare.com</strong> → Workers &amp; Pages → Create<br>
+        2. Paste the script below into the editor<br>
+        3. Deploy and copy the <em>*.workers.dev</em> URL here<br><br>
+        <code style="background:var(--bg);padding:8px;border-radius:6px;display:block;font-size:10px;line-height:1.7;border:1px solid var(--border);color:#acb2b8;word-break:break-all">
+          addEventListener('fetch',e=>e.respondWith(handle(e.request)))<br>
+          async function handle(req){<br>
+          &nbsp;const url=new URL(req.url)<br>
+          &nbsp;const target=url.searchParams.get('url')||url.search.slice(1)<br>
+          &nbsp;if(!target)return new Response('No URL',{status:400})<br>
+          &nbsp;const r=await fetch(target,{headers:{'User-Agent':'Mozilla/5.0'}})<br>
+          &nbsp;const h=new Headers(r.headers)<br>
+          &nbsp;h.set('Access-Control-Allow-Origin','*')<br>
+          &nbsp;return new Response(r.body,{status:r.status,headers:h})<br>
+          }
+        </code>
+      </div>
+    </div>
+    <div class="setting-section" style="margin-top:24px">ABOUT</div>
+    <div class="setting-row">
+      <div class="setting-label">Steam Browser</div>
+      <div class="setting-desc" style="margin-bottom:0">
+        A self-contained HTML application for browsing Steam games, user profiles, reviews and sales.
+        No data is stored externally. Your wishlist and proxy settings are saved to this device only.
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL — stat bar is BELOW the media section, never overlapping -->
+  <div class="modal" id="modal">
+    <div class="modal-inner">
+      <div class="media-sec" id="mediaSection">
+        <button class="media-close" onclick="closeModal()">✕</button>
+        <div id="mediaMain"></div>
+        <div id="mediaThumbs"></div>
+      </div>
+      <div class="stat-bar" id="statBar"></div>
+      <div class="modal-body" id="modalBody"></div>
+    </div>
+  </div>
+
+  <!-- FULLSCREEN PHOTO VIEWER -->
+  <div class="lightbox" id="lightbox">
+    <div class="lb-top">
+      <span class="lb-counter" id="lbCounter"></span>
+      <button class="lb-close" onclick="closeLightbox()">✕</button>
+    </div>
+    <div class="lb-stage" id="lbStage">
+      <img class="lb-img" id="lbImg" draggable="false" alt="">
+      <button class="lb-nav prev" id="lbPrevBtn" onclick="lbNav(-1)">‹</button>
+      <button class="lb-nav next" id="lbNextBtn" onclick="lbNav(1)">›</button>
+    </div>
+    <div class="lb-hint">Pinch or scroll to zoom · drag to pan · swipe to browse</div>
+  </div>
+
+  <!-- NEWS READER -->
+  <div class="news-reader" id="newsReader">
+    <div class="nr-header">
+      <button class="nr-back" onclick="closeNewsReader()">‹</button>
+      <div class="nr-pos" id="nrPos"></div>
+      <div class="nr-fontbtns">
+        <button onclick="nrFont(-1)">A-</button>
+        <button onclick="nrFont(1)">A+</button>
+      </div>
+    </div>
+    <div class="nr-body" id="nrBody"></div>
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <nav class="bnav">
+    <button class="bnav-btn active" data-view="browse" onclick="switchView('browse',this)"><span class="icon">🔍</span>Browse</button>
+    <button class="bnav-btn" data-view="sales" onclick="switchView('sales',this)"><span class="icon">🏷️</span>Sales</button>
+    <button class="bnav-btn" data-view="account" onclick="switchView('account',this)"><span class="icon">👤</span>Account</button>
+    <button class="bnav-btn" data-view="wishlist" onclick="switchView('wishlist',this)"><span class="icon">❤️</span><span id="wlLabel">Wishlist</span></button>
+    <button class="bnav-btn" data-view="settings" onclick="switchView('settings',this)"><span class="icon">⚙️</span>Settings</button>
+  </nav>
+
+  <script>
+    /* ── PROXY (no bundled default — user must configure their own) ── */
+    function proxyConfigured() {
+      return !!(localStorage.getItem('corsProxy') || '').trim()
+    }
+
+    function getProxy() {
+      const p = (localStorage.getItem('corsProxy') || '').trim().replace(/^https?:\/\//, '').replace(/\?/, '')
+      if (!p) {
+        const e = new Error('No CORS proxy configured. Set one up in Settings.');
+        e.code = 'NO_PROXY';
+        throw e
+      }
+      console.log(`https://${p}/?`);
+      return `https://${p}/?`
+    }
+
+    function saveProxy() {
+      let val = (document.getElementById('proxyInput').value || '').trim()
+      val = val.replace(/^https?:\/\//, '').replace(/\/$/, '')
+      const s = document.getElementById('proxyStatus')
+      if (!val) {
+        s.textContent = 'Enter a worker URL first';
+        s.classList.add('bad');
+        return
+      }
+      localStorage.setItem('corsProxy', val)
+      s.classList.remove('bad')
+      s.textContent = `✓ Proxy saved: ${val}`
+      document.getElementById('setupBanner').style.display = 'none'
+      renderProxyPill()
+      setTimeout(() => s.textContent = '', 4000)
+      showBrowsePopular()
+    }
+
+    function clearProxy() {
+      localStorage.removeItem('corsProxy')
+      document.getElementById('proxyInput').value = ''
+      renderProxyPill()
+      const s = document.getElementById('proxyStatus')
+      s.classList.remove('bad')
+      s.textContent = 'Proxy cleared'
+      setTimeout(() => s.textContent = '', 3000)
+    }
+
+    function renderProxyPill() {
+      const p = (localStorage.getItem('corsProxy') || '').trim()
+      document.getElementById('proxyActivePill').innerHTML = p ? `<div class="proxy-active-pill">✓ Active: ${esc(p)}</div>` : ''
+    }
+
+    /* ── STATE ── */
+    let wishlist = JSON.parse(localStorage.getItem('steamWishlist') || '[]')
+    const gameCache = new Map()
+    let mediaItems = []
+    let salesLoaded = false
+    wishlist.forEach(g => {
+      if (g && g.steam_appid) gameCache.set(String(g.steam_appid), g)
+    })
+    updateWishLabel()
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const stored = localStorage.getItem('corsProxy') || ''
+      document.getElementById('proxyInput').value = stored
+      renderProxyPill()
+      if (!proxyConfigured()) {
+        document.getElementById('setupBanner').style.display = 'block'
+        switchView('settings', document.querySelector('.bnav-btn[data-view="settings"]'))
+      } else {
+        showBrowsePopular()
+      }
+    })
+
+    /* ── VIEW SWITCHING ── */
+    function switchView(view, btn) {
+      if (view !== 'settings' && !proxyConfigured()) {
+        document.getElementById('setupBanner').style.display = 'block'
+        view = 'settings'
+        btn = document.querySelector('.bnav-btn[data-view="settings"]')
+      }
+      document.querySelectorAll('.view').forEach(v => v.classList.remove('active'))
+      document.querySelectorAll('.bnav-btn').forEach(b => b.classList.remove('active'))
+      document.getElementById('v-' + view).classList.add('active')
+      if (btn) btn.classList.add('active')
+      if (view === 'sales' && !salesLoaded) {
+        salesLoaded = true;
+        loadSales()
+      }
+      if (view === 'wishlist') renderWishlist()
+    }
+
+    /* ── WISHLIST ── */
+    function updateWishLabel() {
+      const n = wishlist.length
+      document.getElementById('wlLabel').textContent = n > 0 ? `(${n})` : 'Wishlist'
+    }
+
+    function isWishlisted(appid) {
+      return wishlist.some(g => String(g.steam_appid) === String(appid))
+    }
+
+    function toggleWishlist(e, appid) {
+      e.stopPropagation()
+      appid = String(appid)
+      const game = gameCache.get(appid)
+      if (!game) return
+      const idx = wishlist.findIndex(g => String(g.steam_appid) === appid)
+      if (idx > -1) wishlist.splice(idx, 1)
+      else wishlist.push(game)
+      localStorage.setItem('steamWishlist', JSON.stringify(wishlist))
+      updateWishLabel()
+      refreshWishBtns(appid)
+    }
+
+    function refreshWishBtns(appid) {
+      const inList = isWishlisted(appid)
+      document.querySelectorAll(`[data-wish="${appid}"]`).forEach(b => {
+        b.textContent = inList ? '✓ In Wishlist' : '+ Wishlist'
+        b.classList.toggle('saved', inList)
+      })
+    }
+
+    function renderWishlist() {
+      const el = document.getElementById('wishlistContent')
+      if (!wishlist.length) {
+        el.innerHTML = `<div class="empty-st"><div class="ei">❤️</div><p>Nothing saved yet.<br>Search or browse games and tap + Wishlist.</p></div>`
+        return
+      }
+      el.innerHTML = `<div class="count-lbl">${wishlist.length} game${wishlist.length!==1?'s':''} saved locally</div>` +
+        wishlist.map(g => {
+          if (!g || !g.steam_appid) return ''
+          const appid = String(g.steam_appid)
+          const price = g.is_free ? '<span class="price free">Free</span>' :
+            g.price_overview ? fmtPrice(g.price_overview) :
+            '<span style="color:var(--muted);font-size:13px">N/A</span>'
+          return `<div class="card" onclick="openModal('${appid}')">
+        <img class="card-img" src="${g.header_image||''}" alt="${esc(g.name)}" loading="lazy">
+        <div class="card-body">
+          <div class="card-title">${esc(g.name)}</div>
+          <div class="price-row">${price}</div>
+          <div class="card-meta">Released: ${g.release_date?.date||'TBA'}</div>
+        </div>
+        <div class="card-foot">
+          <button class="btn-wish saved" data-wish="${appid}" onclick="toggleWishlist(event,'${appid}')">✓ In Wishlist</button>
+        </div>
+      </div>`
+        }).join('')
+    }
+
+    /* ── FUZZY MATCHING ── */
+    function fuzzyScore(str, query) {
+      str = (str || '').toLowerCase();
+      query = (query || '').toLowerCase()
+      if (!query) return 0
+      if (str === query) return 10000
+      if (str.startsWith(query)) return 5000 - str.length
+      if (str.includes(query)) return 2000 - str.indexOf(query) - str.length * 0.1
+      let si = 0
+      for (let qi = 0; qi < query.length; qi++) {
+        si = str.indexOf(query[qi], si)
+        if (si === -1) return -1
+        si++
+      }
+      return 500 - Math.abs(str.length - query.length) * 0.5
+    }
+
+    /* ── BROWSE: merged search + infinite popular ── */
+    let browseMode = 'popular'
+    let searchDebounceTimer = null
+    let popularState = {
+      start: 0,
+      loading: false,
+      done: false,
+      seen: new Set()
+    }
+    let popularObserver = null
+
+    document.getElementById('q').addEventListener('input', e => {
+      clearTimeout(searchDebounceTimer)
+      const val = e.target.value
+      document.getElementById('clearBtn').style.display = val ? 'block' : 'none'
+      searchDebounceTimer = setTimeout(() => {
+        if (val.trim()) doSearch(val.trim())
+        else showBrowsePopular()
+      }, 380)
+    })
+    document.getElementById('q').addEventListener('keydown', e => {
+      if (e.key === 'Enter') {
+        clearTimeout(searchDebounceTimer);
+        const v = e.target.value.trim();
+        if (v) doSearch(v)
+      }
+    })
+
+    function clearSearch() {
+      document.getElementById('q').value = ''
+      document.getElementById('clearBtn').style.display = 'none'
+      showBrowsePopular()
+    }
+
+    async function doSearch(q) {
+      browseMode = 'search'
+      if (popularObserver) popularObserver.disconnect()
+      const el = document.getElementById('browseContent')
+      el.innerHTML = '<div class="loading">Searching Steam...<div class="spinner"></div></div>'
+      try {
+        let ids = []
+        try {
+          const data = await proxyJSON(`https://store.steampowered.com/api/storesearch/?term=${encodeURIComponent(q)}&l=english&cc=US`)
+          let items = (data.items || []).map(it => ({
+            id: it.id,
+            name: it.name,
+            _score: fuzzyScore(it.name, q)
+          }))
+          items = items.filter(it => it._score > -1)
+          items.sort((a, b) => b._score - a._score)
+          ids = items.slice(0, 20).map(i => String(i.id))
+        } catch (e) {
+          console.error(e);
+          /* fall through to scrape fallback below */ }
+
+        if (!ids.length) {
+          const res = await proxyFetch(`https://store.steampowered.com/search/?term=${encodeURIComponent(q)}&category1=998`)
+          if (!res.ok) throw new Error(res.status === 429 ? 'Rate limited — wait a moment' : `Search failed (${res.status})`)
+          const html = await res.text()
+          ids = [...new Set([...html.matchAll(/data-ds-appid="(\d+)"/g)].map(m => m[1]))].slice(0, 15)
+        }
+
+        if (!ids.length) {
+          el.innerHTML = `<div class="err-box"><div class="ei">🔍</div><div class="et">No results</div><div class="em">No games found for "${esc(q)}"</div></div>`
+          return
+        }
+        el.innerHTML = `<div class="count-lbl">Loading ${ids.length} results…</div>`
+        const games = await loadBatchConcurrent(ids, 5, (loaded, games) => {
+          if (browseMode !== 'search') return
+          el.innerHTML = `<div class="count-lbl">Loaded ${loaded}/${ids.length}…</div>` + orderByIds(games, ids).map(g => renderCard(g)).join('')
+        })
+        const ordered = orderByIds(games, ids)
+        el.innerHTML = ordered.length ?
+          `<div class="count-lbl">${ordered.length} result${ordered.length!==1?'s':''} for "${esc(q)}"</div>` + ordered.map(g => renderCard(g)).join('') :
+          `<div class="err-box"><div class="ei">⚠️</div><div class="et">Nothing loaded</div><div class="em">Steam may be rate-limiting. Try again in a moment.</div></div>`
+      } catch (e) {
+        console.error(e);
+        el.innerHTML = proxyErrBox(e)
+      }
+    }
+
+    function orderByIds(games, ids) {
+      return [...games].sort((a, b) => ids.indexOf(String(a.steam_appid)) - ids.indexOf(String(b.steam_appid)))
+    }
+    async function loadBatchConcurrent(appids, concurrency, onProgress) {
+      const games = []
+      let loaded = 0
+      let cursor = 0
+      async function worker() {
+        while (cursor < appids.length) {
+          const idx = cursor++
+          const id = appids[idx]
+          try {
+            const data = await proxyJSON(`https://store.steampowered.com/api/appdetails?appids=${id}&cc=us&l=en`)
+            if (data[id]?.success && data[id]?.data) {
+              const g = data[id].data
+              games.push(g)
+              gameCache.set(String(g.steam_appid), g)
+            }
+          } catch (e) {}
+          console.error(e);
+          loaded++
+          if (onProgress) onProgress(loaded, games)
+        }
+      }
+      await Promise.all(Array.from({
+        length: Math.min(concurrency, appids.length)
+      }, worker))
+      return games
+    }
+
+    /* ── POPULAR (infinite scroll, no full appdetails needed per card) ── */
+    function showBrowsePopular() {
+      browseMode = 'popular'
+      popularState = {
+        start: 0,
+        loading: false,
+        done: false,
+        seen: new Set()
+      }
+      const el = document.getElementById('browseContent')
+      el.innerHTML = `<div class="sec-hdr">🔥 Popular Games</div><div id="popularList"></div><div id="popularSentinel" style="height:2px"></div>`
+      setupPopularObserver()
+      loadMorePopular()
+    }
+
+    function setupPopularObserver() {
+      if (popularObserver) popularObserver.disconnect()
+      const sentinel = document.getElementById('popularSentinel')
+      if (!sentinel) return
+      popularObserver = new IntersectionObserver(entries => {
+        if (entries[0].isIntersecting && browseMode === 'popular') loadMorePopular()
+      }, {
+        rootMargin: '400px'
+      })
+      popularObserver.observe(sentinel)
+    }
+
+    function parseSearchResultsHTML(html) {
+      const doc = new DOMParser().parseFromString(html, 'text/html')
+      return Array.from(doc.querySelectorAll('a.search_result_row')).map(row => {
+        const appid = row.getAttribute('data-ds-appid')
+        if (!appid) return null
+        const name = row.querySelector('.title')?.textContent?.trim() || 'Unknown'
+        const img = row.querySelector('img')?.getAttribute('src') || `https://cdn.cloudflare.steamstatic.com/steam/apps/${appid}/header.jpg`
+        const finalEl = row.querySelector('.discount_final_price')
+        const origEl = row.querySelector('.discount_original_price')
+        const pctEl = row.querySelector('.discount_pct')
+        const releaseEl = row.querySelector('.search_released')
+        return {
+          appid,
+          name,
+          img,
+          finalPrice: finalEl ? finalEl.textContent.trim() : null,
+          origPrice: origEl ? origEl.textContent.trim() : null,
+          discPct: pctEl ? pctEl.textContent.trim().replace(/[-%]/g, '') : null,
+          released: releaseEl ? releaseEl.textContent.trim() : ''
+        }
+      }).filter(Boolean)
+    }
+    async function loadMorePopular() {
+      if (popularState.loading || popularState.done) return
+      popularState.loading = true
+      const list = document.getElementById('popularList')
+      const sentinel = document.getElementById('popularSentinel')
+      if (sentinel) sentinel.innerHTML = '<div class="inline-spinner-row"><div class="spinner sm"></div></div>'
+      try {
+        const url = `https://store.steampowered.com/search/results/?query&start=${popularState.start}&count=25&sort_by=_ASC&supportedlang=english&category1=998&filter=topsellers&infinite=1`
+        const data = await proxyJSON(url)
+        const parsed = parseSearchResultsHTML(data.results_html || '')
+        const fresh = parsed.filter(p => !popularState.seen.has(p.appid))
+        if (!fresh.length) {
+          popularState.done = true
+          if (sentinel) sentinel.innerHTML = popularState.start > 0 ? '<div class="end-lbl">You\'ve reached the end</div>' : ''
+        } else {
+          fresh.forEach(p => {
+            popularState.seen.add(p.appid)
+            const isFree = !p.finalPrice || /free/i.test(p.finalPrice)
+            const stub = gameCache.get(String(p.appid)) || {
+              steam_appid: p.appid,
+              name: p.name,
+              header_image: p.img,
+              is_free: isFree,
+              price_overview: (!isFree && p.finalPrice) ? {
+                final_formatted: p.finalPrice,
+                initial_formatted: p.origPrice || p.finalPrice,
+                discount_percent: Number(p.discPct) || 0
+              } : null,
+              release_date: {
+                date: p.released
+              }
+            }
+            gameCache.set(String(p.appid), stub)
+            list.insertAdjacentHTML('beforeend', renderCard(stub))
+          })
+          popularState.start += parsed.length
+          if (sentinel) sentinel.innerHTML = ''
+          if (typeof data.total_count === 'number' && popularState.start >= data.total_count) popularState.done = true
+        }
+      } catch (e) {
+        console.error(e);
+        if (sentinel) sentinel.innerHTML = `<div class="err-box">${proxyErrInner(e)}<button class="load-more-btn" onclick="loadMorePopular()">Retry</button></div>`
+      }
+      popularState.loading = false
+    }
+
+    /* ── SALES ── */
+    async function loadSales() {
+      const el = document.getElementById('salesContent')
+      try {
+        const data = await proxyJSON('https://store.steampowered.com/api/featuredcategories/?cc=us&l=en')
+        const specials = (data.specials?.items || []).filter(g => g.discount_percent > 0)
+        if (!specials.length) {
+          el.innerHTML = '<div class="empty-st"><div class="ei">🏷️</div><p>No sales right now.</p></div>';
+          return
+        }
+        specials.sort((a, b) => b.discount_percent - a.discount_percent)
+        el.innerHTML = `<div class="count-lbl">${specials.length} games on sale</div>` + specials.map(g => renderSaleCard(g)).join('')
+      } catch (e) {
+        console.error(e);
+        el.innerHTML = proxyErrBox(e)
+      }
+    }
+
+    /* ── CARD RENDERERS ── */
+    function renderSaleCard(g) {
+      const appid = g.id
+      const img = g.header_image || `https://cdn.cloudflare.steamstatic.com/steam/apps/${appid}/header.jpg`
+      const finalPrice = g.final_price ? `$${(g.final_price/100).toFixed(2)}` : g.is_free_game ? 'Free' : 'N/A'
+      const origPrice = g.original_price ? `$${(g.original_price/100).toFixed(2)}` : ''
+      return `<div class="card" onclick="openModal('${appid}')">
+    <img class="card-img" src="${img}" alt="${esc(g.name)}" loading="lazy">
+    <div class="card-body">
+      <div class="card-title">${esc(g.name)}</div>
+      <div class="price-row">
+        <span class="disc">-${g.discount_percent}%</span>
+        <span class="price">${finalPrice}</span>
+        ${origPrice ? `<span class="old-price">${origPrice}</span>` : ''}
+      </div>
+    </div>
+  </div>`
+    }
+
+    function renderCard(g) {
+      const appid = String(g.steam_appid)
+      const price = g.is_free ? '<span class="price free">Free to Play</span>' :
+        g.price_overview ? fmtPrice(g.price_overview) :
+        '<span style="color:var(--muted);font-size:13px">Price N/A</span>'
+      const inList = isWishlisted(appid)
+      return `<div class="card" onclick="openModal('${appid}')">
+    <img class="card-img" src="${g.header_image}" alt="${esc(g.name)}" loading="lazy">
+    <div class="card-body">
+      <div class="card-title">${esc(g.name)}</div>
+      <div class="price-row">${price}</div>
+      <div class="card-meta">Released: ${g.release_date?.date||'TBA'}${g.developers?.[0] ? ' · '+esc(g.developers[0]) : ''}</div>
+      ${g.short_description ? `<div class="card-desc">${esc(stripHTML(g.short_description||''))}</div>` : ''}
+    </div>
+    <div class="card-foot">
+      <button class="btn-wish ${inList?'saved':''}" data-wish="${appid}" onclick="toggleWishlist(event,'${appid}')">
+        ${inList?'✓ In Wishlist':'+ Wishlist'}
+      </button>
+    </div>
+  </div>`
+    }
+
+    function fmtPrice(po) {
+      if (!po) return ''
+      return `<span class="price">${po.final_formatted}</span>` +
+        (po.discount_percent > 0 ? `<span class="disc">-${po.discount_percent}%</span><span class="old-price">${po.initial_formatted}</span>` : '')
+    }
+
+    /* ── MODAL ── */
+    let currentMediaIdx = 0
+    async function openModal(appid) {
+      appid = String(appid)
+      const modal = document.getElementById('modal')
+      const mediaMain = document.getElementById('mediaMain')
+      const mediaThumbs = document.getElementById('mediaThumbs')
+      const statBar = document.getElementById('statBar')
+      const modalBody = document.getElementById('modalBody')
+      modal.classList.add('open')
+      document.body.style.overflow = 'hidden'
+      mediaMain.innerHTML = '<div style="aspect-ratio:460/215;background:#000;display:flex;align-items:center;justify-content:center;color:var(--accent);font-size:13px">Loading…</div>'
+      mediaThumbs.innerHTML = ''
+      statBar.innerHTML = ''
+      modalBody.innerHTML = '<div class="loading">Loading details…<div class="spinner"></div></div>'
+
+      try {
+        let g = gameCache.get(appid)
+        if (!g || !('movies' in g)) {
+          const data = await proxyJSON(`https://store.steampowered.com/api/appdetails?appids=${appid}&cc=us&l=en`)
+          if (data[appid]?.success && data[appid]?.data) {
+            g = data[appid].data
+            gameCache.set(appid, g)
+            const wi = wishlist.findIndex(x => String(x.steam_appid) === appid)
+            if (wi > -1) {
+              wishlist[wi] = g;
+              localStorage.setItem('steamWishlist', JSON.stringify(wishlist))
+            }
+          } else throw new Error('Game data not found')
+        }
+
+        // Media carousel
+        mediaItems = []
+        g.movies?.forEach(m => {
+          const src = m.mp4?.max || m.mp4?.['480'] || m.webm?.max || m.webm?.['480'] || ''
+          if (src) mediaItems.push({
+            type: 'video',
+            src,
+            thumb: m.thumbnail
+          })
+        })
+        g.screenshots?.slice(0, 12).forEach(s => {
+          mediaItems.push({
+            type: 'image',
+            src: s.path_full,
+            thumb: s.path_thumbnail
+          })
+        })
+        if (!mediaItems.length && g.header_image) mediaItems.push({
+          type: 'image',
+          src: g.header_image,
+          thumb: g.header_image
+        })
+        initMedia()
+
+        fetchStatBar(appid, g, statBar)
+
+        const price = g.is_free ?
+          '<span class="price free">Free to Play</span>' :
+          g.price_overview ?
+          `<span class="modal-price">${g.price_overview.final_formatted}</span>` +
+          (g.price_overview.discount_percent > 0 ? `<span class="disc">-${g.price_overview.discount_percent}%</span><span class="old-price">${g.price_overview.initial_formatted}</span>` : '') :
+          '<span style="color:var(--muted)">Price unavailable</span>'
+
+        const inList = isWishlisted(appid)
+        const genres = g.genres?.map(x => `<span class="tag">${esc(x.description)}</span>`).join('') || ''
+        const cats = g.categories?.slice(0, 12).map(x => `<span class="tag">${esc(x.description)}</span>`).join('') || ''
+        const platIcons = [g.platforms?.windows && '🖥 Windows', g.platforms?.mac && '🍎 Mac', g.platforms?.linux && '🐧 Linux'].filter(Boolean).join(' · ') || 'N/A'
+        const langs = g.supported_languages ? stripHTML(g.supported_languages).replace(/\*/g, '').replace(/\s+/g, ' ').trim() : ''
+        const dlcIds = g.dlc || []
+        const achCount = g.achievements?.total || 0
+
+        // Sys req
+        const pcMin = g.pc_requirements?.minimum || ''
+        const pcRec = g.pc_requirements?.recommended || ''
+        const macMin = g.mac_requirements?.minimum || ''
+        const linMin = g.linux_requirements?.minimum || ''
+        const sysReqHtml = (pcMin || macMin || linMin) ? buildSysReq(pcMin, pcRec, macMin, linMin) :
+          '<div class="empty-st" style="padding:20px"><p>No system requirements listed</p></div>'
+
+        // DLC
+        const dlcHtml = dlcIds.length ?
+          `<div style="font-size:12px;color:var(--muted);margin-bottom:10px">${dlcIds.length} DLC available</div>` +
+          dlcIds.slice(0, 30).map(id => `
+          <div class="rgame-row" onclick="openModal('${id}')">
+            <div class="rgame-logo"></div>
+            <div class="rgame-info"><div class="rgame-name">DLC #${id}</div></div>
+            <div class="rgame-arrow">›</div>
+          </div>`).join('') :
+          ''
+
+        modalBody.innerHTML = `
+      <div class="modal-title">${esc(g.name)}</div>
+      <div class="modal-price-row">${price}</div>
+      <div class="tabs" id="modalTabs">
+        <button class="tab-btn active" onclick="switchTab(event,'tab-about')">About</button>
+        <button class="tab-btn" onclick="switchTab(event,'tab-sysreq')">Requirements</button>
+        <button class="tab-btn" onclick="switchTab(event,'tab-reviews')">Reviews</button>
+        <button class="tab-btn" onclick="switchTab(event,'tab-news')">News</button>
+        ${dlcIds.length ? `<button class="tab-btn" onclick="switchTab(event,'tab-dlc')">DLC</button>` : ''}
+      </div>
+
+      <div class="tab-pane active" id="tab-about">
+        <div class="game-desc">${g.detailed_description||g.about_the_game||esc(stripHTML(g.short_description||''))}</div>
+        ${g.developers?.length ? `<div class="det-row"><span>Developer</span><span>${g.developers.map(esc).join(', ')}</span></div>` : ''}
+        ${g.publishers?.length ? `<div class="det-row"><span>Publisher</span><span>${g.publishers.map(esc).join(', ')}</span></div>` : ''}
+        <div class="det-row"><span>Release Date</span><span>${g.release_date?.date||'TBA'}</span></div>
+        ${g.metacritic ? `<div class="det-row"><span>Metacritic</span><span><a href="${g.metacritic.url}" target="_blank" style="color:${g.metacritic.score>=75?'#6bc97e':g.metacritic.score>=50?'#c9c97e':'#c97e7e'};text-decoration:none;font-weight:700">${g.metacritic.score}/100 ↗</a></span></div>` : ''}
+        <div class="det-row"><span>Platforms</span><span>${platIcons}</span></div>
+        ${g.controller_support ? `<div class="det-row"><span>Controller</span><span style="text-transform:capitalize">${esc(g.controller_support)}</span></div>` : ''}
+        ${g.required_age > 0 ? `<div class="det-row"><span>Age Rating</span><span>${g.required_age}+</span></div>` : ''}
+        ${achCount > 0 ? `<div class="det-row"><span>Achievements</span><span>${achCount.toLocaleString()}</span></div>` : ''}
+        <div class="det-row"><span>App ID</span><span>${appid}</span></div>
+        ${langs ? `<div class="det-row"><span>Languages</span><span style="font-size:11px">${esc(langs.split(',').slice(0,6).join(', '))}${langs.split(',').length>6?' …':''}</span></div>` : ''}
+        ${g.website ? `<div class="det-row"><span>Website</span><span><a href="${g.website}" target="_blank" style="color:var(--accent);text-decoration:none">Official Site ↗</a></span></div>` : ''}
+        ${genres ? `<div style="margin-top:12px"><div style="font-size:10px;color:var(--muted);margin-bottom:6px;font-weight:700;letter-spacing:.5px">GENRES</div><div class="tag-list">${genres}</div></div>` : ''}
+        ${cats ? `<div style="margin-top:12px"><div style="font-size:10px;color:var(--muted);margin-bottom:6px;font-weight:700;letter-spacing:.5px">FEATURES</div><div class="tag-list">${cats}</div></div>` : ''}
+      </div>
+
+      <div class="tab-pane" id="tab-sysreq">${sysReqHtml}</div>
+
+      <div class="tab-pane" id="tab-reviews">
+        <div class="rev-filter-row" id="revFilterRow">
+          <button class="rev-filter-btn active" data-f="all" onclick="setReviewFilter('all')">All</button>
+          <button class="rev-filter-btn" data-f="positive" onclick="setReviewFilter('positive')">👍 Positive</button>
+          <button class="rev-filter-btn" data-f="negative" onclick="setReviewFilter('negative')">👎 Negative</button>
+        </div>
+        <div id="revListWrap"><div class="loading">Loading reviews…<div class="spinner"></div></div></div>
+      </div>
+
+      <div class="tab-pane" id="tab-news">
+        <div id="newsListWrap"><div class="loading">Loading news…<div class="spinner"></div></div></div>
+      </div>
+
+      ${dlcIds.length ? `<div class="tab-pane" id="tab-dlc">${dlcHtml}</div>` : ''}
+
+      <div style="margin-top:22px;padding-bottom:16px">
+        <button class="btn-wish ${inList?'saved':''}" style="width:100%;padding:14px;font-size:14px" data-wish="${appid}" onclick="toggleWishlist(event,'${appid}')">
+          ${inList?'✓ In Wishlist':'+ Add to Wishlist'}
+        </button>
+        <a href="https://store.steampowered.com/app/${appid}" target="_blank" rel="noopener"
+           style="display:block;text-align:center;margin-top:10px;color:var(--accent);font-size:12px;text-decoration:none;padding:6px 0">
+          View on Steam ↗
+        </a>
+      </div>`
+
+        reviewState = {
+          appid,
+          cursor: '*',
+          filter: 'all',
+          loading: false
+        }
+        loadNews(appid)
+        loadReviews(false)
+
+      } catch (e) {
+        console.error(e);
+        mediaMain.innerHTML = `<div style="aspect-ratio:460/215;background:#000;display:flex;align-items:center;justify-content:center;color:var(--red);font-size:13px">Failed to load</div>`
+        modalBody.innerHTML = proxyErrBox(e)
+      }
+    }
+
+    function buildSysReq(pcMin, pcRec, macMin, linMin) {
+      const clean = h => h.replace(/<ul[^>]*>/gi, '<ul>').replace(/<\/ul>/gi, '</ul>').replace(/<br\s*\/?>/gi, ' ').replace(/<p[^>]*>/gi, '').replace(/<\/p>/gi, '')
+      let html = ''
+      if (pcMin) html += `<div class="sysreq-section"><div class="sysreq-label">🖥 Windows — Minimum</div><div class="sysreq-body">${clean(pcMin)}</div></div>`
+      if (pcRec) html += `<div class="sysreq-section"><div class="sysreq-label">🖥 Windows — Recommended</div><div class="sysreq-body">${clean(pcRec)}</div></div>`
+      if (macMin) html += `<div class="sysreq-section"><div class="sysreq-label">🍎 macOS</div><div class="sysreq-body">${clean(macMin)}</div></div>`
+      if (linMin) html += `<div class="sysreq-section"><div class="sysreq-label">🐧 Linux</div><div class="sysreq-body">${clean(linMin)}</div></div>`
+      return html
+    }
+
+    /* ── MEDIA (fixed: never rebuild thumb strip so it can't snap scroll back) ── */
+    function initMedia() {
+      currentMediaIdx = 0
+      renderThumbsOnce()
+      renderMediaMain(0)
+    }
+
+    function renderThumbsOnce() {
+      const thumbsEl = document.getElementById('mediaThumbs')
+      thumbsEl.innerHTML = mediaItems.length > 1 ?
+        '<div class="media-thumbs-wrap">' + mediaItems.map((m, i) => `
+      <div class="mthumb" data-idx="${i}" onclick="selectMedia(${i})">
+        <img src="${m.thumb||m.src}" alt="" loading="lazy">
+        ${m.type==='video'?'<div class="play-ov">▶</div>':''}
+      </div>`).join('') + '</div>' :
+        ''
+    }
+
+    function updateActiveThumb(idx) {
+      document.querySelectorAll('.mthumb').forEach(t => t.classList.toggle('active', Number(t.dataset.idx) === idx))
+    }
+
+    function imageIndexFor(mediaIdx) {
+      return mediaItems.slice(0, mediaIdx).filter(m => m.type === 'image').length
+    }
+
+    function renderMediaMain(idx) {
+      currentMediaIdx = idx
+      const main = document.getElementById('mediaMain')
+      const item = mediaItems[idx]
+      if (!item) {
+        main.innerHTML = '';
+        return
+      }
+      if (item.type === 'video') {
+        main.innerHTML = `<video class="media-video" controls playsinline preload="metadata" poster="${item.thumb}"><source src="${item.src}" type="video/mp4"></video>`
+      } else {
+        main.innerHTML = `<img class="media-hero" src="${item.src}" alt="" loading="lazy" onclick="openLightbox(${imageIndexFor(idx)})">`
+      }
+    }
+
+    function selectMedia(idx) {
+      const vid = document.querySelector('#mediaMain video')
+      if (vid) vid.pause()
+      renderMediaMain(idx)
+      updateActiveThumb(idx)
+    }
+
+    /* ── FULLSCREEN PHOTO VIEWER (pinch/pan zoom + swipe, like a photos app) ── */
+    const lb = {
+      scale: 1,
+      x: 0,
+      y: 0,
+      pointers: new Map(),
+      startDist: 0,
+      startScale: 1,
+      dragging: false,
+      dragStart: {
+        x: 0,
+        y: 0
+      },
+      rawStart: null,
+      lastTap: 0
+    }
+    let lbIndex = 0
+
+    function lbImageItems() {
+      return mediaItems.filter(m => m.type === 'image')
+    }
+
+    function openLightbox(imgIdx) {
+      lbIndex = imgIdx
+      document.getElementById('lightbox').classList.add('open')
+      document.body.style.overflow = 'hidden'
+      renderLbImage()
+    }
+
+    function closeLightbox() {
+      document.getElementById('lightbox').classList.remove('open')
+      document.body.style.overflow = document.getElementById('modal').classList.contains('open') ? 'hidden' : ''
+    }
+
+    function renderLbImage() {
+      const items = lbImageItems()
+      const item = items[lbIndex]
+      if (!item) return
+      document.getElementById('lbImg').src = item.src
+      document.getElementById('lbCounter').textContent = `${lbIndex+1} / ${items.length}`
+      document.getElementById('lbPrevBtn').style.display = items.length > 1 ? 'flex' : 'none'
+      document.getElementById('lbNextBtn').style.display = items.length > 1 ? 'flex' : 'none'
+      resetLbTransform()
+    }
+
+    function resetLbTransform() {
+      lb.scale = 1;
+      lb.x = 0;
+      lb.y = 0;
+      applyLbTransform()
+    }
+
+    function applyLbTransform() {
+      document.getElementById('lbImg').style.transform = `translate(${lb.x}px,${lb.y}px) scale(${lb.scale})`
+    }
+
+    function clamp(v, a, b) {
+      return Math.max(a, Math.min(b, v))
+    }
+
+    function dist(a, b) {
+      return Math.hypot(a.x - b.x, a.y - b.y)
+    }
+
+    function lbNav(dir) {
+      const items = lbImageItems()
+      if (!items.length) return
+      lbIndex = clamp(lbIndex + dir, 0, items.length - 1)
+      renderLbImage()
+    }
+
+    function toggleLbZoom(cx, cy) {
+      if (lb.scale > 1) {
+        resetLbTransform()
+      } else {
+        lb.scale = 2.5;
+        applyLbTransform()
+      }
+    };
+    (function setupLightboxGestures() {
+      const stage = document.getElementById('lbStage')
+      stage.addEventListener('pointerdown', e => {
+        stage.setPointerCapture(e.pointerId)
+        lb.pointers.set(e.pointerId, {
+          x: e.clientX,
+          y: e.clientY
+        })
+        if (lb.pointers.size === 1) {
+          lb.dragging = true
+          lb.dragStart = {
+            x: e.clientX - lb.x,
+            y: e.clientY - lb.y
+          }
+          lb.rawStart = {
+            x: e.clientX,
+            y: e.clientY
+          }
+          const now = Date.now()
+          if (now - lb.lastTap < 320) toggleLbZoom(e.clientX, e.clientY)
+          lb.lastTap = now
+        } else if (lb.pointers.size === 2) {
+          lb.dragging = false
+          const pts = [...lb.pointers.values()]
+          lb.startDist = dist(pts[0], pts[1])
+          lb.startScale = lb.scale
+        }
+      })
+      stage.addEventListener('pointermove', e => {
+        if (!lb.pointers.has(e.pointerId)) return
+        lb.pointers.set(e.pointerId, {
+          x: e.clientX,
+          y: e.clientY
+        })
+        if (lb.pointers.size === 2) {
+          const pts = [...lb.pointers.values()]
+          const d = dist(pts[0], pts[1])
+          if (lb.startDist > 0) lb.scale = clamp(lb.startScale * (d / lb.startDist), 1, 5)
+          applyLbTransform()
+        } else if (lb.dragging && lb.pointers.size === 1) {
+          lb.x = e.clientX - lb.dragStart.x
+          lb.y = e.clientY - lb.dragStart.y
+          applyLbTransform()
+        }
+      })
+
+      function endPointer(e) {
+        const raw = lb.rawStart
+        const wasSingle = lb.pointers.size === 1
+        lb.pointers.delete(e.pointerId)
+        if (lb.pointers.size === 0) {
+          lb.dragging = false
+          if (lb.scale <= 1.02 && wasSingle && raw) {
+            const dx = e.clientX - raw.x,
+              dy = e.clientY - raw.y
+            if (Math.abs(dy) > 90 && Math.abs(dy) > Math.abs(dx)) {
+              closeLightbox();
+              return
+            }
+            if (Math.abs(dx) > 60 && Math.abs(dy) < 60) {
+              lbNav(dx < 0 ? 1 : -1);
+              return
+            }
+          }
+          if (lb.scale <= 1.02) {
+            lb.scale = 1;
+            lb.x = 0;
+            lb.y = 0;
+            applyLbTransform()
+          }
+          lb.rawStart = null
+        }
+      }
+      stage.addEventListener('pointerup', endPointer)
+      stage.addEventListener('pointercancel', endPointer)
+      stage.addEventListener('wheel', e => {
+        e.preventDefault()
+        lb.scale = clamp(lb.scale - e.deltaY * 0.0015, 1, 5)
+        if (lb.scale <= 1) {
+          lb.scale = 1;
+          lb.x = 0;
+          lb.y = 0
+        }
+        applyLbTransform()
+      }, {
+        passive: false
+      })
+    })()
+
+    /* ── STAT BAR ── */
+    async function fetchStatBar(appid, g, el) {
+      let revHtml = ''
+      if (g.reviews) {
+        const r = g.reviews
+        const cls = r.review_score >= 7 ? 'pos' : r.review_score >= 4 ? 'mix' : 'neg'
+        const pct = r.total_reviews > 0 ? Math.round(r.total_positive / r.total_reviews * 100) : 0
+        revHtml = `<span class="review-pill review-${cls}">👍 ${esc(r.review_score_desc||'')} · ${pct}%</span>`
+      } else if (g.recommendations) {
+        revHtml = `<span class="review-pill review-pos">👍 ${(g.recommendations.total||0).toLocaleString()} reviews</span>`
+      }
+      el.innerHTML = `<span class="player-pill off"><span class="pdot"></span>Loading…</span>${revHtml}`
+      try {
+        const data = await proxyJSON(`https://api.steampowered.com/ISteamUserStats/GetNumberOfCurrentPlayers/v1/?appid=${appid}`)
+        const count = data.response?.player_count || 0
+        const pill = el.querySelector('.player-pill')
+        if (pill) {
+          pill.className = `player-pill ${count > 0 ? 'on' : 'off'}`
+          pill.innerHTML = `<span class="pdot ${count>0?'on':''}"></span>${count > 0 ? count.toLocaleString()+' playing now' : 'No player data'}`
+        }
+      } catch (e) {
+        console.error(e);
+        el.querySelector('.player-pill')?.remove()
+      }
+    }
+
+    /* ── REVIEWS (fixed pagination + filters) ── */
+    let reviewState = {
+      appid: null,
+      cursor: '*',
+      filter: 'all',
+      loading: false
+    }
+
+    function setReviewFilter(filter) {
+      if (reviewState.filter === filter) return
+      reviewState.filter = filter
+      reviewState.cursor = '*'
+      document.querySelectorAll('.rev-filter-btn').forEach(b => b.classList.toggle('active', b.dataset.f === filter))
+      loadReviews(false)
+    }
+    async function loadReviews(append) {
+      const wrap = document.getElementById('revListWrap')
+      if (!wrap || !reviewState.appid || reviewState.loading) return
+      reviewState.loading = true
+      const {
+        appid,
+        filter
+      } = reviewState
+      const cursor = append ? reviewState.cursor : '*'
+
+      if (!append) wrap.innerHTML = '<div class="loading">Loading reviews…<div class="spinner"></div></div>'
+      else {
+        const btn = document.getElementById('revMoreBtn');
+        if (btn) {
+          btn.disabled = true;
+          btn.textContent = 'Loading…'
+        }
+      }
+
+      try {
+        const url = `https://store.steampowered.com/appreviews/${appid}?json=1&filter=recent&language=english&review_type=${filter}&purchase_type=all&num_per_page=10&cursor=${encodeURIComponent(cursor)}`
+        const data = await proxyJSON(url)
+        if (!data || data.success !== 1) throw new Error('Reviews unavailable')
+
+        const qs = data.query_summary || {}
+        const reviews = data.reviews || []
+        const newCursor = data.cursor || null
+        const madeProgress = newCursor && newCursor !== cursor
+
+        const total = qs.total_reviews || 0
+        const pos = qs.total_positive || 0
+        const neg = qs.total_negative || 0
+        const pct = total > 0 ? Math.round(pos / total * 100) : 0
+        const score = qs.review_score || 0
+        const cls = score >= 7 ? 'pos' : score >= 4 ? 'mix' : 'neg'
+
+        const revCards = reviews.map((r, ri) => {
+          const uid = `revtxt-${appid}-${cursor}-${ri}`
+          const voted = r.voted_up
+          const hrs = r.author?.playtime_at_review ? Math.round(r.author.playtime_at_review / 60) : 0
+          const date = new Date(r.timestamp_created * 1000).toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric'
+          })
+          const rawTxt = (r.review || '').trim()
+          const txt = esc(rawTxt).replace(/\n/g, '<br>')
+          const isLong = rawTxt.length > 300
+          const devResp = r.developer_response ?
+            `<div class="rev-dev"><strong>Developer Response</strong>${esc(r.developer_response).replace(/\n/g,'<br>')}</div>` : ''
+          return `<div class="rev-card">
+        <div class="rev-header">
+          <div>
+            <div class="rev-verdict ${voted?'up':'down'}">${voted?'👍 Recommended':'👎 Not Recommended'}</div>
+            <div style="font-size:10px;color:var(--muted);margin-top:3px">${hrs>0?hrs.toLocaleString()+' hrs on record at review':'Playtime unknown'}</div>
+          </div>
+          <div class="rev-meta">${date}${r.steam_purchase?'<br>✔ Steam purchase':''}</div>
+        </div>
+        <div class="rev-text ${isLong?'clip':''}" id="${uid}">${txt}</div>
+        ${isLong?`<button class="rev-expand" onclick="expandRev('${uid}',this)">Show more ▾</button>`:''}
+        ${r.votes_up>0||r.votes_funny>0?`<div class="rev-helpful">${r.votes_up>0?r.votes_up.toLocaleString()+' found helpful':''}${r.votes_up>0&&r.votes_funny>0?' · ':''}${r.votes_funny>0?r.votes_funny.toLocaleString()+' found funny':''}</div>`:''}
+        ${devResp}
+      </div>`
+        }).join('')
+
+        if (!append) {
+          const summaryHtml = `<div class="rev-summary">
+        <div class="rev-score-big ${cls}">${pct}%</div>
+        <div class="rev-summary-info">
+          <div class="rev-desc">${esc(qs.review_score_desc||'No Reviews')} <span style="color:var(--muted);font-size:11px;font-weight:400">(English)</span></div>
+          <div class="rev-counts">${pos.toLocaleString()} positive · ${neg.toLocaleString()} negative · ${total.toLocaleString()} total</div>
+          <div class="rev-bar"><div class="rev-bar-fill" style="width:${pct}%"></div></div>
+        </div>
+      </div>`
+          wrap.innerHTML = summaryHtml + `<div id="revCardsList">${reviews.length ? revCards : '<div class="empty-st" style="padding:20px"><p>No reviews match this filter</p></div>'}</div>`
+        } else {
+          document.getElementById('revMoreBtn')?.remove()
+          document.getElementById('revCardsList')?.insertAdjacentHTML('beforeend', revCards)
+        }
+
+        reviewState.cursor = newCursor
+        if (newCursor && madeProgress && reviews.length > 0) {
+          wrap.insertAdjacentHTML('beforeend', `<button id="revMoreBtn" class="load-more-btn" onclick="loadMoreReviews()">Load More Reviews</button>`)
+        }
+      } catch (e) {
+        console.error(e);
+        if (!append) wrap.innerHTML = proxyErrBox(e, '⭐', 'Failed to load reviews')
+        else document.getElementById('revMoreBtn')?.remove()
+      }
+      reviewState.loading = false
+    }
+
+    function loadMoreReviews() {
+      if (reviewState.cursor) loadReviews(true)
+    }
+
+    function expandRev(id, btn) {
+      const el = document.getElementById(id)
+      if (!el) return
+      el.classList.remove('clip')
+      el.classList.add('expanded')
+      btn.remove()
+    }
+
+    /* ── NEWS (with dedicated reader view) ── */
+    let newsItems = []
+    let newsIndex = 0
+    let newsFontSize = 15
+    async function loadNews(appid) {
+      const el = document.getElementById('newsListWrap')
+      if (!el) return
+      try {
+        const data = await proxyJSON(`https://api.steampowered.com/ISteamNews/GetNewsForApp/v0002/?appid=${appid}&count=15&maxlength=6000&format=json`)
+        const items = data.appnews?.newsitems || []
+        newsItems = items
+        if (!items.length) {
+          el.innerHTML = '<div class="empty-st"><p>No news</p></div>';
+          return
+        }
+        el.innerHTML = items.map((item, i) => `<div class="news-item" onclick="openNewsReader(${i})">
+        <div class="news-title">${esc(item.title)}</div>
+        <div class="news-date">${new Date(item.date*1000).toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'})}</div>
+        <div class="news-preview">${esc(stripHTML(item.contents||''))}</div>
+        <div class="news-open-hint">Tap to read →</div>
+      </div>`).join('')
+      } catch (e) {
+        console.error(e);
+        el.innerHTML = '<div class="err-box"><div class="ei">📰</div><div class="et">Failed to load news</div></div>'
+      }
+    }
+
+    function cleanNewsHtml(raw) {
+      return (raw || '')
+        .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+        .replace(/<iframe/gi, '<iframe style="width:100%;aspect-ratio:16/9;border:none"')
+        .replace(/src="\/\//g, 'src="https://').replace(/href="\/\//g, 'href="https://')
+    }
+
+    function openNewsReader(i) {
+      newsIndex = i
+      document.getElementById('newsReader').classList.add('open')
+      document.body.style.overflow = 'hidden'
+      renderNewsReader()
+    }
+
+    function closeNewsReader() {
+      document.getElementById('newsReader').classList.remove('open')
+      document.body.style.overflow = document.getElementById('modal').classList.contains('open') ? 'hidden' : ''
+    }
+
+    function nrFont(delta) {
+      newsFontSize = clamp(newsFontSize + delta * 1.5, 12, 24);
+      renderNewsReader()
+    }
+
+    function renderNewsReader() {
+      const item = newsItems[newsIndex]
+      if (!item) return
+      const date = new Date(item.date * 1000).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      })
+      document.getElementById('nrPos').textContent = `${newsIndex+1} of ${newsItems.length}`
+      document.getElementById('nrBody').innerHTML = `
+    <div class="nr-title">${esc(item.title)}</div>
+    <div class="nr-date">${date}</div>
+    <div class="nr-content" style="font-size:${newsFontSize}px">${cleanNewsHtml(item.contents)}</div>
+    ${item.url ? `<a class="news-link" href="${item.url}" target="_blank" rel="noopener">Read full article on Steam ↗</a>` : ''}
+    <div class="nr-navrow">
+      <button ${newsIndex===0?'disabled':''} onclick="nrGo(-1)">‹ Previous</button>
+      <button ${newsIndex===newsItems.length-1?'disabled':''} onclick="nrGo(1)">Next ›</button>
+    </div>`
+      document.getElementById('nrBody').scrollTop = 0
+    }
+
+    function nrGo(dir) {
+      newsIndex = clamp(newsIndex + dir, 0, newsItems.length - 1);
+      renderNewsReader()
+    }
+
+    function switchTab(e, tabId) {
+      e.stopPropagation()
+      const tabsEl = e.currentTarget.closest('.tabs')
+      if (tabsEl) tabsEl.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'))
+      e.currentTarget.classList.add('active')
+      const body = tabsEl?.parentElement
+      if (body) body.querySelectorAll(':scope > .tab-pane').forEach(p => p.classList.remove('active'))
+      document.getElementById(tabId)?.classList.add('active')
+    }
+
+    function closeModal() {
+      document.querySelectorAll('#mediaMain video').forEach(v => v.pause())
+      document.getElementById('modal').classList.remove('open')
+      document.body.style.overflow = ''
+    }
+    document.getElementById('modal').addEventListener('click', e => {
+      if (e.target === document.getElementById('modal')) closeModal()
+    })
+    document.addEventListener('keydown', e => {
+      if (e.key !== 'Escape' && e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return
+      if (document.getElementById('lightbox').classList.contains('open')) {
+        if (e.key === 'Escape') closeLightbox()
+        if (e.key === 'ArrowLeft') lbNav(-1)
+        if (e.key === 'ArrowRight') lbNav(1)
+      } else if (document.getElementById('newsReader').classList.contains('open')) {
+        if (e.key === 'Escape') closeNewsReader()
+      } else if (e.key === 'Escape') {
+        closeModal()
+      }
+    })
+    window.addEventListener('popstate', closeModal)
+
+    /* ── ACCOUNT LOOKUP (direct resolve, with fuzzy name-search fallback) ── */
+    document.getElementById('steamInput').addEventListener('keydown', e => {
+      if (e.key === 'Enter') lookupAccount()
+    })
+
+    function looksLikeDirectId(raw) {
+      return /^\d{17}$/.test(raw) || /steamcommunity\.com/.test(raw) || /^\[U:1:\d+\]$/.test(raw)
+    }
+    async function lookupAccount() {
+      const raw = document.getElementById('steamInput').value.trim()
+      const el = document.getElementById('accountContent')
+      if (!raw) return
+      el.innerHTML = '<div class="loading">Looking up profile…<div class="spinner"></div></div>'
+      try {
+        await loadAccountProfile(raw, el)
+      } catch (primaryErr) {
+        console.error(primaryErr);
+        if (looksLikeDirectId(raw)) {
+          el.innerHTML = proxyErrBox(primaryErr, '👤', 'Profile not found');
+          return
+        }
+        el.innerHTML = '<div class="loading">No exact match — searching players…<div class="spinner"></div></div>'
+        try {
+          const candidates = await searchCommunityUsers(raw)
+          if (candidates.length) {
+            el.innerHTML = `<div class="count-lbl">${candidates.length} possible match${candidates.length!==1?'es':''} for "${esc(raw)}"</div>` +
+              candidates.map(c => renderAccCandidate(c)).join('')
+          } else {
+            el.innerHTML = proxyErrBox(primaryErr, '👤', 'No matching profiles')
+          }
+        } catch (e) {
+          console.error(e);
+          el.innerHTML = proxyErrBox(primaryErr, '👤', 'Profile not found')
+        }
+      }
+    }
+
+    function renderAccCandidate(c) {
+      return `<div class="acc-cand" onclick="selectAccCandidate('${esc(c.ref).replace(/'/g,"\\'")}')">
+    <img src="${c.avatar||''}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">
+    <div class="acc-cand-info">
+      <div class="acc-cand-name">${esc(c.name||'Unknown')}</div>
+      <div class="acc-cand-sub">${esc(c.sub||'Steam Profile')}</div>
+    </div>
+    <div style="color:var(--muted);font-size:16px">›</div>
+  </div>`
+    }
+
+    function selectAccCandidate(ref) {
+      document.getElementById('steamInput').value = ref
+      const el = document.getElementById('accountContent')
+      el.innerHTML = '<div class="loading">Loading profile…<div class="spinner"></div></div>'
+      loadAccountProfile(ref, el).catch(e => {
+        console.error(e);
+        el.innerHTML = proxyErrBox(e, '👤', 'Profile not found')
+      })
+    }
+    async function searchCommunityUsers(term) {
+      try {
+        const html = await proxyText(`https://steamcommunity.com/search/SearchCommunityAjax?text=${encodeURIComponent(term)}&filter=users&steamid_offset=0`)
+        const doc = new DOMParser().parseFromString(`<div>${html}</div>`, 'text/html')
+        const anchors = Array.from(doc.querySelectorAll('a[href*="steamcommunity.com/id/"], a[href*="steamcommunity.com/profiles/"]'))
+        const seen = new Set()
+        const candidates = []
+        for (const a of anchors) {
+          const href = a.getAttribute('href')
+          if (!href || seen.has(href)) continue
+          seen.add(href)
+          const container = a.closest('div,tr,li') || a
+          const img = a.querySelector('img') || container.querySelector('img')
+          const nameEl = container.querySelector('.searchPersonaName') || a
+          const name = nameEl.textContent.trim()
+          if (!name) continue
+          candidates.push({
+            ref: href,
+            avatar: img?.getAttribute('src') || '',
+            name,
+            sub: href.replace(/^https?:\/\//, '')
+          })
+        }
+        return candidates
+          .map(c => ({
+            ...c,
+            _score: fuzzyScore(c.name, term)
+          }))
+          .filter(c => c._score > -1)
+          .sort((a, b) => b._score - a._score)
+          .slice(0, 15)
+      } catch (e) {
+        console.error(e);
+        return []
+      }
+    }
+
+    async function loadAccountProfile(raw, el) {
+      let steamid = raw
+      const urlMatch = raw.match(/steamcommunity\.com\/(id|profiles)\/([^\/\?#]+)/)
+      if (urlMatch) {
+        if (urlMatch[1] === 'profiles') steamid = urlMatch[2]
+        else steamid = await resolveVanity(urlMatch[2])
+      } else if (!/^\d{17}$/.test(raw)) {
+        steamid = await resolveVanity(raw)
+      }
+      if (!/^\d{17}$/.test(steamid)) throw new Error('Could not resolve to a valid Steam ID')
+
+      const xmlTxt = await proxyText(`https://steamcommunity.com/profiles/${steamid}/?xml=1`)
+      const xml = new DOMParser().parseFromString(xmlTxt, 'text/xml')
+      const xmlErr = xml.querySelector('error')
+      if (xmlErr) throw new Error(xmlErr.textContent || 'Profile not found')
+
+      const get = tag => xml.querySelector(tag)?.textContent?.trim() || ''
+      const personaName = get('steamID') || 'Unknown'
+      const avatar = get('avatarFull')
+      const onlineState = get('onlineState')
+      const stateMsg = get('stateMessage').replace(/<[^>]*>/g, '').trim()
+      const visibilityState = parseInt(get('visibilityState') || '1')
+      const memberSince = get('memberSince')
+      const location = get('location')
+      const realname = get('realname')
+      const summary = get('summary')
+      const vacBanned = get('vacBanned') === '1'
+      const tradeBanState = get('tradeBanState')
+      const isLimited = get('isLimitedAccount') === '1'
+      const steamLevel = get('steamRating')
+      const hoursPlayed2Wk = get('hoursPlayed2Wk')
+      const customURL = get('customURL')
+      const isPublic = visibilityState >= 3
+      const isOnline = onlineState === 'online'
+      const isIngame = onlineState === 'in-game'
+
+      let statusCls = 'offline',
+        statusTxt = stateMsg || 'Offline'
+      if (isIngame) {
+        statusCls = 'ingame';
+        statusTxt = stateMsg || 'In-Game'
+      } else if (isOnline) {
+        statusCls = 'online';
+        statusTxt = 'Online'
+      }
+      const dotCls = isIngame ? 'ingame' : (isOnline ? 'on' : '')
+
+      const playedNodes = xml.querySelectorAll('mostPlayedGames game')
+      const mostPlayed = Array.from(playedNodes).map(node => ({
+        name: node.querySelector('gameName')?.textContent?.trim() || '',
+        link: node.querySelector('gameLink')?.textContent?.trim() || '',
+        logo: node.querySelector('gameLogoSmall')?.textContent?.trim() || '',
+        hoursOnRecord: node.querySelector('hoursOnRecord')?.textContent?.trim() || '',
+        hoursPlayed: node.querySelector('hoursPlayed')?.textContent?.trim() || '',
+        achTotal: parseInt(node.querySelector('numAchievements')?.textContent || '0'),
+        achDone: parseInt(node.querySelector('numAchievementsAchieved')?.textContent || '0'),
+      })).filter(g => g.name)
+
+      const groupCount = xml.querySelectorAll('groups group').length
+      const profileUrl = customURL ? `https://steamcommunity.com/id/${customURL}` : `https://steamcommunity.com/profiles/${steamid}`
+
+      let html = `
+  <div class="sprof-outer">
+    <div class="sprof-bg">
+      <div class="sprof-avatar-wrap">
+        ${avatar
+          ? `<img class="sprof-avatar" src="${avatar}" alt="${esc(personaName)}">`
+          : '<div class="sprof-avatar" style="display:flex;align-items:center;justify-content:center;font-size:28px">👤</div>'}
+        <div class="sprof-online-dot ${dotCls}"></div>
+      </div>
+      <div class="sprof-header-info">
+        <div class="sprof-name">${esc(personaName)}</div>
+        ${realname ? `<div class="sprof-realname">${esc(realname)}</div>` : ''}
+        ${steamLevel ? `<div class="sprof-level">⭐ Level ${esc(steamLevel)}</div>` : ''}
+      </div>
+    </div>
+    <div class="sprof-body">
+      <div class="sprof-status ${statusCls}">
+        ${isIngame ? '🎮' : isOnline ? '🟢' : '⚫'} ${esc(statusTxt)}
+      </div>
+      ${vacBanned ? `<div class="sprof-vacrisk">⚠️ VAC Ban on record</div>` : ''}
+      ${tradeBanState && tradeBanState !== 'None' ? `<div class="sprof-vacrisk">⚠️ Trade Restricted: ${esc(tradeBanState)}</div>` : ''}
+      ${isLimited ? `<div style="background:rgba(200,160,0,.1);border:1px solid rgba(200,160,0,.3);border-radius:8px;padding:8px 12px;margin-bottom:10px;font-size:12px;color:#c9a927">⚠️ Limited Steam Account</div>` : ''}
+      <div class="sprof-meta-grid">
+        ${memberSince ? `<div class="sprof-meta-item"><div class="lbl">Member since</div><div class="val">${esc(memberSince)}</div></div>` : ''}
+        ${location ? `<div class="sprof-meta-item"><div class="lbl">Location</div><div class="val">${esc(location)}</div></div>` : ''}
+        ${hoursPlayed2Wk ? `<div class="sprof-meta-item"><div class="lbl">Last 2 weeks</div><div class="val">${esc(hoursPlayed2Wk)} hrs</div></div>` : ''}
+        ${groupCount > 0 ? `<div class="sprof-meta-item"><div class="lbl">Groups</div><div class="val">${groupCount}</div></div>` : ''}
+        ${customURL ? `<div class="sprof-meta-item" style="grid-column:1/-1"><div class="lbl">Steam URL</div><div class="val"><a href="${profileUrl}" target="_blank" style="color:var(--accent);text-decoration:none;font-size:12px">${esc(profileUrl.replace('https://',''))} ↗</a></div></div>` : ''}
+        <div class="sprof-meta-item"><div class="lbl">Steam ID64</div><div class="val" style="font-size:11px;user-select:all">${steamid}</div></div>
+      </div>
+      ${summary ? `<div class="sprof-summary">${esc(summary)}</div>` : ''}
+    </div>
+  </div>`
+
+      if (!isPublic) {
+        html += `<div class="err-box"><div class="ei">🔒</div><div class="et">Private Profile</div><div class="em">Set to private. Recent games and wishlist require a public profile.</div></div>`
+        el.innerHTML = html
+        return
+      }
+
+      if (mostPlayed.length) {
+        html += `<div class="sec-hdr">🎮 Recent Activity</div>`
+        html += mostPlayed.map(g => {
+          const appMatch = g.link.match(/\/app\/(\d+)/)
+          const appid = appMatch?.[1] || null
+          const achText = g.achTotal > 0 ? `${g.achDone}/${g.achTotal} achievements` : ''
+          return `<div class="rgame-row" ${appid?`onclick="openModal('${appid}')"`:'style="cursor:default"'}>
+        ${g.logo ? `<img class="rgame-logo" src="${g.logo}" alt="${esc(g.name)}" loading="lazy">` : '<div class="rgame-logo"></div>'}
+        <div class="rgame-info">
+          <div class="rgame-name">${esc(g.name)}</div>
+          <div class="rgame-hrs">${g.hoursOnRecord ? g.hoursOnRecord+' hrs on record' : g.hoursPlayed ? g.hoursPlayed+' hrs recently' : ''}</div>
+          ${achText ? `<div class="rgame-ach">${achText}</div>` : ''}
+        </div>
+        ${appid ? '<div class="rgame-arrow">›</div>' : ''}
+      </div>`
+        }).join('')
+      }
+
+      html += `<div class="sec-hdr" style="margin-top:20px">❤️ Steam Wishlist</div>`
+      el.innerHTML = html + '<div class="loading" style="padding:20px">Loading wishlist…<div class="spinner"></div></div>'
+
+      try {
+        const wlData = await proxyJSON(`https://store.steampowered.com/wishlist/profiles/${steamid}/wishlistdata/`)
+        if (!wlData || typeof wlData !== 'object' || wlData.success === 2) {
+          html += '<div class="empty-st"><p>Wishlist is private or empty</p></div>'
+        } else {
+          const entries = Object.entries(wlData)
+            .filter(([, g]) => g && g.name)
+            .sort((a, b) => (a[1].priority ?? 999) - (b[1].priority ?? 999))
+          if (!entries.length) {
+            html += '<div class="empty-st"><p>Wishlist is empty</p></div>'
+          } else {
+            html += `<div class="count-lbl">${entries.length} game${entries.length!==1?'s':''} on wishlist</div>` +
+              entries.slice(0, 60).map(([wlAppid, g]) => {
+                const img = g.capsule || `https://cdn.cloudflare.steamstatic.com/steam/apps/${wlAppid}/header.jpg`
+                const sub = g.subs?.find(s => s.price !== undefined)
+                let priceStr = '<span style="color:var(--muted)">N/A</span>'
+                if (g.is_free_game) priceStr = '<span style="color:var(--green);font-weight:700">Free</span>'
+                else if (sub) priceStr = sub.discount_pct > 0 ?
+                  `<span class="disc">-${sub.discount_pct}%</span> <span style="color:var(--accent);font-weight:700">$${(sub.price/100).toFixed(2)}</span>` :
+                  `<span style="color:var(--accent);font-weight:700">$${(sub.price/100).toFixed(2)}</span>`
+                const reviewText = g.review_desc ? `${g.review_desc}${g.reviews_percent?' ('+g.reviews_percent+'%)':''}` : ''
+                return `<div class="wl-row" onclick="openModal('${wlAppid}')">
+              <img class="wl-img" src="${img}" alt="${esc(g.name)}" loading="lazy">
+              <div class="wl-info">
+                <div class="wl-name">${esc(g.name)}</div>
+                <div class="wl-price">${priceStr}</div>
+                ${reviewText ? `<div class="wl-rev">${esc(reviewText)}</div>` : ''}
+              </div>
+              <div style="color:var(--muted);font-size:16px;flex-shrink:0">›</div>
+            </div>`
+              }).join('')
+          }
+        }
+      } catch (e) {
+        console.error(e);
+        html += '<div class="empty-st"><p>Could not load wishlist</p></div>'
+      }
+
+      el.innerHTML = html
+    }
+
+    async function resolveVanity(vanity) {
+      const xmlTxt = await proxyText(`https://steamcommunity.com/id/${encodeURIComponent(vanity)}/?xml=1`)
+      const xml = new DOMParser().parseFromString(xmlTxt, 'text/xml')
+      const err = xml.querySelector('error')
+      if (err) throw new Error(err.textContent || 'Vanity URL not found')
+      const id = xml.querySelector('steamID64')?.textContent
+      if (!id) throw new Error('Could not resolve to a Steam ID')
+      return id
+    }
+
+    /* ── UTILS ── */
+    async function proxyFetch(url, opts = {}) {
+      return fetch(getProxy() + url, opts)
+    }
+    async function proxyJSON(url) {
+      const r = await proxyFetch(url)
+      if (!r.ok) throw new Error(`HTTP ${r.status}`)
+      return r.json()
+    }
+    async function proxyText(url) {
+      const r = await proxyFetch(url)
+      if (!r.ok) throw new Error(`HTTP ${r.status}`)
+      return r.text()
+    }
+
+    function proxyErrInner(e) {
+      if (e && e.code === 'NO_PROXY') {
+        return `<div class="et">Proxy not configured</div><div class="em">Set up your CORS proxy in Settings before browsing.</div>`
+      }
+      return `<div class="et">Error</div><div class="em">${esc(e.message||'Something went wrong')}</div>`
+    }
+
+    function proxyErrBox(e, icon, title) {
+      if (e && e.code === 'NO_PROXY') {
+        return `<div class="err-box"><div class="ei">🔌</div><div class="et">Proxy not configured</div><div class="em">Set up your CORS proxy in Settings before browsing.</div></div>`
+      }
+      return `<div class="err-box"><div class="ei">${icon||'⚠️'}</div><div class="et">${title||'Error'}</div><div class="em">${esc(e.message||'Something went wrong')}</div></div>`
+    }
+
+    function esc(s) {
+      return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;')
+    }
+
+    function stripHTML(s) {
+      return s.replace(/<[^>]*>/g, '').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&#39;/g, "'").replace(/&quot;/g, '"')
+    }
+
+  </script>
+</body>
+
+</html>
