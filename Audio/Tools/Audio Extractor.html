@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video to Audio Extractor</title>
+    <style>
+        body {
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            min-height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+        }
+        
+        html {
+            height: 100%;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem;
+            min-height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .card {
+            background: white;
+            border-radius: 20px;
+            padding: 3rem;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            text-align: center;
+            width: 100%;
+            max-width: 600px;
+        }
+
+        h1 {
+            color: #4a5568;
+            margin-bottom: 0.5rem;
+            font-size: 2.5rem;
+            font-weight: 700;
+        }
+
+        .subtitle {
+            color: #718096;
+            margin-bottom: 2rem;
+            font-size: 1.1rem;
+        }
+
+        .upload-area {
+            border: 3px dashed #cbd5e0;
+            border-radius: 15px;
+            padding: 3rem 2rem;
+            margin: 2rem 0;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            background: #f7fafc;
+        }
+
+        .upload-area:hover {
+            border-color: #667eea;
+            background: #edf2f7;
+        }
+
+        .upload-area.dragover {
+            border-color: #667eea;
+            background: #e6fffa;
+        }
+
+        .upload-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            color: #a0aec0;
+        }
+
+        .upload-text {
+            font-size: 1.2rem;
+            color: #4a5568;
+            margin-bottom: 0.5rem;
+        }
+
+        .upload-subtext {
+            color: #718096;
+            font-size: 0.9rem;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 50px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 0.5rem;
+            min-width: 150px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn:disabled {
+            background: #cbd5e0;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .progress-container {
+            margin: 2rem 0;
+            display: none;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e2e8f0;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .progress-text {
+            margin-top: 1rem;
+            color: #4a5568;
+            font-weight: 500;
+        }
+
+        .file-info {
+            background: #f7fafc;
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+            display: none;
+        }
+
+        .file-name {
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 0.5rem;
+        }
+
+        .file-size {
+            color: #718096;
+            font-size: 0.9rem;
+        }
+
+        .controls {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 2rem;
+        }
+
+        .status-message {
+            padding: 1rem;
+            border-radius: 10px;
+            margin: 1rem 0;
+            display: none;
+        }
+
+        .status-success {
+            background: #f0fff4;
+            color: #22543d;
+            border: 1px solid #9ae6b4;
+        }
+
+        .status-error {
+            background: #fed7d7;
+            color: #742a2a;
+            border: 1px solid #feb2b2;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+            
+            .card {
+                padding: 2rem 1.5rem;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .controls {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <main class="container">
+        <div class="card">
+            <h1>🎵 Audio Extractor</h1>
+            <p class="subtitle">Upload a video file and download the audio track</p>
+            
+            <div class="upload-area" id="uploadArea">
+                <div class="upload-icon">📹</div>
+                <div class="upload-text">Drop your video here or click to browse</div>
+                <div class="upload-subtext">Supports MP4, AVI, MOV, WebM and more</div>
+            </div>
+            
+            <input type="file" id="fileInput" class="file-input" accept="video/*">
+            
+            <div class="file-info" id="fileInfo">
+                <div class="file-name" id="fileName"></div>
+                <div class="file-size" id="fileSize"></div>
+            </div>
+            
+            <div class="progress-container" id="progressContainer">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <div class="progress-text" id="progressText">Processing...</div>
+            </div>
+            
+            <div class="status-message" id="statusMessage"></div>
+            
+            <div class="controls">
+                <button class="btn" id="selectBtn">Select Video File</button>
+                <button class="btn" id="extractBtn" disabled>Extract Audio</button>
+                <button class="btn" id="downloadBtn" disabled style="display: none;">Download Audio</button>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        let selectedFile = null;
+        let extractedAudioBlob = null;
+
+        // DOM elements
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const fileInfo = document.getElementById('fileInfo');
+        const fileName = document.getElementById('fileName');
+        const fileSize = document.getElementById('fileSize');
+        const selectBtn = document.getElementById('selectBtn');
+        const extractBtn = document.getElementById('extractBtn');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const progressContainer = document.getElementById('progressContainer');
+        const progressFill = document.getElementById('progressFill');
+        const progressText = document.getElementById('progressText');
+        const statusMessage = document.getElementById('statusMessage');
+
+        // Event listeners
+        selectBtn.addEventListener('click', () => fileInput.click());
+        uploadArea.addEventListener('click', () => fileInput.click());
+        extractBtn.addEventListener('click', extractAudio);
+        downloadBtn.addEventListener('click', downloadAudio);
+
+        // File input change
+        fileInput.addEventListener('change', handleFileSelect);
+
+        // Drag and drop
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        });
+
+        function handleFileSelect(e) {
+            const file = e.target.files[0];
+            if (file) {
+                handleFile(file);
+            }
+        }
+
+        function handleFile(file) {
+            if (!file.type.startsWith('video/')) {
+                showStatus('Please select a valid video file.', 'error');
+                return;
+            }
+
+            selectedFile = file;
+            fileName.textContent = file.name;
+            fileSize.textContent = formatFileSize(file.size);
+            fileInfo.style.display = 'block';
+            extractBtn.disabled = false;
+            downloadBtn.style.display = 'none';
+            downloadBtn.disabled = true;
+            hideStatus();
+        }
+
+        async function extractAudio() {
+            if (!selectedFile) return;
+
+            try {
+                extractBtn.disabled = true;
+                showProgress('Extracting audio...');
+
+                // Create video element to load the file
+                const video = document.createElement('video');
+                const videoUrl = URL.createObjectURL(selectedFile);
+                video.src = videoUrl;
+
+                // Wait for video to load
+                await new Promise((resolve, reject) => {
+                    video.addEventListener('loadedmetadata', resolve);
+                    video.addEventListener('error', reject);
+                });
+
+                // Create audio context and media element source
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const source = audioContext.createMediaElementSource(video);
+                const destination = audioContext.createMediaStreamDestination();
+                
+                source.connect(destination);
+
+                // Create media recorder
+                const mediaRecorder = new MediaRecorder(destination.stream, {
+                    mimeType: 'audio/webm;codecs=opus'
+                });
+
+                const audioChunks = [];
+                
+                mediaRecorder.ondataavailable = (event) => {
+                    if (event.data.size > 0) {
+                        audioChunks.push(event.data);
+                    }
+                };
+
+                mediaRecorder.onstop = () => {
+                    extractedAudioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                    hideProgress();
+                    showStatus('Audio extracted successfully! Ready to download.', 'success');
+                    downloadBtn.style.display = 'inline-block';
+                    downloadBtn.disabled = false;
+                    extractBtn.disabled = false;
+                    URL.revokeObjectURL(videoUrl);
+                };
+
+                // Start recording
+                mediaRecorder.start();
+                video.play();
+
+                // Update progress based on video duration
+                const duration = video.duration;
+                const progressInterval = setInterval(() => {
+                    if (video.ended || video.paused) {
+                        clearInterval(progressInterval);
+                        mediaRecorder.stop();
+                        return;
+                    }
+                    
+                    const progress = (video.currentTime / duration) * 100;
+                    updateProgress(progress, `Extracting audio... ${Math.round(progress)}%`);
+                }, 100);
+
+                // Stop when video ends
+                video.addEventListener('ended', () => {
+                    clearInterval(progressInterval);
+                    mediaRecorder.stop();
+                });
+
+            } catch (error) {
+                console.error('Error extracting audio:', error);
+                hideProgress();
+                showStatus('Error extracting audio. Please try a different video file.', 'error');
+                extractBtn.disabled = false;
+            }
+        }
+
+        async function downloadAudio() {
+            if (!extractedAudioBlob) return;
+
+            try {
+                // Check if File System Access API is supported
+                if ('showSaveFilePicker' in window) {
+                    const fileHandle = await window.showSaveFilePicker({
+                        suggestedName: selectedFile.name.replace(/\.[^/.]+$/, '') + '.webm',
+                        types: [{
+                            description: 'Audio files',
+                            accept: {
+                                'audio/webm': ['.webm'],
+                                'audio/wav': ['.wav'],
+                                'audio/mp3': ['.mp3']
+                            }
+                        }]
+                    });
+
+                    const writable = await fileHandle.createWritable();
+                    await writable.write(extractedAudioBlob);
+                    await writable.close();
+
+                    showStatus('Audio file saved successfully!', 'success');
+                } else {
+                    // Fallback to traditional download
+                    const url = URL.createObjectURL(extractedAudioBlob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = selectedFile.name.replace(/\.[^/.]+$/, '') + '.webm';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+
+                    showStatus('Audio file downloaded!', 'success');
+                }
+            } catch (error) {
+                if (error.name !== 'AbortError') {
+                    console.error('Error saving file:', error);
+                    showStatus('Error saving file. Please try again.', 'error');
+                }
+            }
+        }
+
+        function showProgress(text) {
+            progressContainer.style.display = 'block';
+            progressText.textContent = text;
+            progressFill.style.width = '0%';
+        }
+
+        function updateProgress(percent, text) {
+            progressFill.style.width = percent + '%';
+            progressText.textContent = text;
+        }
+
+        function hideProgress() {
+            progressContainer.style.display = 'none';
+        }
+
+        function showStatus(message, type) {
+            statusMessage.textContent = message;
+            statusMessage.className = `status-message status-${type}`;
+            statusMessage.style.display = 'block';
+        }
+
+        function hideStatus() {
+            statusMessage.style.display = 'none';
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'990394ba61012246',t:'MTc2MDc0Mzc5Ny4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
