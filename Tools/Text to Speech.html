@@ -1,0 +1,605 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Text to Speech Tool</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-800 to-pink-700 p-4">
+    <div class="max-w-6xl mx-auto">
+        <!-- Header -->
+        <div class="text-center mb-6">
+            <h1 class="text-5xl font-bold text-white mb-3">🎙️ Advanced Text to Speech</h1>
+            <p class="text-purple-100 text-lg">Professional-grade TTS with highlighting, formatting, and unlimited text support</p>
+        </div>
+
+        <!-- Main Interface -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Text Input Panel -->
+            <div class="lg:col-span-2 bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-2xl font-bold text-gray-800">📝 Text Editor</h2>
+                    <div class="flex gap-2">
+                        <button id="formatBtn" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors duration-200 text-sm">
+                            Format Text
+                        </button>
+                        <button id="importBtn" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition-colors duration-200 text-sm">
+                            Import File
+                        </button>
+                        <input type="file" id="fileInput" accept=".txt,.md" class="hidden">
+                    </div>
+                </div>
+
+                <!-- Text Statistics -->
+                <div class="bg-gray-100 rounded-lg p-3 mb-4 grid grid-cols-4 gap-4 text-center">
+                    <div>
+                        <div class="text-2xl font-bold text-blue-600" id="charCount">0</div>
+                        <div class="text-xs text-gray-600">Characters</div>
+                    </div>
+                    <div>
+                        <div class="text-2xl font-bold text-green-600" id="wordCount">0</div>
+                        <div class="text-xs text-gray-600">Words</div>
+                    </div>
+                    <div>
+                        <div class="text-2xl font-bold text-purple-600" id="sentenceCount">0</div>
+                        <div class="text-xs text-gray-600">Sentences</div>
+                    </div>
+                    <div>
+                        <div class="text-2xl font-bold text-orange-600" id="readTime">0m</div>
+                        <div class="text-xs text-gray-600">Est. Time</div>
+                    </div>
+                </div>
+
+                <!-- Text Input with Highlighting -->
+                <div class="relative">
+                    <div id="textDisplay" class="w-full h-96 p-4 border-2 border-gray-200 rounded-xl bg-white overflow-y-auto text-gray-700 text-base leading-relaxed whitespace-pre-wrap font-mono resize-none absolute top-0 left-0 pointer-events-none z-10"></div>
+                    <textarea 
+                        id="textInput" 
+                        placeholder="Paste or type your text here... Supports massive amounts of text with real-time highlighting during speech!"
+                        class="w-full h-96 p-4 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none resize-none text-gray-700 text-base leading-relaxed whitespace-pre-wrap font-mono bg-transparent relative z-20"
+                    ></textarea>
+                </div>
+
+                <!-- Progress Bar -->
+                <div class="mt-4">
+                    <div class="flex justify-between text-sm text-gray-600 mb-1">
+                        <span>Progress</span>
+                        <span id="progressText">0%</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-3">
+                        <div id="progressBar" class="bg-gradient-to-r from-blue-500 to-purple-600 h-3 rounded-full transition-all duration-300" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Control Panel -->
+            <div class="space-y-6">
+                <!-- Voice Controls -->
+                <div class="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-6">
+                    <h3 class="text-xl font-bold text-gray-800 mb-4">🎛️ Voice Controls</h3>
+                    
+                    <!-- Voice Selection -->
+                    <div class="mb-4">
+                        <label for="voiceSelect" class="block text-sm font-medium text-gray-600 mb-2">Voice:</label>
+                        <select id="voiceSelect" class="w-full p-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none">
+                            <option value="">Loading voices...</option>
+                        </select>
+                    </div>
+
+                    <!-- Speed Control -->
+                    <div class="mb-4">
+                        <label for="speedRange" class="block text-sm font-medium text-gray-600 mb-2">Speed: <span id="speedValue">1.0x</span></label>
+                        <input type="range" id="speedRange" min="0.25" max="3" step="0.25" value="1" class="w-full h-3 bg-gray-200 rounded-lg appearance-none cursor-pointer slider">
+                    </div>
+
+                    <!-- Pitch Control -->
+                    <div class="mb-4">
+                        <label for="pitchRange" class="block text-sm font-medium text-gray-600 mb-2">Pitch: <span id="pitchValue">1.0x</span></label>
+                        <input type="range" id="pitchRange" min="0.5" max="2" step="0.1" value="1" class="w-full h-3 bg-gray-200 rounded-lg appearance-none cursor-pointer slider">
+                    </div>
+
+                    <!-- Volume Control -->
+                    <div class="mb-6">
+                        <label for="volumeRange" class="block text-sm font-medium text-gray-600 mb-2">Volume: <span id="volumeValue">100%</span></label>
+                        <input type="range" id="volumeRange" min="0" max="1" step="0.1" value="1" class="w-full h-3 bg-gray-200 rounded-lg appearance-none cursor-pointer slider">
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="space-y-3">
+                        <button id="speakBtn" class="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-200 flex items-center justify-center gap-2">
+                            <span>🔊</span> Start Speaking
+                        </button>
+                        <div class="grid grid-cols-2 gap-2">
+                            <button id="pauseBtn" class="bg-orange-500 hover:bg-orange-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center gap-1 text-sm" disabled>
+                                <span>⏸️</span> Pause
+                            </button>
+                            <button id="stopBtn" class="bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center gap-1 text-sm" disabled>
+                                <span>⏹️</span> Stop
+                            </button>
+                        </div>
+                        <button id="clearBtn" class="w-full bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2">
+                            <span>🗑️</span> Clear All
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Reading Options -->
+                <div class="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-6">
+                    <h3 class="text-xl font-bold text-gray-800 mb-4">⚙️ Reading Options</h3>
+                    
+                    <div class="space-y-3">
+                        <label class="flex items-center">
+                            <input type="checkbox" id="autoScroll" checked class="mr-3 w-4 h-4 text-blue-600 rounded">
+                            <span class="text-sm text-gray-700">Auto-scroll to current text</span>
+                        </label>
+                        
+                        <label class="flex items-center">
+                            <input type="checkbox" id="highlightSentences" checked class="mr-3 w-4 h-4 text-blue-600 rounded">
+                            <span class="text-sm text-gray-700">Highlight current sentence</span>
+                        </label>
+                        
+                        <label class="flex items-center">
+                            <input type="checkbox" id="highlightWords" class="mr-3 w-4 h-4 text-blue-600 rounded">
+                            <span class="text-sm text-gray-700">Highlight current word</span>
+                        </label>
+                        
+                        <label class="flex items-center">
+                            <input type="checkbox" id="pauseBetweenSentences" class="mr-3 w-4 h-4 text-blue-600 rounded">
+                            <span class="text-sm text-gray-700">Pause between sentences</span>
+                        </label>
+                    </div>
+
+                    <!-- Chunk Size for Large Text -->
+                    <div class="mt-4">
+                        <label for="chunkSize" class="block text-sm font-medium text-gray-600 mb-2">Chunk Size (words):</label>
+                        <select id="chunkSize" class="w-full p-2 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none text-sm">
+                            <option value="50">50 words</option>
+                            <option value="100" selected>100 words</option>
+                            <option value="200">200 words</option>
+                            <option value="500">500 words</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Status Panel -->
+                <div class="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-6">
+                    <h3 class="text-xl font-bold text-gray-800 mb-4">📊 Status</h3>
+                    <div id="status" class="text-center text-gray-600 font-medium mb-3">Ready to speak</div>
+                    <div id="currentChunk" class="text-xs text-gray-500 text-center"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Examples -->
+        <div class="mt-8 bg-white/10 backdrop-blur-sm rounded-xl p-6">
+            <h3 class="text-white font-semibold mb-4">📚 Quick Examples & Sample Texts:</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                <button class="example-btn bg-white/20 hover:bg-white/30 text-white px-4 py-3 rounded-lg transition-colors duration-200 text-sm" data-text="Welcome to the advanced text-to-speech tool! This system supports massive amounts of text with real-time highlighting and auto-scrolling features.">
+                    Welcome Message
+                </button>
+                <button class="example-btn bg-white/20 hover:bg-white/30 text-white px-4 py-3 rounded-lg transition-colors duration-200 text-sm" data-text="The quick brown fox jumps over the lazy dog. This pangram contains every letter of the alphabet and is perfect for testing speech synthesis quality.">
+                    Pangram Test
+                </button>
+                <button class="example-btn bg-white/20 hover:bg-white/30 text-white px-4 py-3 rounded-lg transition-colors duration-200 text-sm" data-text="Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.">
+                    Lorem Ipsum
+                </button>
+                <button class="example-btn bg-white/20 hover:bg-white/30 text-white px-4 py-3 rounded-lg transition-colors duration-200 text-sm" data-text="Artificial intelligence is transforming the way we interact with technology. From voice assistants to autonomous vehicles, AI is becoming an integral part of our daily lives. Machine learning algorithms can now process vast amounts of data and make predictions with remarkable accuracy.">
+                    Tech Article
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .slider::-webkit-slider-thumb {
+            appearance: none;
+            height: 20px;
+            width: 20px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, #3b82f6, #8b5cf6);
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .slider::-moz-range-thumb {
+            height: 20px;
+            width: 20px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, #3b82f6, #8b5cf6);
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .highlight-sentence {
+            background-color: rgba(59, 130, 246, 0.3);
+            border-radius: 4px;
+            padding: 2px 4px;
+            animation: pulse 1s ease-in-out infinite alternate;
+        }
+
+        .highlight-word {
+            background-color: rgba(239, 68, 68, 0.4);
+            border-radius: 2px;
+            padding: 1px 2px;
+            font-weight: bold;
+        }
+
+        @keyframes pulse {
+            from { background-color: rgba(59, 130, 246, 0.3); }
+            to { background-color: rgba(59, 130, 246, 0.5); }
+        }
+
+        #textDisplay {
+            font-family: 'Courier New', monospace;
+            line-height: 1.6;
+        }
+
+        #textInput {
+            font-family: 'Courier New', monospace;
+            line-height: 1.6;
+        }
+    </style>
+
+    <script>
+        // Check browser support
+        if (!('speechSynthesis' in window)) {
+            document.getElementById('status').innerHTML = '❌ Text-to-speech is not supported in your browser.';
+            document.getElementById('speakBtn').disabled = true;
+        }
+
+        // Global variables
+        let voices = [];
+        let currentUtterance = null;
+        let isPaused = false;
+        let isReading = false;
+        let currentChunkIndex = 0;
+        let textChunks = [];
+        let currentSentenceIndex = 0;
+        let currentWordIndex = 0;
+        let sentences = [];
+        let words = [];
+
+        // DOM elements
+        const textInput = document.getElementById('textInput');
+        const textDisplay = document.getElementById('textDisplay');
+        const voiceSelect = document.getElementById('voiceSelect');
+        const speedRange = document.getElementById('speedRange');
+        const pitchRange = document.getElementById('pitchRange');
+        const volumeRange = document.getElementById('volumeRange');
+        const speedValue = document.getElementById('speedValue');
+        const pitchValue = document.getElementById('pitchValue');
+        const volumeValue = document.getElementById('volumeValue');
+        const speakBtn = document.getElementById('speakBtn');
+        const pauseBtn = document.getElementById('pauseBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const formatBtn = document.getElementById('formatBtn');
+        const importBtn = document.getElementById('importBtn');
+        const fileInput = document.getElementById('fileInput');
+        const status = document.getElementById('status');
+        const progressBar = document.getElementById('progressBar');
+        const progressText = document.getElementById('progressText');
+        const currentChunkDisplay = document.getElementById('currentChunk');
+        const charCount = document.getElementById('charCount');
+        const wordCount = document.getElementById('wordCount');
+        const sentenceCount = document.getElementById('sentenceCount');
+        const readTime = document.getElementById('readTime');
+        const autoScroll = document.getElementById('autoScroll');
+        const highlightSentences = document.getElementById('highlightSentences');
+        const highlightWords = document.getElementById('highlightWords');
+        const pauseBetweenSentences = document.getElementById('pauseBetweenSentences');
+        const chunkSize = document.getElementById('chunkSize');
+
+        // Load voices
+        function loadVoices() {
+            voices = speechSynthesis.getVoices();
+            voiceSelect.innerHTML = '<option value="">Default Voice</option>';
+            
+            // Group voices by language
+            const voicesByLang = {};
+            voices.forEach((voice, index) => {
+                const lang = voice.lang.split('-')[0];
+                if (!voicesByLang[lang]) voicesByLang[lang] = [];
+                voicesByLang[lang].push({voice, index});
+            });
+
+            // Add voices to select
+            Object.keys(voicesByLang).sort().forEach(lang => {
+                const optgroup = document.createElement('optgroup');
+                optgroup.label = lang.toUpperCase();
+                voicesByLang[lang].forEach(({voice, index}) => {
+                    const option = document.createElement('option');
+                    option.value = index;
+                    option.textContent = `${voice.name} ${voice.localService ? '(Local)' : '(Online)'}`;
+                    optgroup.appendChild(option);
+                });
+                voiceSelect.appendChild(optgroup);
+            });
+        }
+
+        speechSynthesis.onvoiceschanged = loadVoices;
+        loadVoices();
+
+        // Update control displays
+        speedRange.addEventListener('input', () => {
+            speedValue.textContent = speedRange.value + 'x';
+        });
+
+        pitchRange.addEventListener('input', () => {
+            pitchValue.textContent = pitchRange.value + 'x';
+        });
+
+        volumeRange.addEventListener('input', () => {
+            volumeValue.textContent = Math.round(volumeRange.value * 100) + '%';
+        });
+
+        // Text statistics and processing
+        function updateTextStats() {
+            const text = textInput.value;
+            const chars = text.length;
+            const wordsArray = text.trim().split(/\s+/).filter(word => word.length > 0);
+            const sentencesArray = text.split(/[.!?]+/).filter(s => s.trim().length > 0);
+            
+            charCount.textContent = chars.toLocaleString();
+            wordCount.textContent = wordsArray.length.toLocaleString();
+            sentenceCount.textContent = sentencesArray.length.toLocaleString();
+            
+            // Estimate reading time (average 200 words per minute)
+            const minutes = Math.ceil(wordsArray.length / 200);
+            readTime.textContent = minutes + 'm';
+
+            // Update display
+            textDisplay.textContent = text;
+            
+            return {chars, words: wordsArray, sentences: sentencesArray};
+        }
+
+        // Text formatting
+        function formatText() {
+            let text = textInput.value;
+            
+            // Basic formatting
+            text = text.replace(/\s+/g, ' '); // Multiple spaces to single
+            text = text.replace(/\n\s*\n/g, '\n\n'); // Multiple newlines to double
+            text = text.replace(/([.!?])\s*([A-Z])/g, '$1 $2'); // Space after punctuation
+            text = text.trim();
+            
+            textInput.value = text;
+            updateTextStats();
+            status.textContent = '✨ Text formatted successfully!';
+        }
+
+        // File import
+        function importFile() {
+            fileInput.click();
+        }
+
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    textInput.value = e.target.result;
+                    updateTextStats();
+                    status.textContent = `📁 Imported: ${file.name}`;
+                };
+                reader.readAsText(file);
+            }
+        });
+
+        // Text chunking for large texts
+        function chunkText(text, maxWords) {
+            const words = text.split(/\s+/);
+            const chunks = [];
+            
+            for (let i = 0; i < words.length; i += maxWords) {
+                chunks.push(words.slice(i, i + maxWords).join(' '));
+            }
+            
+            return chunks;
+        }
+
+        // Sentence and word extraction
+        function extractSentencesAndWords(text) {
+            sentences = text.split(/(?<=[.!?])\s+/).filter(s => s.trim().length > 0);
+            words = text.split(/\s+/).filter(w => w.length > 0);
+        }
+
+        // Highlighting functions
+        function highlightText() {
+            if (!isReading) return;
+            
+            let displayText = textInput.value;
+            
+            if (highlightSentences.checked && sentences[currentSentenceIndex]) {
+                const sentence = sentences[currentSentenceIndex];
+                displayText = displayText.replace(sentence, `<span class="highlight-sentence">${sentence}</span>`);
+            }
+            
+            if (highlightWords.checked && words[currentWordIndex]) {
+                const word = words[currentWordIndex];
+                const regex = new RegExp(`\\b${word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
+                displayText = displayText.replace(regex, `<span class="highlight-word">${word}</span>`);
+            }
+            
+            textDisplay.innerHTML = displayText;
+            
+            // Auto-scroll
+            if (autoScroll.checked) {
+                const highlightedElement = textDisplay.querySelector('.highlight-sentence, .highlight-word');
+                if (highlightedElement) {
+                    highlightedElement.scrollIntoView({behavior: 'smooth', block: 'center'});
+                }
+            }
+        }
+
+        // Speaking functions
+        function speak() {
+            const text = textInput.value.trim();
+            
+            if (!text) {
+                status.textContent = '⚠️ Please enter some text to speak';
+                return;
+            }
+
+            // Stop any current speech
+            speechSynthesis.cancel();
+            
+            // Prepare text
+            extractSentencesAndWords(text);
+            const maxWords = parseInt(chunkSize.value);
+            textChunks = chunkText(text, maxWords);
+            
+            currentChunkIndex = 0;
+            currentSentenceIndex = 0;
+            currentWordIndex = 0;
+            isReading = true;
+            
+            speakNextChunk();
+        }
+
+        function speakNextChunk() {
+            if (currentChunkIndex >= textChunks.length) {
+                finishReading();
+                return;
+            }
+
+            const chunk = textChunks[currentChunkIndex];
+            currentUtterance = new SpeechSynthesisUtterance(chunk);
+            
+            // Set voice properties
+            if (voiceSelect.value) {
+                currentUtterance.voice = voices[voiceSelect.value];
+            }
+            currentUtterance.rate = parseFloat(speedRange.value);
+            currentUtterance.pitch = parseFloat(pitchRange.value);
+            currentUtterance.volume = parseFloat(volumeRange.value);
+
+            // Event handlers
+            currentUtterance.onstart = () => {
+                status.textContent = '🔊 Speaking...';
+                speakBtn.disabled = true;
+                pauseBtn.disabled = false;
+                stopBtn.disabled = false;
+                isPaused = false;
+                
+                updateProgress();
+                currentChunkDisplay.textContent = `Chunk ${currentChunkIndex + 1} of ${textChunks.length}`;
+            };
+
+            currentUtterance.onend = () => {
+                currentChunkIndex++;
+                currentSentenceIndex++;
+                currentWordIndex += chunk.split(/\s+/).length;
+                
+                if (pauseBetweenSentences.checked && currentChunkIndex < textChunks.length) {
+                    setTimeout(() => speakNextChunk(), 500);
+                } else {
+                    speakNextChunk();
+                }
+            };
+
+            currentUtterance.onerror = () => {
+                status.textContent = '❌ Error occurred while speaking';
+                finishReading();
+            };
+
+            currentUtterance.onboundary = (event) => {
+                if (event.name === 'word') {
+                    currentWordIndex++;
+                    highlightText();
+                }
+            };
+
+            speechSynthesis.speak(currentUtterance);
+            highlightText();
+        }
+
+        function pauseResume() {
+            if (isPaused) {
+                speechSynthesis.resume();
+                pauseBtn.innerHTML = '<span>⏸️</span> Pause';
+                status.textContent = '🔊 Speech resumed';
+                isPaused = false;
+            } else {
+                speechSynthesis.pause();
+                pauseBtn.innerHTML = '<span>▶️</span> Resume';
+                status.textContent = '⏸️ Speech paused';
+                isPaused = true;
+            }
+        }
+
+        function stop() {
+            speechSynthesis.cancel();
+            finishReading();
+            status.textContent = '⏹️ Speech stopped';
+        }
+
+        function finishReading() {
+            isReading = false;
+            speakBtn.disabled = false;
+            pauseBtn.disabled = true;
+            stopBtn.disabled = true;
+            pauseBtn.innerHTML = '<span>⏸️</span> Pause';
+            
+            // Clear highlighting
+            textDisplay.textContent = textInput.value;
+            progressBar.style.width = '0%';
+            progressText.textContent = '0%';
+            currentChunkDisplay.textContent = '';
+            
+            if (currentChunkIndex >= textChunks.length) {
+                status.textContent = '✅ Finished reading entire text!';
+            }
+        }
+
+        function updateProgress() {
+            const progress = ((currentChunkIndex + 1) / textChunks.length) * 100;
+            progressBar.style.width = progress + '%';
+            progressText.textContent = Math.round(progress) + '%';
+        }
+
+        function clear() {
+            textInput.value = '';
+            textDisplay.textContent = '';
+            stop();
+            updateTextStats();
+            status.textContent = 'Ready to speak';
+        }
+
+        // Event listeners
+        speakBtn.addEventListener('click', speak);
+        pauseBtn.addEventListener('click', pauseResume);
+        stopBtn.addEventListener('click', stop);
+        clearBtn.addEventListener('click', clear);
+        formatBtn.addEventListener('click', formatText);
+        importBtn.addEventListener('click', importFile);
+
+        // Text input events
+        textInput.addEventListener('input', updateTextStats);
+        textInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && e.ctrlKey) {
+                speak();
+            }
+        });
+
+        // Example buttons
+        document.querySelectorAll('.example-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                textInput.value = btn.dataset.text;
+                updateTextStats();
+                speak();
+            });
+        });
+
+        // Initialize
+        updateTextStats();
+        status.textContent = '🚀 Advanced TTS ready! Import files, paste large texts, or use examples below.';
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'96e8ed65e29ae11c',t:'MTc1NTA5NTYwNC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
+
+
