@@ -1,0 +1,884 @@
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Adventure Path - Board Game</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap');
+        
+        body {
+            font-family: 'Fredoka', sans-serif;
+            background-color: #f0f9ff;
+            touch-action: manipulation;
+            overscroll-behavior: none;
+        }
+        
+        .game-board {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            grid-template-rows: repeat(5, 1fr);
+            gap: 8px;
+            max-width: 100%;
+        }
+        
+        .cell {
+            aspect-ratio: 1/1;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s;
+        }
+        
+        .cell.special {
+            background: linear-gradient(135deg, #ffd700, #ffaa00);
+        }
+        
+        .cell.start {
+            background: linear-gradient(135deg, #4ade80, #22c55e);
+        }
+        
+        .cell.finish {
+            background: linear-gradient(135deg, #f87171, #ef4444);
+        }
+        
+        .player {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            position: absolute;
+            transition: all 0.5s ease;
+            z-index: 10;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        
+        .dice {
+            width: 60px;
+            height: 60px;
+            border-radius: 10px;
+            background-color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: bold;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            transition: transform 0.5s ease;
+        }
+        
+        .dice.rolling {
+            animation: roll 0.5s ease infinite;
+        }
+        
+        @keyframes roll {
+            0% { transform: rotateZ(0deg); }
+            25% { transform: rotateZ(-10deg); }
+            50% { transform: rotateZ(0deg); }
+            75% { transform: rotateZ(10deg); }
+            100% { transform: rotateZ(0deg); }
+        }
+        
+        .btn {
+            transition: all 0.2s ease;
+        }
+        
+        .btn:active {
+            transform: scale(0.95);
+        }
+        
+        .modal {
+            background-color: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+        }
+        
+        /* Confetti animation */
+        .confetti {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background-color: #f00;
+            opacity: 0;
+        }
+        
+        @keyframes confetti-fall {
+            0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(100vh) rotate(360deg); opacity: 0; }
+        }
+        
+        /* Cell number styling */
+        .cell-number {
+            position: absolute;
+            top: 4px;
+            left: 4px;
+            font-size: 10px;
+            font-weight: bold;
+            color: rgba(0, 0, 0, 0.5);
+        }
+        
+        /* Player turn indicator pulse */
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        .pulse {
+            animation: pulse 1.5s infinite;
+        }
+    </style>
+</head>
+<body>
+    <div class="min-h-screen flex flex-col">
+        <!-- Game Header -->
+        <header class="bg-gradient-to-r from-purple-600 to-indigo-700 text-white p-4 shadow-lg">
+            <div class="container mx-auto flex justify-between items-center">
+                <h1 class="text-2xl font-bold">Adventure Path</h1>
+                <button id="rulesBtn" class="bg-white text-indigo-700 px-3 py-1 rounded-full text-sm font-bold shadow-md hover:bg-indigo-100 transition">Rules</button>
+            </div>
+        </header>
+        
+        <!-- Game Container -->
+        <main class="flex-1 container mx-auto p-4 flex flex-col">
+            <!-- Game Mode Selection (initially visible) -->
+            <div id="modeSelection" class="flex-1 flex flex-col items-center justify-center space-y-6">
+                <h2 class="text-3xl font-bold text-indigo-800 text-center">Choose Game Mode</h2>
+                <div class="flex flex-col sm:flex-row gap-4 w-full max-w-md">
+                    <button id="singlePlayerBtn" class="btn bg-gradient-to-r from-green-500 to-emerald-600 text-white py-4 px-6 rounded-xl text-xl font-bold shadow-lg hover:from-green-600 hover:to-emerald-700 flex-1">
+                        <div class="flex flex-col items-center">
+                            <span>🧍</span>
+                            <span>Single Player</span>
+                        </div>
+                    </button>
+                    <button id="multiPlayerBtn" class="btn bg-gradient-to-r from-blue-500 to-indigo-600 text-white py-4 px-6 rounded-xl text-xl font-bold shadow-lg hover:from-blue-600 hover:to-indigo-700 flex-1">
+                        <div class="flex flex-col items-center">
+                            <span>👥</span>
+                            <span>Multiplayer</span>
+                        </div>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Player Setup (initially hidden) -->
+            <div id="playerSetup" class="flex-1 flex flex-col items-center justify-center space-y-6 hidden">
+                <h2 class="text-2xl font-bold text-indigo-800 text-center" id="setupTitle">Player Setup</h2>
+                
+                <div id="playerCountSelector" class="w-full max-w-md hidden">
+                    <label class="block text-center mb-2 text-indigo-700 font-semibold">Number of Players</label>
+                    <div class="flex justify-center gap-4">
+                        <button class="player-count-btn btn bg-indigo-100 hover:bg-indigo-200 text-indigo-800 py-2 px-4 rounded-lg font-bold" data-count="2">2</button>
+                        <button class="player-count-btn btn bg-indigo-100 hover:bg-indigo-200 text-indigo-800 py-2 px-4 rounded-lg font-bold" data-count="3">3</button>
+                        <button class="player-count-btn btn bg-indigo-100 hover:bg-indigo-200 text-indigo-800 py-2 px-4 rounded-lg font-bold" data-count="4">4</button>
+                    </div>
+                </div>
+                
+                <div id="playerColorSelection" class="w-full max-w-md space-y-4 hidden">
+                    <div id="playerColorSelectors" class="space-y-3"></div>
+                    <button id="startGameBtn" class="btn w-full bg-gradient-to-r from-purple-600 to-indigo-700 text-white py-3 rounded-lg text-lg font-bold shadow-md hover:from-purple-700 hover:to-indigo-800">Start Game</button>
+                </div>
+            </div>
+            
+            <!-- Game Board (initially hidden) -->
+            <div id="gameContainer" class="hidden flex-1 flex flex-col">
+                <div class="mb-4 flex justify-between items-center">
+                    <div id="turnIndicator" class="text-lg font-bold text-indigo-800"></div>
+                    <button id="restartBtn" class="btn bg-red-500 text-white px-3 py-1 rounded-lg text-sm font-bold shadow-md hover:bg-red-600">Restart</button>
+                </div>
+                
+                <div class="flex flex-col md:flex-row gap-4 flex-1">
+                    <!-- Game Board -->
+                    <div class="flex-1 flex justify-center">
+                        <div id="gameBoard" class="game-board w-full max-w-md"></div>
+                    </div>
+                    
+                    <!-- Game Controls -->
+                    <div class="md:w-1/3 flex flex-col space-y-4">
+                        <div class="bg-white p-4 rounded-xl shadow-md">
+                            <h3 class="text-lg font-bold text-indigo-800 mb-2">Players</h3>
+                            <div id="playersList" class="space-y-2"></div>
+                        </div>
+                        
+                        <div class="bg-white p-4 rounded-xl shadow-md flex flex-col items-center">
+                            <div id="dice" class="dice mb-4">1</div>
+                            <button id="rollBtn" class="btn w-full bg-gradient-to-r from-amber-500 to-orange-600 text-white py-3 rounded-lg text-lg font-bold shadow-md hover:from-amber-600 hover:to-orange-700">Roll Dice</button>
+                        </div>
+                        
+                        <div id="gameMessage" class="bg-indigo-100 p-4 rounded-xl shadow-md text-center text-indigo-800 font-medium"></div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <!-- Rules Modal -->
+    <div id="rulesModal" class="modal fixed inset-0 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 max-h-[80vh] overflow-y-auto">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-2xl font-bold text-indigo-800">How to Play</h2>
+                    <button id="closeRulesBtn" class="text-gray-500 hover:text-gray-700">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+                <div class="space-y-4 text-gray-700">
+                    <p><span class="font-bold">Objective:</span> Be the first player to reach the finish square!</p>
+                    
+                    <div>
+                        <p class="font-bold">Game Rules:</p>
+                        <ul class="list-disc pl-5 space-y-2 mt-2">
+                            <li>Players take turns rolling the dice and moving their piece.</li>
+                            <li>Land on a special square (gold) to trigger a random event.</li>
+                            <li>Special events can move you forward, backward, or make you skip a turn.</li>
+                            <li>If you roll higher than needed to reach the finish, you bounce back the extra spaces.</li>
+                        </ul>
+                    </div>
+                    
+                    <div>
+                        <p class="font-bold">Special Squares:</p>
+                        <ul class="list-disc pl-5 space-y-2 mt-2">
+                            <li><span class="bg-gradient-to-r from-amber-300 to-yellow-500 px-2 py-1 rounded text-white">Gold Squares</span> - Trigger random events</li>
+                            <li><span class="bg-gradient-to-r from-green-500 to-emerald-600 px-2 py-1 rounded text-white">Start</span> - Where all players begin</li>
+                            <li><span class="bg-gradient-to-r from-red-500 to-rose-600 px-2 py-1 rounded text-white">Finish</span> - Reach this square to win!</li>
+                        </ul>
+                    </div>
+                    
+                    <p><span class="font-bold">Single Player Mode:</span> Race against the computer to reach the finish first!</p>
+                    
+                    <p><span class="font-bold">Multiplayer Mode:</span> Play with 2-4 players taking turns on the same device.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Win Modal -->
+    <div id="winModal" class="modal fixed inset-0 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4">
+            <div class="p-6 text-center">
+                <div class="text-5xl mb-4">🏆</div>
+                <h2 class="text-2xl font-bold text-indigo-800 mb-2" id="winnerText">Player Wins!</h2>
+                <p class="text-gray-600 mb-6">Congratulations on reaching the finish line first!</p>
+                <button id="playAgainBtn" class="btn bg-gradient-to-r from-purple-600 to-indigo-700 text-white py-3 px-6 rounded-lg text-lg font-bold shadow-md hover:from-purple-700 hover:to-indigo-800">Play Again</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Game elements
+            const modeSelection = document.getElementById('modeSelection');
+            const playerSetup = document.getElementById('playerSetup');
+            const gameContainer = document.getElementById('gameContainer');
+            const playerCountSelector = document.getElementById('playerCountSelector');
+            const playerColorSelection = document.getElementById('playerColorSelection');
+            const playerColorSelectors = document.getElementById('playerColorSelectors');
+            const setupTitle = document.getElementById('setupTitle');
+            const gameBoard = document.getElementById('gameBoard');
+            const playersList = document.getElementById('playersList');
+            const turnIndicator = document.getElementById('turnIndicator');
+            const dice = document.getElementById('dice');
+            const rollBtn = document.getElementById('rollBtn');
+            const gameMessage = document.getElementById('gameMessage');
+            const rulesModal = document.getElementById('rulesModal');
+            const winModal = document.getElementById('winModal');
+            const winnerText = document.getElementById('winnerText');
+            
+            // Buttons
+            const singlePlayerBtn = document.getElementById('singlePlayerBtn');
+            const multiPlayerBtn = document.getElementById('multiPlayerBtn');
+            const startGameBtn = document.getElementById('startGameBtn');
+            const restartBtn = document.getElementById('restartBtn');
+            const rulesBtn = document.getElementById('rulesBtn');
+            const closeRulesBtn = document.getElementById('closeRulesBtn');
+            const playAgainBtn = document.getElementById('playAgainBtn');
+            
+            // Game state
+            let gameMode = null; // 'single' or 'multi'
+            let players = [];
+            let currentPlayerIndex = 0;
+            let gameStarted = false;
+            let boardSize = 25; // 5x5 board
+            let specialCells = [7, 13, 18, 22]; // Special event cells
+            let skipNextTurn = false;
+            
+            // Available player colors
+            const playerColors = [
+                { name: 'Red', value: '#ef4444' },
+                { name: 'Blue', value: '#3b82f6' },
+                { name: 'Green', value: '#22c55e' },
+                { name: 'Purple', value: '#a855f7' },
+                { name: 'Orange', value: '#f97316' },
+                { name: 'Pink', value: '#ec4899' }
+            ];
+            
+            // Game mode selection
+            singlePlayerBtn.addEventListener('click', () => {
+                gameMode = 'single';
+                setupSinglePlayerGame();
+            });
+            
+            multiPlayerBtn.addEventListener('click', () => {
+                gameMode = 'multi';
+                setupMultiPlayerGame();
+            });
+            
+            // Player count selection for multiplayer
+            document.querySelectorAll('.player-count-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const count = parseInt(btn.dataset.count);
+                    setupPlayerColorSelection(count);
+                });
+            });
+            
+            // Start game button
+            startGameBtn.addEventListener('click', () => {
+                initializeGame();
+            });
+            
+            // Roll dice button
+            rollBtn.addEventListener('click', () => {
+                if (!gameStarted) return;
+                rollDice();
+            });
+            
+            // Restart button
+            restartBtn.addEventListener('click', () => {
+                resetGame();
+            });
+            
+            // Rules button
+            rulesBtn.addEventListener('click', () => {
+                rulesModal.classList.remove('hidden');
+            });
+            
+            // Close rules button
+            closeRulesBtn.addEventListener('click', () => {
+                rulesModal.classList.add('hidden');
+            });
+            
+            // Play again button
+            playAgainBtn.addEventListener('click', () => {
+                winModal.classList.add('hidden');
+                resetGame();
+            });
+            
+            // Click outside modal to close
+            rulesModal.addEventListener('click', (e) => {
+                if (e.target === rulesModal) {
+                    rulesModal.classList.add('hidden');
+                }
+            });
+            
+            winModal.addEventListener('click', (e) => {
+                if (e.target === winModal) {
+                    winModal.classList.add('hidden');
+                    resetGame();
+                }
+            });
+            
+            // Setup single player game
+            function setupSinglePlayerGame() {
+                modeSelection.classList.add('hidden');
+                playerSetup.classList.remove('hidden');
+                playerCountSelector.classList.add('hidden');
+                setupTitle.textContent = 'Choose Your Color';
+                
+                // Setup color selection for human player
+                setupPlayerColorSelection(1);
+            }
+            
+            // Setup multiplayer game
+            function setupMultiPlayerGame() {
+                modeSelection.classList.add('hidden');
+                playerSetup.classList.remove('hidden');
+                playerCountSelector.classList.remove('hidden');
+                playerColorSelection.classList.add('hidden');
+                setupTitle.textContent = 'How Many Players?';
+            }
+            
+            // Setup player color selection
+            function setupPlayerColorSelection(count) {
+                playerCountSelector.classList.add('hidden');
+                playerColorSelection.classList.remove('hidden');
+                playerColorSelectors.innerHTML = '';
+                
+                // For single player, we'll add a computer player later
+                const actualCount = gameMode === 'single' ? 1 : count;
+                
+                for (let i = 0; i < actualCount; i++) {
+                    const playerNum = i + 1;
+                    const playerLabel = gameMode === 'single' ? 'Your Color' : `Player ${playerNum} Color`;
+                    
+                    const playerSelector = document.createElement('div');
+                    playerSelector.className = 'bg-white p-3 rounded-lg shadow-md';
+                    playerSelector.innerHTML = `
+                        <label class="block mb-2 font-semibold text-indigo-700">${playerLabel}</label>
+                        <div class="flex flex-wrap gap-2 justify-center" id="colorOptions${playerNum}"></div>
+                    `;
+                    
+                    playerColorSelectors.appendChild(playerSelector);
+                    
+                    const colorOptions = document.getElementById(`colorOptions${playerNum}`);
+                    
+                    playerColors.forEach(color => {
+                        const colorBtn = document.createElement('button');
+                        colorBtn.className = 'color-option w-8 h-8 rounded-full border-2 border-transparent hover:scale-110 transition';
+                        colorBtn.style.backgroundColor = color.value;
+                        colorBtn.dataset.color = color.value;
+                        colorBtn.dataset.name = color.name;
+                        colorBtn.dataset.player = playerNum;
+                        
+                        colorBtn.addEventListener('click', (e) => {
+                            // Remove selected class from all buttons in this group
+                            colorOptions.querySelectorAll('.color-option').forEach(btn => {
+                                btn.classList.remove('border-gray-800', 'scale-110');
+                            });
+                            
+                            // Add selected class to this button
+                            colorBtn.classList.add('border-gray-800', 'scale-110');
+                            
+                            // Store the selection
+                            const playerIndex = parseInt(e.target.dataset.player) - 1;
+                            if (!players[playerIndex]) {
+                                players[playerIndex] = {};
+                            }
+                            players[playerIndex].color = e.target.dataset.color;
+                            players[playerIndex].colorName = e.target.dataset.name;
+                        });
+                        
+                        colorOptions.appendChild(colorBtn);
+                    });
+                }
+            }
+            
+            // Initialize the game
+            function initializeGame() {
+                // Validate player selections
+                let allPlayersSelected = true;
+                const playerCount = gameMode === 'single' ? 1 : players.length;
+                
+                for (let i = 0; i < playerCount; i++) {
+                    if (!players[i] || !players[i].color) {
+                        allPlayersSelected = false;
+                        break;
+                    }
+                }
+                
+                if (!allPlayersSelected) {
+                    alert('Please select a color for each player');
+                    return;
+                }
+                
+                // For single player, add computer player
+                if (gameMode === 'single') {
+                    // Find a color not used by the human player
+                    const usedColor = players[0].color;
+                    const availableColors = playerColors.filter(color => color.value !== usedColor);
+                    const computerColor = availableColors[Math.floor(Math.random() * availableColors.length)];
+                    
+                    players.push({
+                        color: computerColor.value,
+                        colorName: computerColor.name,
+                        isComputer: true
+                    });
+                }
+                
+                // Setup player names and positions
+                players.forEach((player, index) => {
+                    player.name = player.isComputer ? 'Computer' : `Player ${index + 1}`;
+                    player.position = 0; // Start position
+                    player.skipNextTurn = false;
+                });
+                
+                // Hide setup, show game
+                playerSetup.classList.add('hidden');
+                gameContainer.classList.remove('hidden');
+                
+                // Create the game board
+                createGameBoard();
+                
+                // Update player list
+                updatePlayersList();
+                
+                // Start the game
+                gameStarted = true;
+                currentPlayerIndex = 0;
+                updateTurnIndicator();
+                gameMessage.textContent = `Game started! ${players[currentPlayerIndex].name}'s turn.`;
+                
+                // If computer goes first, trigger its turn
+                if (players[currentPlayerIndex].isComputer) {
+                    setTimeout(computerTurn, 1000);
+                }
+            }
+            
+            // Create the game board
+            function createGameBoard() {
+                gameBoard.innerHTML = '';
+                
+                // Create a zigzag pattern board (like snakes and ladders)
+                const rows = 5;
+                const cols = 5;
+                let cellNumber = 0;
+                
+                for (let row = rows - 1; row >= 0; row--) {
+                    for (let col = row % 2 === 0 ? 0 : cols - 1; 
+                         row % 2 === 0 ? col < cols : col >= 0; 
+                         row % 2 === 0 ? col++ : col--) {
+                        
+                        const cell = document.createElement('div');
+                        cell.className = 'cell';
+                        
+                        // Style based on cell type
+                        if (cellNumber === 0) {
+                            cell.classList.add('start');
+                            cell.innerHTML = '<span class="text-white font-bold">START</span>';
+                        } else if (cellNumber === boardSize - 1) {
+                            cell.classList.add('finish');
+                            cell.innerHTML = '<span class="text-white font-bold">FINISH</span>';
+                        } else if (specialCells.includes(cellNumber)) {
+                            cell.classList.add('special');
+                            cell.innerHTML = '<span class="text-white font-bold">?</span>';
+                        } else {
+                            cell.style.backgroundColor = `hsl(${(cellNumber * 15) % 360}, 70%, 85%)`;
+                        }
+                        
+                        // Add cell number
+                        const cellNumberSpan = document.createElement('span');
+                        cellNumberSpan.className = 'cell-number';
+                        cellNumberSpan.textContent = cellNumber + 1;
+                        cell.appendChild(cellNumberSpan);
+                        
+                        cell.dataset.index = cellNumber;
+                        gameBoard.appendChild(cell);
+                        cellNumber++;
+                    }
+                }
+                
+                // Place player pieces on the start position
+                updatePlayerPositions();
+            }
+            
+            // Update player positions on the board
+            function updatePlayerPositions() {
+                // Remove all player pieces
+                document.querySelectorAll('.player').forEach(piece => piece.remove());
+                
+                // Add player pieces at their current positions
+                players.forEach((player, index) => {
+                    const cell = gameBoard.querySelector(`[data-index="${player.position}"]`);
+                    if (cell) {
+                        const playerPiece = document.createElement('div');
+                        playerPiece.className = 'player';
+                        playerPiece.style.backgroundColor = player.color;
+                        
+                        // Position pieces within the cell so they don't overlap
+                        const offset = 8 + (index * 8);
+                        playerPiece.style.top = `${offset}px`;
+                        playerPiece.style.right = `${offset}px`;
+                        
+                        cell.appendChild(playerPiece);
+                    }
+                });
+            }
+            
+            // Update the players list in the sidebar
+            function updatePlayersList() {
+                playersList.innerHTML = '';
+                
+                players.forEach((player, index) => {
+                    const playerItem = document.createElement('div');
+                    playerItem.className = `flex items-center justify-between p-2 rounded-lg ${index === currentPlayerIndex ? 'bg-indigo-100 pulse' : ''}`;
+                    
+                    playerItem.innerHTML = `
+                        <div class="flex items-center">
+                            <div class="w-4 h-4 rounded-full mr-2" style="background-color: ${player.color}"></div>
+                            <span class="font-medium">${player.name}</span>
+                            ${player.skipNextTurn ? '<span class="ml-2 text-xs bg-red-100 text-red-800 px-1 rounded">Skip</span>' : ''}
+                        </div>
+                        <div class="text-sm font-bold">
+                            ${player.position + 1}/${boardSize}
+                        </div>
+                    `;
+                    
+                    playersList.appendChild(playerItem);
+                });
+            }
+            
+            // Update the turn indicator
+            function updateTurnIndicator() {
+                const currentPlayer = players[currentPlayerIndex];
+                turnIndicator.innerHTML = `
+                    <div class="flex items-center">
+                        <div class="w-4 h-4 rounded-full mr-2" style="background-color: ${currentPlayer.color}"></div>
+                        <span>${currentPlayer.name}'s Turn</span>
+                    </div>
+                `;
+                
+                // Update player list to highlight current player
+                updatePlayersList();
+            }
+            
+            // Roll the dice
+            function rollDice() {
+                if (skipNextTurn) return;
+                
+                // Disable roll button during animation
+                rollBtn.disabled = true;
+                
+                // Add rolling animation
+                dice.classList.add('rolling');
+                
+                // Random numbers during animation
+                let rollInterval = setInterval(() => {
+                    dice.textContent = Math.floor(Math.random() * 6) + 1;
+                }, 100);
+                
+                // Stop animation after a delay
+                setTimeout(() => {
+                    clearInterval(rollInterval);
+                    dice.classList.remove('rolling');
+                    
+                    // Get final dice value
+                    const diceValue = Math.floor(Math.random() * 6) + 1;
+                    dice.textContent = diceValue;
+                    
+                    // Move player
+                    movePlayer(diceValue);
+                    
+                    // Re-enable roll button
+                    rollBtn.disabled = false;
+                }, 1000);
+            }
+            
+            // Move the current player
+            function movePlayer(spaces) {
+                const currentPlayer = players[currentPlayerIndex];
+                
+                // Skip turn if player has the skip flag
+                if (currentPlayer.skipNextTurn) {
+                    gameMessage.textContent = `${currentPlayer.name} skips this turn!`;
+                    currentPlayer.skipNextTurn = false;
+                    nextTurn();
+                    return;
+                }
+                
+                // Calculate new position
+                let newPosition = currentPlayer.position + spaces;
+                
+                // Handle bounce back if overshooting the finish
+                if (newPosition >= boardSize - 1) {
+                    if (newPosition === boardSize - 1) {
+                        // Exact landing on finish
+                        newPosition = boardSize - 1;
+                    } else {
+                        // Bounce back
+                        const overshoot = newPosition - (boardSize - 1);
+                        newPosition = (boardSize - 1) - overshoot;
+                        gameMessage.textContent = `${currentPlayer.name} overshot and bounced back!`;
+                    }
+                }
+                
+                // Update player position
+                currentPlayer.position = newPosition;
+                
+                // Update the board
+                updatePlayerPositions();
+                
+                // Check for win
+                if (newPosition === boardSize - 1) {
+                    gameMessage.textContent = `${currentPlayer.name} reached the finish!`;
+                    endGame(currentPlayer);
+                    return;
+                }
+                
+                // Check for special cell
+                if (specialCells.includes(newPosition)) {
+                    handleSpecialCell(currentPlayer);
+                } else {
+                    gameMessage.textContent = `${currentPlayer.name} rolled a ${spaces} and moved to space ${newPosition + 1}.`;
+                    nextTurn();
+                }
+            }
+            
+            // Handle landing on a special cell
+            function handleSpecialCell(player) {
+                // Random event
+                const eventType = Math.floor(Math.random() * 5);
+                
+                switch (eventType) {
+                    case 0: // Move forward 2
+                        gameMessage.textContent = `Lucky! ${player.name} moves forward 2 spaces.`;
+                        setTimeout(() => {
+                            player.position = Math.min(player.position + 2, boardSize - 1);
+                            updatePlayerPositions();
+                            
+                            // Check for win after the bonus move
+                            if (player.position === boardSize - 1) {
+                                gameMessage.textContent = `${player.name} reached the finish!`;
+                                endGame(player);
+                                return;
+                            }
+                            
+                            nextTurn();
+                        }, 1500);
+                        break;
+                        
+                    case 1: // Move back 2
+                        gameMessage.textContent = `Oops! ${player.name} moves back 2 spaces.`;
+                        setTimeout(() => {
+                            player.position = Math.max(player.position - 2, 0);
+                            updatePlayerPositions();
+                            nextTurn();
+                        }, 1500);
+                        break;
+                        
+                    case 2: // Skip next turn
+                        gameMessage.textContent = `Oh no! ${player.name} must skip their next turn.`;
+                        player.skipNextTurn = true;
+                        nextTurn();
+                        break;
+                        
+                    case 3: // Extra turn
+                        gameMessage.textContent = `Bonus! ${player.name} gets an extra turn.`;
+                        // Don't change currentPlayerIndex
+                        setTimeout(() => {
+                            if (player.isComputer) {
+                                computerTurn();
+                            }
+                        }, 1500);
+                        break;
+                        
+                    case 4: // Swap with random player
+                        if (players.length > 1) {
+                            // Find another player to swap with
+                            let otherPlayerIndices = [];
+                            for (let i = 0; i < players.length; i++) {
+                                if (i !== players.indexOf(player)) {
+                                    otherPlayerIndices.push(i);
+                                }
+                            }
+                            
+                            const swapIndex = otherPlayerIndices[Math.floor(Math.random() * otherPlayerIndices.length)];
+                            const otherPlayer = players[swapIndex];
+                            
+                            gameMessage.textContent = `Swap! ${player.name} swaps positions with ${otherPlayer.name}.`;
+                            
+                            setTimeout(() => {
+                                // Swap positions
+                                const tempPosition = player.position;
+                                player.position = otherPlayer.position;
+                                otherPlayer.position = tempPosition;
+                                
+                                updatePlayerPositions();
+                                nextTurn();
+                            }, 1500);
+                        } else {
+                            // Solo player just moves forward 1
+                            gameMessage.textContent = `${player.name} moves forward 1 space.`;
+                            setTimeout(() => {
+                                player.position = Math.min(player.position + 1, boardSize - 1);
+                                updatePlayerPositions();
+                                
+                                // Check for win after the bonus move
+                                if (player.position === boardSize - 1) {
+                                    gameMessage.textContent = `${player.name} reached the finish!`;
+                                    endGame(player);
+                                    return;
+                                }
+                                
+                                nextTurn();
+                            }, 1500);
+                        }
+                        break;
+                }
+            }
+            
+            // Move to next player's turn
+            function nextTurn() {
+                currentPlayerIndex = (currentPlayerIndex + 1) % players.length;
+                updateTurnIndicator();
+                
+                // If it's computer's turn
+                if (players[currentPlayerIndex].isComputer) {
+                    setTimeout(computerTurn, 1500);
+                }
+            }
+            
+            // Computer player's turn
+            function computerTurn() {
+                if (!gameStarted) return;
+                
+                const currentPlayer = players[currentPlayerIndex];
+                if (!currentPlayer.isComputer) return;
+                
+                // Skip turn if needed
+                if (currentPlayer.skipNextTurn) {
+                    gameMessage.textContent = `${currentPlayer.name} skips this turn!`;
+                    currentPlayer.skipNextTurn = false;
+                    nextTurn();
+                    return;
+                }
+                
+                // Roll the dice
+                rollDice();
+            }
+            
+            // End the game
+            function endGame(winner) {
+                gameStarted = false;
+                
+                // Show win animation
+                createConfetti();
+                
+                // Update win modal
+                winnerText.textContent = `${winner.name} Wins!`;
+                
+                // Show win modal after a short delay
+                setTimeout(() => {
+                    winModal.classList.remove('hidden');
+                }, 1500);
+            }
+            
+            // Create confetti animation
+            function createConfetti() {
+                const confettiCount = 100;
+                const colors = ['#f00', '#0f0', '#00f', '#ff0', '#f0f', '#0ff'];
+                
+                for (let i = 0; i < confettiCount; i++) {
+                    const confetti = document.createElement('div');
+                    confetti.className = 'confetti';
+                    confetti.style.left = `${Math.random() * 100}%`;
+                    confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                    confetti.style.opacity = '1';
+                    confetti.style.animation = `confetti-fall ${1 + Math.random() * 3}s linear forwards`;
+                    document.body.appendChild(confetti);
+                    
+                    // Remove confetti after animation
+                    setTimeout(() => {
+                        confetti.remove();
+                    }, 3000);
+                }
+            }
+            
+            // Reset the game
+            function resetGame() {
+                // Reset game state
+                players = [];
+                currentPlayerIndex = 0;
+                gameStarted = false;
+                
+                // Show mode selection
+                gameContainer.classList.add('hidden');
+                modeSelection.classList.remove('hidden');
+            }
+        });
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'94ca872424a01ce8',t:'MTc0OTQwODEzMy4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
