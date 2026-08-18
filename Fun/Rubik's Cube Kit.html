@@ -1,0 +1,2982 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>CubeKit</title>
+  <style>
+    /* ===================== RESET & ROOT ===================== */
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    :root {
+      --bg: #0d0d14;
+      --surface: #16161f;
+      --surface2: #1e1e2a;
+      --surface3: #26263a;
+      --accent: #7c3aed;
+      --accent2: #a78bfa;
+      --accent3: #c4b5fd;
+      --green: #22c55e;
+      --red-d: #ef4444;
+      --text: #e2e8f0;
+      --text-muted: #94a3b8;
+      --border: #2d2d3f;
+      --nav-h: 64px;
+      /* cube colors */
+      --c-white: #f0f0f0;
+      --c-yellow: #fbbf24;
+      --c-red: #ef4444;
+      --c-orange: #f97316;
+      --c-blue: #3b82f6;
+      --c-green: #22c55e;
+      --c-gray: #374151;
+    }
+
+    html,
+    body {
+      height: 100%;
+      overflow: hidden;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
+    }
+
+    /* ===================== LAYOUT ===================== */
+    #app {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      height: 100dvh;
+    }
+
+    #content {
+      flex: 1;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .tab-panel {
+      position: absolute;
+      inset: 0;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 16px 16px calc(var(--nav-h) + 16px);
+      display: none;
+    }
+
+    .tab-panel.active {
+      display: block;
+    }
+
+    .tab-panel::-webkit-scrollbar {
+      display: none;
+    }
+
+    /* ===================== BOTTOM NAV ===================== */
+    #nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: var(--nav-h);
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      display: flex;
+      z-index: 100;
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    .nav-btn {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.5px;
+      cursor: pointer;
+      transition: color 0.2s;
+      padding: 8px 0;
+    }
+
+    .nav-btn.active {
+      color: var(--accent2);
+    }
+    
+    svg {
+      width: 22px;
+      height: 22px;
+      stroke-width: 1.8;
+    }
+
+    .nav-btn svg {
+      width: 22px;
+      height: 22px;
+      stroke-width: 1.8;
+    }
+
+    .nav-btn .nav-label {
+      text-transform: uppercase;
+    }
+
+    /* ===================== SHARED COMPONENTS ===================== */
+    .section-title {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin: 20px 0 10px;
+    }
+
+    .section-title:first-child {
+      margin-top: 4px;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 16px;
+      margin-bottom: 12px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 20px;
+      border-radius: 12px;
+      border: none;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+      user-select: none;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: white;
+    }
+
+    .btn-primary:active {
+      background: #6d28d9;
+      transform: scale(0.97);
+    }
+
+    .btn-secondary {
+      background: var(--surface2);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:active {
+      background: var(--surface3);
+      transform: scale(0.97);
+    }
+
+    .btn-danger {
+      background: #7f1d1d;
+      color: #fca5a5;
+      border: 1px solid #991b1b;
+    }
+
+    .btn-danger:active {
+      background: #6b1212;
+    }
+
+    .btn-full {
+      width: 100%;
+      max-height: 70px;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+      background: var(--surface3);
+      color: var(--text-muted);
+    }
+
+    .badge-green {
+      background: #14532d;
+      color: #86efac;
+    }
+
+    .badge-yellow {
+      background: #713f12;
+      color: #fde68a;
+    }
+
+    .badge-red {
+      background: #7f1d1d;
+      color: #fca5a5;
+    }
+
+    .divider {
+      height: 1px;
+      background: var(--border);
+      margin: 12px 0;
+    }
+
+    select {
+      background: var(--surface2);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-size: 14px;
+      width: 100%;
+      appearance: none;
+      -webkit-appearance: none;
+      cursor: pointer;
+    }
+
+    select:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    .select-wrap {
+      position: relative;
+    }
+
+    .select-wrap::after {
+      content: '▾';
+      position: absolute;
+      right: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      pointer-events: none;
+      font-size: 13px;
+    }
+
+    /* ===================== TAB 1: SCRAMBLER ===================== */
+    #scramble-display {
+      font-size: clamp(18px, 5vw, 26px);
+      font-weight: 700;
+      letter-spacing: 2px;
+      line-height: 1.6;
+      color: var(--text);
+      text-align: center;
+      padding: 10px 0 4px;
+      font-family: 'SF Mono', 'Courier New', monospace;
+      word-break: break-word;
+    }
+
+    #scramble-display .move {
+      display: inline-block;
+      margin: 2px;
+      padding: 4px 6px;
+      border-radius: 6px;
+      background: var(--surface2);
+      min-width: 36px;
+      text-align: center;
+    }
+
+    #scramble-display .move.prime {
+      color: var(--c-yellow);
+    }
+
+    #scramble-display .move.double {
+      color: var(--accent3);
+    }
+
+    .scramble-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 12px;
+    }
+
+    .scramble-controls {
+      display: flex;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .scramble-controls .btn {
+      flex: 1;
+    }
+
+    .scramble-length-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .scramble-length-row label {
+      font-size: 13px;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+
+    #scr-length-display {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--accent2);
+      min-width: 24px;
+      text-align: center;
+    }
+
+    input[type=range] {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 4px;
+      border-radius: 2px;
+      background: var(--surface3);
+      outline: none;
+      cursor: pointer;
+    }
+
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: var(--accent2);
+      cursor: pointer;
+    }
+
+    /* Scramble net preview */
+    #scr-net {
+      margin: 14px auto 0;
+      display: grid;
+      grid-template-areas: ". U . ." "L F R B" ". D . .";
+      grid-template-columns: repeat(4, 48px);
+      grid-template-rows: repeat(3, 48px);
+      gap: 3px;
+      width: fit-content;
+    }
+
+    .scr-face {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      grid-template-rows: repeat(3, 1fr);
+      gap: 2px;
+    }
+
+    .scr-face[data-face="U"] {
+      grid-area: U;
+    }
+
+    .scr-face[data-face="L"] {
+      grid-area: L;
+    }
+
+    .scr-face[data-face="F"] {
+      grid-area: F;
+    }
+
+    .scr-face[data-face="R"] {
+      grid-area: R;
+    }
+
+    .scr-face[data-face="B"] {
+      grid-area: B;
+    }
+
+    .scr-face[data-face="D"] {
+      grid-area: D;
+    }
+
+    .scr-cell {
+      border-radius: 3px;
+    }
+
+    /* History */
+    #scr-history-list {
+      list-style: none;
+    }
+
+    #scr-history-list li {
+      padding: 10px 12px;
+      background: var(--surface2);
+      border-radius: 10px;
+      margin-bottom: 8px;
+      font-size: 12px;
+      font-family: 'SF Mono', 'Courier New', monospace;
+      color: var(--text-muted);
+      word-break: break-all;
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+    }
+
+    #scr-history-list li span.idx {
+      color: var(--accent2);
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    /* ===================== TAB 2: TIMER ===================== */
+    #timer-area {
+      min-height: calc(100dvh - var(--nav-h) - 50px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      user-select: none;
+      -webkit-user-select: none;
+      position: relative;
+    }
+
+    #inspection-bar {
+      position: absolute;
+      top: 70%;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: var(--surface3);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    #inspection-bar-fill {
+      height: 100%;
+      width: 100%;
+      background: var(--green);
+      transform-origin: left;
+      transition: transform 0.1s linear, background 0.3s;
+    }
+
+    #timer-label {
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+    }
+
+    #timer-display {
+      font-size: clamp(52px, 18vw, 88px);
+      font-weight: 100;
+      letter-spacing: -2px;
+      font-variant-numeric: tabular-nums;
+      transition: color 0.15s;
+      line-height: 1;
+    }
+
+    #timer-display.armed {
+      color: var(--green);
+    }
+
+    #timer-display.running {
+      color: var(--text);
+    }
+
+    #timer-display.inspection {
+      color: var(--c-yellow);
+    }
+
+    #timer-display.penalty {
+      color: var(--red-d);
+    }
+
+    #timer-hint {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: 16px;
+      text-align: center;
+      line-height: 1.5;
+    }
+
+    #timer-current-scramble {
+      font-size: 11px;
+      font-family: 'SF Mono', 'Courier New', monospace;
+      color: var(--text-muted);
+      text-align: center;
+      margin-top: 8px;
+      padding: 0 20px;
+      line-height: 1.6;
+    }
+
+    #timer-stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .stat-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 8px;
+      text-align: center;
+    }
+
+    .stat-label {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+
+    .stat-value {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--accent2);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .stat-value.best {
+      color: var(--green);
+    }
+
+    /* Time list */
+    #time-list {
+      list-style: none;
+    }
+
+    #time-list li {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      background: var(--surface2);
+      border-radius: 10px;
+      margin-bottom: 6px;
+    }
+
+    #time-list li .t-num {
+      font-size: 12px;
+      color: var(--text-muted);
+      min-width: 24px;
+    }
+
+    #time-list li .t-time {
+      font-size: 16px;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+    }
+
+    #time-list li .t-time.is-best {
+      color: var(--green);
+    }
+
+    #time-list li .t-time.is-worst {
+      color: var(--red-d);
+    }
+
+    #time-list li .t-time.dnf {
+      color: var(--red-d);
+      font-size: 14px;
+    }
+
+    #time-list li .t-del {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 18px;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 6px;
+    }
+
+    #time-list li .t-del:active {
+      color: var(--red-d);
+    }
+
+    #time-list li .t-pen {
+      font-size: 10px;
+      color: var(--c-yellow);
+      font-weight: 600;
+    }
+
+    .timer-action-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 6px;
+    }
+
+    .timer-action-row .btn {
+      flex: 1;
+      font-size: 13px;
+      padding: 10px;
+    }
+
+    /* ===================== TAB 3: SOLVER ===================== */
+    /* 3D Cube */
+    #cube3d-container {
+      perspective: 600px;
+      width: 200px;
+      height: 200px;
+      margin: 0 auto 12px;
+      cursor: grab;
+      touch-action: none;
+    }
+
+    #cube3d-container:active {
+      cursor: grabbing;
+    }
+
+    #cube3d {
+      width: 140px;
+      height: 140px;
+      position: relative;
+      transform-style: preserve-3d;
+      transform: rotateX(-25deg) rotateY(35deg);
+      margin: 30px auto;
+      transition: transform 0.05s;
+    }
+
+    .cube-face-3d {
+      position: absolute;
+      width: 140px;
+      height: 140px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      grid-template-rows: repeat(3, 1fr);
+      gap: 3px;
+      padding: 3px;
+      border-radius: 4px;
+      background: #111;
+    }
+
+    .cube-face-3d.face-F {
+      transform: translateZ(70px);
+    }
+
+    .cube-face-3d.face-B {
+      transform: rotateY(180deg) translateZ(70px);
+    }
+
+    .cube-face-3d.face-R {
+      transform: rotateY(90deg) translateZ(70px);
+    }
+
+    .cube-face-3d.face-L {
+      transform: rotateY(-90deg) translateZ(70px);
+    }
+
+    .cube-face-3d.face-U {
+      transform: rotateX(90deg) translateZ(70px);
+    }
+
+    .cube-face-3d.face-D {
+      transform: rotateX(-90deg) translateZ(70px);
+    }
+
+    .cell-3d {
+      border-radius: 3px;
+    }
+
+    /* Net editor */
+    #net-container {
+      margin: 0 auto;
+      display: grid;
+      grid-template-areas: ". U . ." "L F R B" ". D . .";
+      grid-template-columns: repeat(4, 1fr);
+      gap: 4px;
+      max-width: 340px;
+    }
+
+    .net-face {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      grid-template-rows: repeat(3, 1fr);
+      gap: 3px;
+      aspect-ratio: 1;
+    }
+
+    .net-face[data-face="U"] {
+      grid-area: U;
+    }
+
+    .net-face[data-face="L"] {
+      grid-area: L;
+    }
+
+    .net-face[data-face="F"] {
+      grid-area: F;
+    }
+
+    .net-face[data-face="R"] {
+      grid-area: R;
+    }
+
+    .net-face[data-face="B"] {
+      grid-area: B;
+    }
+
+    .net-face[data-face="D"] {
+      grid-area: D;
+    }
+
+    .net-cell {
+      border-radius: 4px;
+      cursor: pointer;
+      transition: transform 0.1s, opacity 0.1s;
+      border: 2px solid transparent;
+    }
+
+    .net-cell:active {
+      transform: scale(0.9);
+    }
+
+    .net-cell.center-cell {
+      cursor: default;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+    }
+
+    .net-cell.selected-paint {
+      outline: 3px solid white;
+      outline-offset: 1px;
+    }
+
+    /* Color palette */
+    #color-palette {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      margin: 16px 0 12px;
+      flex-wrap: wrap;
+    }
+
+    .palette-btn {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      border: 3px solid transparent;
+      cursor: pointer;
+      transition: all 0.15s;
+      flex-shrink: 0;
+    }
+
+    .palette-btn:active {
+      transform: scale(0.9);
+    }
+
+    .palette-btn.selected {
+      border-color: white;
+      box-shadow: 0 0 0 2px var(--accent2);
+    }
+
+    .face-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      text-align: center;
+      margin-bottom: 4px;
+    }
+
+    /* Method steps */
+    #method-steps {
+      display: none;
+    }
+
+    #method-steps.visible {
+      display: block;
+    }
+
+    .step-item {
+      padding: 12px 14px;
+      background: var(--surface2);
+      border-radius: 12px;
+      margin-bottom: 8px;
+      border-left: 3px solid var(--accent);
+    }
+
+    .step-item .step-num {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--accent2);
+      margin-bottom: 4px;
+    }
+
+    .step-item .step-name {
+      font-size: 15px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .step-item .step-desc {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    .step-item .step-alg {
+      font-size: 13px;
+      font-family: 'SF Mono', 'Courier New', monospace;
+      color: var(--accent3);
+      margin-top: 6px;
+      background: var(--surface3);
+      padding: 6px 10px;
+      border-radius: 8px;
+      display: inline-block;
+    }
+
+    .net-face-label {
+      font-size: 10px;
+      color: var(--text-muted);
+      text-align: center;
+      margin-bottom: 2px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+
+    /* ===================== TAB 4: REFERENCE & SETTINGS ===================== */
+    .ref-section {
+      margin-bottom: 4px;
+    }
+
+    .ref-accordion {
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text);
+      transition: background 0.15s;
+    }
+
+    .ref-accordion:active {
+      background: var(--surface2);
+    }
+
+    .ref-accordion .acc-arrow {
+      color: var(--text-muted);
+      font-size: 12px;
+      transition: transform 0.2s;
+    }
+
+    .ref-accordion.open .acc-arrow {
+      transform: rotate(180deg);
+    }
+
+    .ref-body {
+      display: none;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-top: none;
+      border-radius: 0 0 14px 14px;
+      padding: 14px;
+      margin-top: -8px;
+      margin-bottom: 12px;
+    }
+
+    .ref-body.open {
+      display: block;
+    }
+
+    .alg-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .alg-table th {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      text-align: left;
+      padding: 6px 8px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .alg-table td {
+      padding: 8px 8px;
+      font-size: 13px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+
+    .alg-table td:first-child {
+      font-weight: 600;
+      color: var(--accent2);
+      white-space: nowrap;
+    }
+
+    .alg-table td:last-child {
+      font-family: 'SF Mono', 'Courier New', monospace;
+      font-size: 12px;
+      color: var(--accent3);
+      line-height: 1.5;
+    }
+
+    .alg-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    /* OLL PLL grid */
+    .oll-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(75px, 1fr));
+      gap: 8px;
+    }
+
+    .oll-card {
+      background: var(--surface3);
+      border-radius: 10px;
+      padding: 8px 6px;
+      text-align: center;
+    }
+
+    .oll-card .oll-name {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--accent2);
+      margin-bottom: 4px;
+    }
+
+    .oll-card .oll-alg {
+      font-size: 9px;
+      font-family: 'SF Mono', 'Courier New', monospace;
+      color: var(--text-muted);
+      line-height: 1.4;
+      word-break: break-all;
+    }
+
+    /* Settings */
+    .setting-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .setting-row:last-child {
+      border-bottom: none;
+    }
+
+    .setting-row .setting-info {
+      flex: 1;
+      padding-right: 12px;
+    }
+
+    .setting-row .setting-label {
+      font-size: 15px;
+      font-weight: 500;
+    }
+
+    .setting-row .setting-desc {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    /* Toggle */
+    .toggle {
+      position: relative;
+      width: 48px;
+      height: 28px;
+      flex-shrink: 0;
+    }
+
+    .toggle input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .toggle-slider {
+      position: absolute;
+      inset: 0;
+      background: var(--surface3);
+      border-radius: 14px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .toggle-slider::before {
+      content: '';
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      left: 4px;
+      top: 4px;
+      background: white;
+      border-radius: 50%;
+      transition: transform 0.2s;
+    }
+
+    .toggle input:checked+.toggle-slider {
+      background: var(--accent);
+    }
+
+    .toggle input:checked+.toggle-slider::before {
+      transform: translateX(20px);
+    }
+
+    /* Notation guide */
+    .notation-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .notation-row:last-child {
+      border-bottom: none;
+    }
+
+    .notation-move {
+      font-size: 18px;
+      font-weight: 700;
+      font-family: 'SF Mono', 'Courier New', monospace;
+      color: var(--accent2);
+      min-width: 28px;
+    }
+
+    .notation-desc {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    /* ===================== COLORS ===================== */
+    [data-color="white"] {
+      background: var(--c-white);
+    }
+
+    [data-color="yellow"] {
+      background: var(--c-yellow);
+    }
+
+    [data-color="red"] {
+      background: var(--c-red);
+    }
+
+    [data-color="orange"] {
+      background: var(--c-orange);
+    }
+
+    [data-color="blue"] {
+      background: var(--c-blue);
+    }
+
+    [data-color="green"] {
+      background: var(--c-green);
+    }
+
+    [data-color="gray"] {
+      background: var(--c-gray);
+    }
+
+    /* ===================== PAGE HEADER ===================== */
+    .page-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 4px;
+      padding-top: 4px;
+    }
+
+    .page-header h1 {
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+    }
+
+    .page-header h1 span {
+      color: var(--accent2);
+    }
+
+    /* ===================== TOAST ===================== */
+    #toast {
+      position: fixed;
+      bottom: calc(var(--nav-h) + 16px);
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: var(--surface3);
+      color: var(--text);
+      padding: 10px 20px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+      opacity: 0;
+      transition: all 0.3s;
+      pointer-events: none;
+      white-space: nowrap;
+      z-index: 200;
+      border: 1px solid var(--border);
+    }
+
+    #toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+  </style>
+</head>
+
+<body>
+  <div id="app">
+    <!-- ==================== CONTENT ==================== -->
+    <div id="content">
+
+      <!-- ====== TAB 1: SCRAMBLER ====== -->
+      <div id="panel-scrambler" class="tab-panel active">
+        <div class="page-header">
+          <h1>Cube<span>Kit</span></h1>
+          <span class="badge" id="scr-wca-badge">WCA</span>
+        </div>
+
+        <p class="section-title">Scramble</p>
+        <div class="card">
+          <div id="scramble-display">Press Generate</div>
+          <div class="divider"></div>
+          <div class="scramble-length-row">
+            <label>Length</label>
+            <input type="range" id="scr-length" min="10" max="30" value="20" step="1">
+            <span id="scr-length-display">20</span>
+          </div>
+          <div class="scramble-controls">
+            <button class="btn btn-primary btn-full" id="btn-gen-scramble">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M1 4v6h6M23 20v-6h-6" />
+                <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4-4.64 4.36A9 9 0 0 1 3.51 15" />
+              </svg>
+              New Scramble
+            </button>
+            <button  class="btn btn-secondary" style="display: none" id="btn-copy-scramble" title="Copy">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <rect x="9" y="9" width="13" height="13" rx="2" />
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <p class="section-title">Preview</p>
+        <div class="card" style="padding: 20px 12px;">
+          <div style="display:grid; grid-template-columns: repeat(4,1fr); gap: 4px; max-width: 280px; margin: 0 auto;">
+            <div style="grid-column:2;">
+              <div class="net-face-label">U</div>
+              <div id="scrprev-U" class="scr-face" data-face="U"></div>
+            </div>
+            <div style="grid-column:1; grid-row:2;">
+              <div class="net-face-label">L</div>
+              <div id="scrprev-L" class="scr-face" data-face="L"></div>
+            </div>
+            <div style="grid-column:2; grid-row:2;">
+              <div class="net-face-label">F</div>
+              <div id="scrprev-F" class="scr-face" data-face="F"></div>
+            </div>
+            <div style="grid-column:3; grid-row:2;">
+              <div class="net-face-label">R</div>
+              <div id="scrprev-R" class="scr-face" data-face="R"></div>
+            </div>
+            <div style="grid-column:4; grid-row:2;">
+              <div class="net-face-label">B</div>
+              <div id="scrprev-B" class="scr-face" data-face="B"></div>
+            </div>
+            <div style="grid-column:2; grid-row:3;">
+              <div class="net-face-label">D</div>
+              <div id="scrprev-D" class="scr-face" data-face="D"></div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+          <p class="section-title" style="margin:0;">History</p>
+          <button class="btn btn-secondary" id="btn-clear-history" style="padding:6px 12px; font-size:12px;">Clear</button>
+        </div>
+        <ul id="scr-history-list">
+          <li style="color:var(--text-muted); font-size:13px; text-align:center; padding:20px 0; background:none;">No history yet</li>
+        </ul>
+      </div>
+
+      <!-- ====== TAB 2: TIMER ====== -->
+      <div id="panel-timer" class="tab-panel">
+        <div id="timer-area">
+          <div id="inspection-bar">
+            <div id="inspection-bar-fill"></div>
+          </div>
+          <div id="timer-label">READY</div>
+          <div id="timer-display">0.000</div>
+          <div id="timer-hint">Hold to arm • Release to start<br>Tap to stop</div>
+          <div id="timer-current-scramble"></div>
+        </div>
+
+        <div id="timer-stats">
+          <div class="stat-box">
+            <div class="stat-label">Best</div>
+            <div class="stat-value best" id="stat-best">—</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">Ao5</div>
+            <div class="stat-value" id="stat-ao5">—</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">Ao12</div>
+            <div class="stat-value" id="stat-ao12">—</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">Mean</div>
+            <div class="stat-value" id="stat-mean">—</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">Count</div>
+            <div class="stat-value" id="stat-count">0</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">Worst</div>
+            <div class="stat-value" id="stat-worst">—</div>
+          </div>
+        </div>
+
+        <div class="timer-action-row" style="margin-top:12px;">
+          <button class="btn btn-secondary" id="btn-timer-plus2">+2</button>
+          <button class="btn btn-secondary" id="btn-timer-dnf">DNF</button>
+          <button class="btn btn-danger" id="btn-timer-delete">Delete</button>
+        </div>
+
+        <p class="section-title" style="margin-top:16px;">Session Times</p>
+        <ul id="time-list"></ul>
+      </div>
+
+      <!-- ====== TAB 3: SOLVER ====== -->
+      <div id="panel-solver" class="tab-panel">
+        <div class="page-header">
+          <h1>Cube <span>Editor</span></h1>
+        </div>
+
+        <p class="section-title">3D Preview <span style="font-size:11px;color:var(--text-muted);">(drag to rotate)</span></p>
+        <div class="card" style="padding: 12px;">
+          <div id="cube3d-container">
+            <div id="cube3d">
+              <div class="cube-face-3d face-F" id="3d-F"></div>
+              <div class="cube-face-3d face-B" id="3d-B"></div>
+              <div class="cube-face-3d face-R" id="3d-R"></div>
+              <div class="cube-face-3d face-L" id="3d-L"></div>
+              <div class="cube-face-3d face-U" id="3d-U"></div>
+              <div class="cube-face-3d face-D" id="3d-D"></div>
+            </div>
+          </div>
+          <div style="text-align:center; margin-top:8px;">
+            <button class="btn btn-secondary" id="btn-reset-cube" style="font-size:12px; padding:8px 16px;">Reset Cube</button>
+            <button class="btn btn-secondary" id="btn-scramble-to-solver" style="font-size:12px; padding:8px 16px; margin-left:8px;">Use Scramble</button>
+          </div>
+        </div>
+
+        <p class="section-title">Color Picker</p>
+        <div id="color-palette">
+          <button class="palette-btn selected" data-color="white" title="White"></button>
+          <button class="palette-btn" data-color="yellow" title="Yellow"></button>
+          <button class="palette-btn" data-color="red" title="Red"></button>
+          <button class="palette-btn" data-color="orange" title="Orange"></button>
+          <button class="palette-btn" data-color="blue" title="Blue"></button>
+          <button class="palette-btn" data-color="green" title="Green"></button>
+        </div>
+        <p style="font-size:12px; color:var(--text-muted); text-align:center; margin-bottom:10px;">Select a color, then tap cells on the net below</p>
+
+        <p class="section-title">Net Editor</p>
+        <div class="card" style="padding: 16px 8px;">
+          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; max-width: 320px; margin: 0 auto;">
+            <div style="grid-column:2;">
+              <div class="net-face-label">U · White</div>
+              <div class="net-face" data-face="U" id="net-U"></div>
+            </div>
+            <div style="grid-column:1; grid-row:2;">
+              <div class="net-face-label">L · Orange</div>
+              <div class="net-face" data-face="L" id="net-L"></div>
+            </div>
+            <div style="grid-column:2; grid-row:2;">
+              <div class="net-face-label">F · Green</div>
+              <div class="net-face" data-face="F" id="net-F"></div>
+            </div>
+            <div style="grid-column:3; grid-row:2;">
+              <div class="net-face-label">R · Red</div>
+              <div class="net-face" data-face="R" id="net-R"></div>
+            </div>
+            <div style="grid-column:4; grid-row:2;">
+              <div class="net-face-label">B · Blue</div>
+              <div class="net-face" data-face="B" id="net-B"></div>
+            </div>
+            <div style="grid-column:2; grid-row:3;">
+              <div class="net-face-label">D · Yellow</div>
+              <div class="net-face" data-face="D" id="net-D"></div>
+            </div>
+          </div>
+        </div>
+
+        <p class="section-title">Solving Method</p>
+        <div class="card">
+          <div class="select-wrap">
+            <select id="method-select">
+              <option value="">— Select a method —</option>
+              <option value="beginner">🟦 Beginner (Layer-by-Layer)</option>
+              <option value="2look">⚡ 2-Look CFOP (Recommended)</option>
+              <option value="cfop">🏆 Full CFOP (Fridrich)</option>
+              <option value="roux">🔷 Roux Method</option>
+              <option value="zz">🔶 ZZ Method</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="method-steps"></div>
+      </div>
+
+      <!-- ====== TAB 4: REFERENCE ====== -->
+      <div id="panel-reference" class="tab-panel">
+        <div class="page-header">
+          <h1>Ref &amp; <span>Settings</span></h1>
+        </div>
+
+        <p class="section-title">Notation Guide</p>
+        <div class="card">
+          <div class="notation-row"><span class="notation-move">R</span><span class="notation-desc">Right face 90° clockwise</span></div>
+          <div class="notation-row"><span class="notation-move" style="color:var(--c-yellow)">R'</span><span class="notation-desc">Right face 90° counter-clockwise</span></div>
+          <div class="notation-row"><span class="notation-move" style="color:var(--accent3)">R2</span><span class="notation-desc">Right face 180° (either direction)</span></div>
+          <div class="notation-row"><span class="notation-move">U</span><span class="notation-desc">Up face clockwise</span></div>
+          <div class="notation-row"><span class="notation-move">F</span><span class="notation-desc">Front face clockwise</span></div>
+          <div class="notation-row"><span class="notation-move">D</span><span class="notation-desc">Down face clockwise</span></div>
+          <div class="notation-row"><span class="notation-move">L</span><span class="notation-desc">Left face clockwise</span></div>
+          <div class="notation-row"><span class="notation-move">B</span><span class="notation-desc">Back face clockwise</span></div>
+          <div class="notation-row"><span class="notation-move" style="color:var(--green)">M</span><span class="notation-desc">Middle slice (same dir as L)</span></div>
+          <div class="notation-row"><span class="notation-move" style="color:var(--green)">x y z</span><span class="notation-desc">Whole cube rotations (R, U, F axes)</span></div>
+        </div>
+
+        <p class="section-title">Essential Algorithms</p>
+        <div class="ref-section">
+          <button class="ref-accordion" data-acc="sexy">Core Moves <span class="acc-arrow">▾</span></button>
+          <div class="ref-body" data-acc="sexy">
+            <table class="alg-table">
+              <tr>
+                <th>Name</th>
+                <th>Algorithm</th>
+              </tr>
+              <tr>
+                <td>Sexy Move</td>
+                <td>R U R' U'</td>
+              </tr>
+              <tr>
+                <td>Sledgehammer</td>
+                <td>R' F R F'</td>
+              </tr>
+              <tr>
+                <td>Reverse Sexy</td>
+                <td>U R U' R'</td>
+              </tr>
+              <tr>
+                <td>Sune</td>
+                <td>R U R' U R U2 R'</td>
+              </tr>
+              <tr>
+                <td>Anti-Sune</td>
+                <td>R' U' R U' R' U2 R</td>
+              </tr>
+            </table>
+          </div>
+        </div>
+
+        <div class="ref-section">
+          <button class="ref-accordion" data-acc="f2l">F2L Pairs <span class="acc-arrow">▾</span></button>
+          <div class="ref-body" data-acc="f2l">
+            <p style="font-size:12px; color:var(--text-muted); margin-bottom:10px;">Most F2L is done intuitively. These cover the most common algorithmic cases.</p>
+            <table class="alg-table">
+              <tr>
+                <th>Case</th>
+                <th>Algorithm</th>
+              </tr>
+              <tr>
+                <td>Insert Right</td>
+                <td>U R U' R'</td>
+              </tr>
+              <tr>
+                <td>Insert Left</td>
+                <td>U' L' U L</td>
+              </tr>
+              <tr>
+                <td>Edge Flip R</td>
+                <td>R U R' U' R U R'</td>
+              </tr>
+              <tr>
+                <td>Edge Flip L</td>
+                <td>L' U' L U L' U' L</td>
+              </tr>
+              <tr>
+                <td>FR slot empty</td>
+                <td>U R U2 R' U R U' R'</td>
+              </tr>
+              <tr>
+                <td>Corner Up/Edge F</td>
+                <td>R U' R' U R U' R'</td>
+              </tr>
+              <tr>
+                <td>Both on top (basic)</td>
+                <td>U R U' R' U' F' U F</td>
+              </tr>
+              <tr>
+                <td>Both on top (alt)</td>
+                <td>U' F' U F U R U' R'</td>
+              </tr>
+            </table>
+          </div>
+        </div>
+
+        <div class="ref-section">
+          <button class="ref-accordion" data-acc="2loll">2-Look OLL (10 algs) <span class="acc-arrow">▾</span></button>
+          <div class="ref-body" data-acc="2loll">
+            <p style="font-size:12px; color:var(--text-muted); margin-bottom:10px;"><b>Step 1:</b> Make yellow cross. <b>Step 2:</b> Orient corners.</p>
+            <table class="alg-table">
+              <tr>
+                <th>Case</th>
+                <th>Algorithm</th>
+              </tr>
+              <tr>
+                <td>Dot</td>
+                <td>F R U R' U' F' f R U R' U' f'</td>
+              </tr>
+              <tr>
+                <td>L-shape</td>
+                <td>f R U R' U' f'</td>
+              </tr>
+              <tr>
+                <td>Line</td>
+                <td>F R U R' U' F'</td>
+              </tr>
+              <tr>
+                <td>Cross (done)</td>
+                <td>—</td>
+              </tr>
+              <tr>
+                <td>Sune</td>
+                <td>R U R' U R U2 R'</td>
+              </tr>
+              <tr>
+                <td>Anti-Sune</td>
+                <td>R' U' R U' R' U2 R</td>
+              </tr>
+              <tr>
+                <td>Pi (Bruno)</td>
+                <td>R U2 R2 U' R2 U' R2 U2 R</td>
+              </tr>
+              <tr>
+                <td>H (Headlights)</td>
+                <td>R U R' U R U' R' U R U2 R'</td>
+              </tr>
+              <tr>
+                <td>T-shape</td>
+                <td>r U R' U' r' F R F'</td>
+              </tr>
+              <tr>
+                <td>L (Bowtie)</td>
+                <td>F R U R' U' R U R' U' F'</td>
+              </tr>
+            </table>
+          </div>
+        </div>
+
+        <div class="ref-section">
+          <button class="ref-accordion" data-acc="2lpll">2-Look PLL (6 algs) <span class="acc-arrow">▾</span></button>
+          <div class="ref-body" data-acc="2lpll">
+            <p style="font-size:12px; color:var(--text-muted); margin-bottom:10px;"><b>Step 1:</b> Permute edges. <b>Step 2:</b> Permute corners.</p>
+            <table class="alg-table">
+              <tr>
+                <th>Case</th>
+                <th>Algorithm</th>
+              </tr>
+              <tr>
+                <td>Ua-perm</td>
+                <td>R U' R U R U R U' R' U' R2</td>
+              </tr>
+              <tr>
+                <td>Ub-perm</td>
+                <td>R2 U R U R' U' R' U' R' U R'</td>
+              </tr>
+              <tr>
+                <td>Z-perm</td>
+                <td>M2 U M2 U M' U2 M2 U2 M' U2</td>
+              </tr>
+              <tr>
+                <td>H-perm</td>
+                <td>M2 U M2 U2 M2 U M2</td>
+              </tr>
+              <tr>
+                <td>Aa-perm</td>
+                <td>x R' U R' D2 R U' R' D2 R2 x'</td>
+              </tr>
+              <tr>
+                <td>Ab-perm</td>
+                <td>x R2 D2 R U R' D2 R U' R x'</td>
+              </tr>
+            </table>
+          </div>
+        </div>
+
+        <div class="ref-section">
+          <button class="ref-accordion" data-acc="fulloll">Full OLL (57 cases) <span class="acc-arrow">▾</span></button>
+          <div class="ref-body" data-acc="fulloll">
+            <p style="font-size:12px; color:var(--text-muted); margin-bottom:12px;">All 57 OLL cases grouped by shape. Cross edges are solved in each case.</p>
+            <div class="oll-grid" id="full-oll-grid"></div>
+          </div>
+        </div>
+
+        <div class="ref-section">
+          <button class="ref-accordion" data-acc="fullpll">Full PLL (21 cases) <span class="acc-arrow">▾</span></button>
+          <div class="ref-body" data-acc="fullpll">
+            <p style="font-size:12px; color:var(--text-muted); margin-bottom:12px;">All 21 PLL cases.</p>
+            <div class="oll-grid" id="full-pll-grid"></div>
+          </div>
+        </div>
+
+        <p class="section-title">Settings</p>
+        <div class="card">
+          <div class="setting-row">
+            <div class="setting-info">
+              <div class="setting-label">Inspection Timer</div>
+              <div class="setting-desc">15-second WCA inspection countdown</div>
+            </div>
+            <label class="toggle"><input type="checkbox" id="set-inspection" checked><span class="toggle-slider"></span></label>
+          </div>
+          <div class="setting-row">
+            <div class="setting-info">
+              <div class="setting-label">Inspection Warnings</div>
+              <div class="setting-desc">Audio cues at 8s and 12s</div>
+            </div>
+            <label class="toggle"><input type="checkbox" id="set-insp-warn" checked><span class="toggle-slider"></span></label>
+          </div>
+          <div class="setting-row">
+            <div class="setting-info">
+              <div class="setting-label">Hold to Start</div>
+              <div class="setting-desc">Hold 0.3s before releasing to start</div>
+            </div>
+            <label class="toggle"><input type="checkbox" id="set-holdstart" checked><span class="toggle-slider"></span></label>
+          </div>
+          <div class="setting-row">
+            <div class="setting-info">
+              <div class="setting-label">Auto-Scramble on Stop</div>
+              <div class="setting-desc">Generate new scramble after each solve</div>
+            </div>
+            <label class="toggle"><input type="checkbox" id="set-autoscramble" checked><span class="toggle-slider"></span></label>
+          </div>
+          <div class="setting-row">
+            <div class="setting-info">
+              <div class="setting-label">Show Scramble on Timer</div>
+              <div class="setting-desc">Display current scramble below timer</div>
+            </div>
+            <label class="toggle"><input type="checkbox" id="set-showscramble" checked><span class="toggle-slider"></span></label>
+          </div>
+          <div class="setting-row">
+            <div class="setting-info">
+              <div class="setting-label">Color Scheme</div>
+              <div class="setting-desc">Standard WCA (White top / Green front)</div>
+            </div>
+            <div class="select-wrap" style="width:120px;">
+              <select id="set-colorscheme" style="font-size:12px; padding:8px 28px 8px 10px;">
+                <option value="standard">Standard</option>
+                <option value="japanese">Japanese</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:4px;">
+          <button class="btn btn-danger btn-full" id="btn-clear-all">Clear All Session Data</button>
+        </div>
+        <p style="font-size:11px; color:var(--text-muted); text-align:center; margin-top:12px; padding-bottom:8px;">CubeKit v1.0 · Phase 1 · Built for mobile</p>
+      </div>
+
+    </div><!-- end content -->
+
+    <!-- ==================== BOTTOM NAV ==================== -->
+    <nav id="nav">
+      <button class="nav-btn active" data-tab="scrambler">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path d="M1 4v6h6M23 20v-6h-6" />
+          <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4-4.64 4.36A9 9 0 0 1 3.51 15" />
+        </svg>
+        <span class="nav-label">Scramble</span>
+      </button>
+      <button class="nav-btn" data-tab="timer">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <circle cx="12" cy="12" r="10" />
+          <polyline points="12 6 12 12 16 14" />
+        </svg>
+        <span class="nav-label">Timer</span>
+      </button>
+      <button class="nav-btn" data-tab="solver">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <rect x="2" y="2" width="9" height="9" rx="1" />
+          <rect x="13" y="2" width="9" height="9" rx="1" />
+          <rect x="2" y="13" width="9" height="9" rx="1" />
+          <rect x="13" y="13" width="9" height="9" rx="1" />
+        </svg>
+        <span class="nav-label">Solver</span>
+      </button>
+      <button class="nav-btn" data-tab="reference">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+        </svg>
+        <span class="nav-label">Reference</span>
+      </button>
+    </nav>
+  </div>
+  <div id="toast"></div>
+
+  <script>
+    // ============================================================
+    //  UTILITIES
+    // ============================================================
+    function fmtTime(ms, dnf = false, p2 = false) {
+      if (dnf) return 'DNF';
+      if (ms === null || ms === undefined) return '—';
+      let t = ms;
+      if (p2) t += 2000;
+      if (t < 60000) {
+        return (t / 1000).toFixed(3) + (p2 ? '+' : '');
+      }
+      const min = Math.floor(t / 60000);
+      const sec = ((t % 60000) / 1000).toFixed(3);
+      return `${min}:${sec.padStart(7, '0')}` + (p2 ? '+' : '');
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      clearTimeout(t._tid);
+      t._tid = setTimeout(() => t.classList.remove('show'), 2000);
+    }
+
+    // ============================================================
+    //  CUBE STATE
+    // ============================================================
+    // U=white, R=red, F=green, D=yellow, L=orange, B=blue
+    const FACE_COLORS = {
+      U: 'white',
+      R: 'red',
+      F: 'green',
+      D: 'yellow',
+      L: 'orange',
+      B: 'blue'
+    };
+    const COLOR_ORDER = ['white', 'yellow', 'red', 'orange', 'blue', 'green'];
+
+    // cubeState[face][cell 0-8] = colorString
+    let cubeState = {};
+
+    function resetCubeState() {
+      cubeState = {};
+      Object.entries(FACE_COLORS).forEach(([face, color]) => {
+        cubeState[face] = Array(9).fill(color);
+      });
+    }
+    resetCubeState();
+
+    // ============================================================
+    //  SCRAMBLE ENGINE
+    // ============================================================
+    const FACES = ['U', 'D', 'F', 'B', 'R', 'L'];
+    const AXIS_MAP = {
+      U: 'y',
+      D: 'y',
+      F: 'z',
+      B: 'z',
+      R: 'x',
+      L: 'x'
+    };
+    const MODS = ["", "'", "2"];
+    const OPPOSITE = {
+      U: 'D',
+      D: 'U',
+      F: 'B',
+      B: 'F',
+      R: 'L',
+      L: 'R'
+    };
+
+    let currentScramble = '';
+    let scrHistory = [];
+
+    function generateScramble(len = 20) {
+      let moves = [];
+      let lastFace = null;
+      let secondLastFace = null;
+
+      for (let i = 0; i < len; i++) {
+        let available = FACES.filter(f => {
+          if (f === lastFace) return false;
+          if (AXIS_MAP[f] === AXIS_MAP[lastFace] && AXIS_MAP[f] === AXIS_MAP[secondLastFace]) return false;
+          return true;
+        });
+        const face = available[Math.floor(Math.random() * available.length)];
+        const mod = MODS[Math.floor(Math.random() * 3)];
+        moves.push(face + mod);
+        secondLastFace = lastFace;
+        lastFace = face;
+      }
+      return moves.join(' ');
+    }
+
+    function applyScrambleToState(scramble) {
+      resetCubeState();
+      const moves = scramble.trim().split(/\s+/);
+      moves.forEach(mv => applyMove(mv));
+    }
+
+    // Full move executor for state simulation
+    function applyMove(mv) {
+      const face = mv[0];
+      const mod = mv.slice(1);
+      const times = mod === '2' ? 2 : 1;
+      const cw = mod !== "'";
+      for (let t = 0; t < times; t++) {
+        rotateFace(face, cw);
+      }
+    }
+
+    function rotateFace(face, cw) {
+      // Rotate the 9 stickers on the face itself
+      const f = cubeState[face];
+      const [a, b, c, d, e, g, h, i, j] = [f[0], f[1], f[2], f[3], f[4], f[5], f[6], f[7], f[8]];
+      if (cw) {
+        cubeState[face] = [h, d, a, i, e, b, j, g, c];
+      } else {
+        cubeState[face] = [c, f[5], f[8], b, e, f[7], a, d, f[6]]; // Wait, let me redo this cleanly
+      }
+      // Recompute cleanly
+      const old = [f[0], f[1], f[2], f[3], f[4], f[5], f[6], f[7], f[8]];
+      if (cw) {
+        cubeState[face] = [old[6], old[3], old[0], old[7], old[4], old[1], old[8], old[5], old[2]];
+      } else {
+        cubeState[face] = [old[2], old[5], old[8], old[1], old[4], old[7], old[0], old[3], old[6]];
+      }
+
+      // Rotate adjacent edges — defined for each face
+      const S = cubeState;
+      if (face === 'U') {
+        if (cw) {
+          const tmp = [S.F[0], S.F[1], S.F[2]];
+          [S.F[0], S.F[1], S.F[2]] = [S.R[0], S.R[1], S.R[2]];
+          [S.R[0], S.R[1], S.R[2]] = [S.B[0], S.B[1], S.B[2]];
+          [S.B[0], S.B[1], S.B[2]] = [S.L[0], S.L[1], S.L[2]];
+          [S.L[0], S.L[1], S.L[2]] = tmp;
+        } else {
+          const tmp = [S.F[0], S.F[1], S.F[2]];
+          [S.F[0], S.F[1], S.F[2]] = [S.L[0], S.L[1], S.L[2]];
+          [S.L[0], S.L[1], S.L[2]] = [S.B[0], S.B[1], S.B[2]];
+          [S.B[0], S.B[1], S.B[2]] = [S.R[0], S.R[1], S.R[2]];
+          [S.R[0], S.R[1], S.R[2]] = tmp;
+        }
+      } else if (face === 'D') {
+        if (cw) {
+          const tmp = [S.F[6], S.F[7], S.F[8]];
+          [S.F[6], S.F[7], S.F[8]] = [S.L[6], S.L[7], S.L[8]];
+          [S.L[6], S.L[7], S.L[8]] = [S.B[6], S.B[7], S.B[8]];
+          [S.B[6], S.B[7], S.B[8]] = [S.R[6], S.R[7], S.R[8]];
+          [S.R[6], S.R[7], S.R[8]] = tmp;
+        } else {
+          const tmp = [S.F[6], S.F[7], S.F[8]];
+          [S.F[6], S.F[7], S.F[8]] = [S.R[6], S.R[7], S.R[8]];
+          [S.R[6], S.R[7], S.R[8]] = [S.B[6], S.B[7], S.B[8]];
+          [S.B[6], S.B[7], S.B[8]] = [S.L[6], S.L[7], S.L[8]];
+          [S.L[6], S.L[7], S.L[8]] = tmp;
+        }
+      } else if (face === 'R') {
+        if (cw) {
+          const tmp = [S.U[2], S.U[5], S.U[8]];
+          [S.U[2], S.U[5], S.U[8]] = [S.F[2], S.F[5], S.F[8]];
+          [S.F[2], S.F[5], S.F[8]] = [S.D[2], S.D[5], S.D[8]];
+          [S.D[2], S.D[5], S.D[8]] = [S.B[6], S.B[3], S.B[0]];
+          [S.B[6], S.B[3], S.B[0]] = tmp;
+        } else {
+          const tmp = [S.U[2], S.U[5], S.U[8]];
+          [S.U[2], S.U[5], S.U[8]] = [S.B[6], S.B[3], S.B[0]];
+          [S.B[6], S.B[3], S.B[0]] = [S.D[2], S.D[5], S.D[8]];
+          [S.D[2], S.D[5], S.D[8]] = [S.F[2], S.F[5], S.F[8]];
+          [S.F[2], S.F[5], S.F[8]] = tmp;
+        }
+      } else if (face === 'L') {
+        if (cw) {
+          const tmp = [S.U[0], S.U[3], S.U[6]];
+          [S.U[0], S.U[3], S.U[6]] = [S.B[8], S.B[5], S.B[2]];
+          [S.B[8], S.B[5], S.B[2]] = [S.D[0], S.D[3], S.D[6]];
+          [S.D[0], S.D[3], S.D[6]] = [S.F[0], S.F[3], S.F[6]];
+          [S.F[0], S.F[3], S.F[6]] = tmp;
+        } else {
+          const tmp = [S.U[0], S.U[3], S.U[6]];
+          [S.U[0], S.U[3], S.U[6]] = [S.F[0], S.F[3], S.F[6]];
+          [S.F[0], S.F[3], S.F[6]] = [S.D[0], S.D[3], S.D[6]];
+          [S.D[0], S.D[3], S.D[6]] = [S.B[8], S.B[5], S.B[2]];
+          [S.B[8], S.B[5], S.B[2]] = tmp;
+        }
+      } else if (face === 'F') {
+        if (cw) {
+          const tmp = [S.U[6], S.U[7], S.U[8]];
+          [S.U[6], S.U[7], S.U[8]] = [S.L[8], S.L[5], S.L[2]];
+          [S.L[8], S.L[5], S.L[2]] = [S.D[2], S.D[1], S.D[0]];
+          [S.D[2], S.D[1], S.D[0]] = [S.R[0], S.R[3], S.R[6]];
+          [S.R[0], S.R[3], S.R[6]] = tmp;
+        } else {
+          const tmp = [S.U[6], S.U[7], S.U[8]];
+          [S.U[6], S.U[7], S.U[8]] = [S.R[0], S.R[3], S.R[6]];
+          [S.R[0], S.R[3], S.R[6]] = [S.D[2], S.D[1], S.D[0]];
+          [S.D[2], S.D[1], S.D[0]] = [S.L[8], S.L[5], S.L[2]];
+          [S.L[8], S.L[5], S.L[2]] = tmp;
+        }
+      } else if (face === 'B') {
+        if (cw) {
+          const tmp = [S.U[0], S.U[1], S.U[2]];
+          [S.U[0], S.U[1], S.U[2]] = [S.R[2], S.R[5], S.R[8]];
+          [S.R[2], S.R[5], S.R[8]] = [S.D[8], S.D[7], S.D[6]];
+          [S.D[8], S.D[7], S.D[6]] = [S.L[6], S.L[3], S.L[0]];
+          [S.L[6], S.L[3], S.L[0]] = tmp;
+        } else {
+          const tmp = [S.U[0], S.U[1], S.U[2]];
+          [S.U[0], S.U[1], S.U[2]] = [S.L[6], S.L[3], S.L[0]];
+          [S.L[6], S.L[3], S.L[0]] = [S.D[8], S.D[7], S.D[6]];
+          [S.D[8], S.D[7], S.D[6]] = [S.R[2], S.R[5], S.R[8]];
+          [S.R[2], S.R[5], S.R[8]] = tmp;
+        }
+      }
+    }
+
+    // ============================================================
+    //  SCRAMBLER UI (Tab 1)
+    // ============================================================
+    const scrLengthSlider = document.getElementById('scr-length');
+    const scrLengthDisplay = document.getElementById('scr-length-display');
+    const scrambleDisplay = document.getElementById('scramble-display');
+
+    scrLengthSlider.addEventListener('input', () => {
+      scrLengthDisplay.textContent = scrLengthSlider.value;
+    });
+
+    function renderScrambleText(scr) {
+      if (!scr) {
+        scrambleDisplay.textContent = 'Press Generate';
+        return;
+      }
+      const moves = scr.split(' ');
+      scrambleDisplay.innerHTML = moves.map(m => {
+        let cls = 'move';
+        if (m.includes("'")) cls += ' prime';
+        else if (m.includes('2')) cls += ' double';
+        return `<span class="${cls}">${m}</span>`;
+      }).join(' ');
+    }
+
+    function renderScramblePreview(state) {
+      ['U', 'D', 'F', 'B', 'R', 'L'].forEach(face => {
+        const el = document.getElementById('scrprev-' + face);
+        if (!el) return;
+        el.innerHTML = '';
+        state[face].forEach(color => {
+          const c = document.createElement('div');
+          c.className = 'scr-cell';
+          c.setAttribute('data-color', color);
+          el.appendChild(c);
+        });
+      });
+    }
+
+    function doGenerateScramble() {
+      const len = parseInt(scrLengthSlider.value);
+      currentScramble = generateScramble(len);
+      renderScrambleText(currentScramble);
+      applyScrambleToState(currentScramble);
+      renderScramblePreview(cubeState);
+      // Add to history
+      scrHistory.unshift(currentScramble);
+      if (scrHistory.length > 20) scrHistory.pop();
+      renderScrHistory();
+      // Update timer scramble display
+      if (document.getElementById('set-showscramble').checked) {
+        document.getElementById('timer-current-scramble').textContent = currentScramble;
+      }
+    }
+
+    function renderScrHistory() {
+      const list = document.getElementById('scr-history-list');
+      if (scrHistory.length === 0) {
+        list.innerHTML = '<li style="color:var(--text-muted); font-size:13px; text-align:center; padding:20px 0; background:none;">No history yet</li>';
+        return;
+      }
+      list.innerHTML = scrHistory.map((s, i) =>
+        `<li><span class="idx">#${i+1}</span>${s}</li>`
+      ).join('');
+    }
+
+    document.getElementById('btn-gen-scramble').addEventListener('click', doGenerateScramble);
+    document.getElementById('btn-copy-scramble').addEventListener('click', () => {
+      if (!currentScramble) return;
+      navigator.clipboard?.writeText(currentScramble).then(() => showToast('Scramble copied!')).catch(() => showToast(currentScramble));
+    });
+    document.getElementById('btn-clear-history').addEventListener('click', () => {
+      scrHistory = [];
+      renderScrHistory();
+    });
+
+    // Init scramble preview with solved state
+    renderScramblePreview(cubeState);
+
+    // ============================================================
+    //  TIMER (Tab 2)
+    // ============================================================
+    let timerState = 'idle'; // idle, inspection, armed, running, stopped
+    let timerStart = 0;
+    let timerElapsed = 0;
+    let timerRAF = null;
+    let inspectionInterval = null;
+    let inspectionTime = 0;
+    let holdTimeout = null;
+    let armStart = null;
+    let times = []; // {ms, dnf, p2}
+    let lastWasActive = false;
+
+    const timerDisplay = document.getElementById('timer-display');
+    const timerLabel = document.getElementById('timer-label');
+    const timerHint = document.getElementById('timer-hint');
+    const inspFill = document.getElementById('inspection-bar-fill');
+
+    function getSettings() {
+      return {
+        inspection: document.getElementById('set-inspection').checked,
+        inspWarn: document.getElementById('set-insp-warn').checked,
+        holdStart: document.getElementById('set-holdstart').checked,
+        autoScr: document.getElementById('set-autoscramble').checked,
+        showScr: document.getElementById('set-showscramble').checked,
+      };
+    }
+
+    function updateTimerDisplay(ms) {
+      timerDisplay.textContent = fmtTime(ms);
+    }
+
+    function timerTick() {
+      timerElapsed = Date.now() - timerStart;
+      updateTimerDisplay(timerElapsed);
+      timerRAF = requestAnimationFrame(timerTick);
+    }
+
+    function startInspection() {
+      timerState = 'inspection';
+      inspectionTime = 15;
+      timerLabel.textContent = 'INSPECTION';
+      timerDisplay.className = 'inspection';
+      timerDisplay.textContent = '15';
+      timerHint.textContent = 'Tap to start solving';
+      inspFill.style.transform = 'scaleX(1)';
+      inspFill.style.background = 'var(--green)';
+
+      let warned8 = false,
+        warned12 = false,
+        warnedPlus2 = false;
+      let start = Date.now();
+
+      inspectionInterval = setInterval(() => {
+        const elapsed = (Date.now() - start) / 1000;
+        inspectionTime = Math.max(0, 15 - elapsed);
+        const pct = Math.max(0, inspectionTime / 15);
+        inspFill.style.transform = `scaleX(${pct})`;
+
+        if (elapsed >= 17) {
+          clearInterval(inspectionInterval);
+          timerDisplay.textContent = 'DNF';
+          timerDisplay.className = 'penalty';
+          timerLabel.textContent = 'DNF — TOO SLOW';
+          timerHint.textContent = 'Inspection exceeded 17s';
+          timerState = 'idle';
+          return;
+        }
+        if (elapsed >= 15 && !warnedPlus2) {
+          warnedPlus2 = true;
+          timerDisplay.textContent = '+2';
+          timerDisplay.className = 'penalty';
+          timerLabel.textContent = '+2 PENALTY';
+          inspFill.style.background = 'var(--red-d)';
+          if (getSettings().inspWarn) speak('Plus two');
+        }
+        if (elapsed >= 12 && !warned12) {
+          warned12 = true;
+          if (getSettings().inspWarn) speak('12');
+        }
+        if (elapsed >= 8 && !warned8) {
+          warned8 = true;
+          if (getSettings().inspWarn) speak('8');
+        }
+        if (inspectionTime > 0 && !warnedPlus2) {
+          timerDisplay.textContent = Math.ceil(inspectionTime).toString();
+        }
+      }, 50);
+    }
+
+    function speak(text) {
+      try {
+        const u = new SpeechSynthesisUtterance(text);
+        u.volume = 0.7;
+        u.rate = 1.2;
+        window.speechSynthesis.speak(u);
+      } catch (e) {}
+    }
+
+    function startSolve(fromInspection = false) {
+      if (inspectionInterval) {
+        clearInterval(inspectionInterval);
+        inspectionInterval = null;
+      }
+      inspFill.style.transform = 'scaleX(0)';
+      timerState = 'running';
+      timerDisplay.className = 'running';
+      timerLabel.textContent = 'SOLVING';
+      timerHint.textContent = 'Tap to stop';
+      timerStart = Date.now();
+      timerElapsed = 0;
+      updateTimerDisplay(0);
+      timerRAF = requestAnimationFrame(timerTick);
+    }
+
+    function stopSolve() {
+      cancelAnimationFrame(timerRAF);
+      timerRAF = null;
+      timerState = 'stopped';
+      timerDisplay.className = '';
+      timerLabel.textContent = 'SOLVED';
+      timerHint.textContent = 'Hold to start new solve';
+
+      const ms = timerElapsed;
+      times.unshift({
+        ms,
+        dnf: false,
+        p2: false
+      });
+      renderTimeList();
+      updateStats();
+
+      if (getSettings().autoScr) {
+        doGenerateScramble();
+      }
+      if (getSettings().showScr) {
+        document.getElementById('timer-current-scramble').textContent = currentScramble || '';
+      }
+    }
+
+    function timerPointerDown(e) {
+      e.preventDefault();
+      if (timerState === 'idle' || timerState === 'stopped') {
+        const s = getSettings();
+        if (s.inspection) {
+          if (s.holdStart) {
+            armStart = Date.now();
+            timerDisplay.className = 'armed';
+            holdTimeout = setTimeout(() => {
+              timerDisplay.className = 'armed';
+              timerLabel.textContent = 'RELEASE TO START INSPECTION';
+              lastWasActive = true;
+            }, 300);
+          } else {
+            startInspection();
+          }
+        } else {
+          if (s.holdStart) {
+            armStart = Date.now();
+            timerDisplay.className = 'armed';
+            holdTimeout = setTimeout(() => {
+              timerDisplay.className = 'armed';
+              timerLabel.textContent = 'RELEASE TO START';
+              lastWasActive = true;
+            }, 300);
+          } else {
+            startSolve();
+          }
+        }
+      } else if (timerState === 'inspection') {
+        armStart = Date.now();
+        holdTimeout = setTimeout(() => {
+          timerDisplay.className = 'armed';
+          timerLabel.textContent = 'RELEASE TO START';
+          lastWasActive = true;
+        }, 300);
+      } else if (timerState === 'running') {
+        stopSolve();
+      }
+    }
+
+    function timerPointerUp(e) {
+      e.preventDefault();
+      clearTimeout(holdTimeout);
+      if (!lastWasActive) {
+        // short tap
+        if (timerState === 'inspection') {
+          // short tap on inspection starts solve
+          startSolve(true);
+        }
+        lastWasActive = false;
+        return;
+      }
+      lastWasActive = false;
+      const s = getSettings();
+      if (timerState === 'idle' || timerState === 'stopped') {
+        if (s.inspection) {
+          startInspection();
+        } else {
+          startSolve();
+        }
+        timerDisplay.className = '';
+      } else if (timerState === 'inspection') {
+        startSolve(true);
+      }
+    }
+
+    const timerArea = document.getElementById('timer-area');
+    timerArea.addEventListener('touchstart', timerPointerDown, {
+      passive: false
+    });
+    timerArea.addEventListener('touchend', timerPointerUp, {
+      passive: false
+    });
+    timerArea.addEventListener('mousedown', timerPointerDown);
+    timerArea.addEventListener('mouseup', timerPointerUp);
+
+    // Stats
+    function calcAo(arr, n) {
+      if (arr.length < n) return null;
+      const recent = arr.slice(0, n).map(t => t.dnf ? Infinity : (t.p2 ? t.ms + 2000 : t.ms));
+      if (recent.filter(t => t === Infinity).length > 1) return Infinity;
+      const sorted = [...recent].sort((a, b) => a - b);
+      const trimmed = sorted.slice(1, n - 1);
+      return trimmed.reduce((a, b) => a + b, 0) / trimmed.length;
+    }
+
+    function calcMean(arr) {
+      if (!arr.length) return null;
+      const valid = arr.filter(t => !t.dnf).map(t => t.p2 ? t.ms + 2000 : t.ms);
+      if (!valid.length) return null;
+      return valid.reduce((a, b) => a + b, 0) / valid.length;
+    }
+
+    function updateStats() {
+      const best = times.filter(t => !t.dnf).reduce((a, b) => {
+        const bms = b.p2 ? b.ms + 2000 : b.ms;
+        return a === null || bms < a ? bms : a;
+      }, null);
+      const worst = times.filter(t => !t.dnf).reduce((a, b) => {
+        const bms = b.p2 ? b.ms + 2000 : b.ms;
+        return a === null || bms > a ? bms : a;
+      }, null);
+      const ao5 = calcAo(times, 5);
+      const ao12 = calcAo(times, 12);
+      const mean = calcMean(times);
+
+      document.getElementById('stat-best').textContent = best !== null ? fmtTime(best) : '—';
+      document.getElementById('stat-worst').textContent = worst !== null ? fmtTime(worst) : '—';
+      document.getElementById('stat-count').textContent = times.length;
+      document.getElementById('stat-ao5').textContent = ao5 === null ? '—' : ao5 === Infinity ? 'DNF' : fmtTime(ao5);
+      document.getElementById('stat-ao12').textContent = ao12 === null ? '—' : ao12 === Infinity ? 'DNF' : fmtTime(ao12);
+      document.getElementById('stat-mean').textContent = mean !== null ? fmtTime(mean) : '—';
+    }
+
+    function renderTimeList() {
+      const list = document.getElementById('time-list');
+      if (!times.length) {
+        list.innerHTML = '';
+        return;
+      }
+      const bestMs = Math.min(...times.filter(t => !t.dnf).map(t => t.p2 ? t.ms + 2000 : t.ms));
+      const worstMs = Math.max(...times.filter(t => !t.dnf).map(t => t.p2 ? t.ms + 2000 : t.ms));
+      list.innerHTML = times.map((t, i) => {
+        const ms = t.p2 ? t.ms + 2000 : t.ms;
+        let cls = '';
+        if (!t.dnf) {
+          if (ms === bestMs) cls = 'is-best';
+          else if (ms === worstMs && times.length > 1) cls = 'is-worst';
+        }
+        if (t.dnf) cls = 'dnf';
+        return `<li>
+      <span class="t-num">${times.length - i}</span>
+      <span class="t-time ${cls}">${fmtTime(t.ms, t.dnf, t.p2)}</span>
+      <button class="t-del" data-idx="${i}">✕</button>
+    </li>`;
+      }).join('');
+      list.querySelectorAll('.t-del').forEach(btn => {
+        btn.addEventListener('click', e => {
+          const idx = parseInt(e.target.getAttribute('data-idx'));
+          times.splice(idx, 1);
+          renderTimeList();
+          updateStats();
+        });
+      });
+    }
+
+    // +2 / DNF buttons
+    document.getElementById('btn-timer-plus2').addEventListener('click', () => {
+      if (!times.length) return;
+      if (times[0].dnf) {
+        times[0].dnf = false;
+      }
+      times[0].p2 = !times[0].p2;
+      renderTimeList();
+      updateStats();
+      showToast(times[0].p2 ? '+2 applied' : '+2 removed');
+    });
+    document.getElementById('btn-timer-dnf').addEventListener('click', () => {
+      if (!times.length) return;
+      times[0].dnf = !times[0].dnf;
+      if (times[0].dnf) times[0].p2 = false;
+      renderTimeList();
+      updateStats();
+      showToast(times[0].dnf ? 'DNF applied' : 'DNF removed');
+    });
+    document.getElementById('btn-timer-delete').addEventListener('click', () => {
+      if (!times.length) return;
+      times.shift();
+      renderTimeList();
+      updateStats();
+      showToast('Last time deleted');
+    });
+
+    // ============================================================
+    //  SOLVER / CUBE EDITOR (Tab 3)
+    // ============================================================
+    let selectedColor = 'white';
+    let cube3dRotX = -25;
+    let cube3dRotY = 35;
+
+    // Init net editor
+    function buildNet() {
+      ['U', 'D', 'F', 'B', 'R', 'L'].forEach(face => {
+        const el = document.getElementById('net-' + face);
+        el.innerHTML = '';
+        for (let i = 0; i < 9; i++) {
+          const cell = document.createElement('div');
+          cell.className = 'net-cell' + (i === 4 ? ' center-cell' : '');
+          cell.setAttribute('data-face', face);
+          cell.setAttribute('data-idx', i);
+          cell.setAttribute('data-color', cubeState[face][i]);
+          el.appendChild(cell);
+          if (i !== 4) {
+            cell.addEventListener('click', () => {
+              cubeState[face][i] = selectedColor;
+              cell.setAttribute('data-color', selectedColor);
+              update3DCube();
+            });
+          }
+        }
+      });
+    }
+
+    function syncNetFromState() {
+      ['U', 'D', 'F', 'B', 'R', 'L'].forEach(face => {
+        const el = document.getElementById('net-' + face);
+        if (!el) return;
+        el.querySelectorAll('.net-cell').forEach((cell, i) => {
+          cell.setAttribute('data-color', cubeState[face][i]);
+        });
+      });
+    }
+
+    function update3DCube() {
+      ['U', 'D', 'F', 'B', 'R', 'L'].forEach(face => {
+        const el = document.getElementById('3d-' + face);
+        if (!el) return;
+        el.innerHTML = '';
+        cubeState[face].forEach(color => {
+          const c = document.createElement('div');
+          c.className = 'cell-3d';
+          c.setAttribute('data-color', color);
+          el.appendChild(c);
+        });
+      });
+    }
+
+    function resetCubeUI() {
+      resetCubeState();
+      syncNetFromState();
+      update3DCube();
+    }
+
+    buildNet();
+    update3DCube();
+
+    // Color palette
+    document.getElementById('color-palette').querySelectorAll('.palette-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.palette-btn').forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+        selectedColor = btn.getAttribute('data-color');
+      });
+    });
+
+    document.getElementById('btn-reset-cube').addEventListener('click', () => {
+      resetCubeUI();
+      showToast('Cube reset to solved');
+    });
+
+    document.getElementById('btn-scramble-to-solver').addEventListener('click', () => {
+      if (!currentScramble) {
+        showToast('Generate a scramble first!');
+        return;
+      }
+      applyScrambleToState(currentScramble);
+      syncNetFromState();
+      update3DCube();
+      showToast('Scramble applied to cube');
+    });
+
+    // 3D cube drag rotation
+    let dragStartX = 0,
+      dragStartY = 0,
+      dragging = false;
+    const cube3dEl = document.getElementById('cube3d');
+    const cube3dContainer = document.getElementById('cube3d-container');
+
+    function setCubeTransform() {
+      cube3dEl.style.transform = `rotateX(${cube3dRotX}deg) rotateY(${cube3dRotY}deg)`;
+    }
+
+    cube3dContainer.addEventListener('touchstart', e => {
+      e.stopPropagation();
+      const t = e.touches[0];
+      dragStartX = t.clientX;
+      dragStartY = t.clientY;
+      dragging = true;
+    }, {
+      passive: true
+    });
+
+    cube3dContainer.addEventListener('touchmove', e => {
+      if (!dragging) return;
+      e.stopPropagation();
+      const t = e.touches[0];
+      cube3dRotY += (t.clientX - dragStartX) * 0.5;
+      cube3dRotX -= (t.clientY - dragStartY) * 0.5;
+      dragStartX = t.clientX;
+      dragStartY = t.clientY;
+      setCubeTransform();
+    }, {
+      passive: true
+    });
+
+    cube3dContainer.addEventListener('touchend', () => {
+      dragging = false;
+    });
+    cube3dContainer.addEventListener('mousedown', e => {
+      dragStartX = e.clientX;
+      dragStartY = e.clientY;
+      dragging = true;
+    });
+    document.addEventListener('mousemove', e => {
+      if (!dragging) return;
+      cube3dRotY += (e.clientX - dragStartX) * 0.5;
+      cube3dRotX -= (e.clientY - dragStartY) * 0.5;
+      dragStartX = e.clientX;
+      dragStartY = e.clientY;
+      setCubeTransform();
+    });
+    document.addEventListener('mouseup', () => {
+      dragging = false;
+    });
+
+    // Method steps
+    const METHOD_DATA = {
+      beginner: {
+        title: '7-Step Beginner (Layer-by-Layer)',
+        steps: [{
+            num: 'Step 1',
+            name: 'White Cross',
+            desc: 'Solve the 4 white edge pieces on the top layer to form a cross. Ensure each edge matches the center color on the sides.',
+            alg: ''
+          },
+          {
+            num: 'Step 2',
+            name: 'White Corners',
+            desc: 'Insert the 4 white corner pieces to complete the first layer. Position each corner below its target slot, then apply the "sexy move" until solved.',
+            alg: 'R U R\' U\' (repeat until corner solved)'
+          },
+          {
+            num: 'Step 3',
+            name: 'Middle Layer Edges',
+            desc: 'Flip the cube over. Solve the 4 middle layer edge pieces using one of two algorithms depending on which direction the piece needs to go.',
+            alg: 'Right: U R U\' R\' U\' F\' U F\nLeft:  U\' L\' U L U F U\' F\''
+          },
+          {
+            num: 'Step 4',
+            name: 'Yellow Cross (OLL Edges)',
+            desc: 'Form a yellow cross on top. Don\'t worry about side colors yet. Identify if you have a dot, L-shape, or line, then apply the algorithm.',
+            alg: 'F R U R\' U\' F\''
+          },
+          {
+            num: 'Step 5',
+            name: 'Align Yellow Edges',
+            desc: 'Rotate the yellow edge pieces so they match their side center colors. May need to apply the algorithm up to 3 times.',
+            alg: 'R U R\' U R U2 R\''
+          },
+          {
+            num: 'Step 6',
+            name: 'Position Yellow Corners',
+            desc: 'Move the yellow corners to their correct positions (don\'t worry about orientation yet). Find a correct corner and keep it in the front-right.',
+            alg: 'U R U\' L\' U R\' U\' L'
+          },
+          {
+            num: 'Step 7',
+            name: 'Orient Yellow Corners',
+            desc: 'Twist each corner into its correct orientation. Apply the algorithm 2 or 4 times per corner. DO NOT rotate the cube between corners!',
+            alg: 'R\' D\' R D (repeat 2–6×)'
+          },
+        ]
+      },
+      '2look': {
+        title: '2-Look CFOP (16 Algorithms)',
+        steps: [{
+            num: 'Phase 1',
+            name: 'Cross (Bottom)',
+            desc: 'Solve the cross on the BOTTOM face. Practice planning the cross during inspection. Aim to solve it in 8 moves or fewer.',
+            alg: 'Intuitive — no fixed algorithm'
+          },
+          {
+            num: 'Phase 2',
+            name: 'F2L — Intuitive',
+            desc: 'Pair corner + edge pieces and insert them into the four F2L slots simultaneously. Learn the 4 basic cases intuitively before using algorithms.',
+            alg: 'U R U\' R\' (right insert)\nU\' F\' U F (left insert)'
+          },
+          {
+            num: 'Phase 3',
+            name: '2-Look OLL — Cross',
+            desc: 'Make a yellow cross on top using the cross algorithm. Identify: dot, L-shape, or line. Apply algorithm until you get the cross.',
+            alg: 'Cross:  F R U R\' U\' F\'\nL-shape: f R U R\' U\' f\'\nDot:    F R U R\' U\' F\' then L-shape'
+          },
+          {
+            num: 'Phase 4',
+            name: '2-Look OLL — Corners',
+            desc: 'Orient the 4 yellow corners using one of 7 cases (Sune, Anti-Sune, Pi, H, T, L, or U-shape).',
+            alg: 'Sune:     R U R\' U R U2 R\'\nAnti-Sune: R\' U\' R U\' R\' U2 R\nPi:        R U2 R2 U\' R2 U\' R2 U2 R'
+          },
+          {
+            num: 'Phase 5',
+            name: '2-Look PLL — Edges',
+            desc: 'Permute the last layer edges using Ua, Ub, Z, or H perm. First check if edges are already solved.',
+            alg: 'Ua: R U\' R U R U R U\' R\' U\' R2\nUb: R2 U R U R\' U\' R\' U\' R\' U R\'\nH:  M2 U M2 U2 M2 U M2\nZ:  M2 U M2 U M\' U2 M2 U2 M\' U2'
+          },
+          {
+            num: 'Phase 6',
+            name: '2-Look PLL — Corners',
+            desc: 'Permute the last layer corners. If corners are solved, skip. Otherwise apply Aa or Ab perm.',
+            alg: 'Aa: x R\' U R\' D2 R U\' R\' D2 R2 x\'\nAb: x R2 D2 R U R\' D2 R U\' R x\''
+          },
+        ]
+      },
+      cfop: {
+        title: 'Full CFOP (Fridrich Method)',
+        steps: [{
+            num: 'Step 1',
+            name: 'Cross',
+            desc: 'Solve the cross on the bottom in 8 moves or fewer. Plan during inspection. White/green/red edges first — color-neutral is faster at advanced level.',
+            alg: 'Intuitive — plan in inspection'
+          },
+          {
+            num: 'Step 2',
+            name: 'F2L (41 cases)',
+            desc: 'Solve all 4 corner-edge pairs simultaneously. Pair them in the U layer, then insert. Algorithmic F2L covers all 41 cases for maximum efficiency.',
+            alg: 'Basic: y\' U R U\' R\' F\' U\' F\nSplit: R U\' R\' U R U\' R\'\nConnected (basic): R U R\''
+          },
+          {
+            num: 'Step 3',
+            name: 'Full OLL (57 cases)',
+            desc: 'Orient the entire last layer in one look. Learn all 57 algorithms — typically takes months of practice. Reduces OLL to 1 algorithm instead of 2.',
+            alg: 'T: r U R\' U\' r\' F R F\'\nW: R U R\' U R U\' R\' U\' R\' F R F\'\n(see Reference tab for full list)'
+          },
+          {
+            num: 'Step 4',
+            name: 'Full PLL (21 cases)',
+            desc: 'Permute the last layer in one look using all 21 PLL algorithms. Recognition is key — learn to identify cases from 2 looks or less.',
+            alg: 'T: R U R\' U\' R\' F R2 U\' R\' U\' R U R\' F\'\nY: F R U\' R\' U\' R U R\' F\' R U R\' U\' R\' F R F\'\n(see Reference tab for full list)'
+          },
+        ]
+      },
+      roux: {
+        title: 'Roux Method',
+        steps: [{
+            num: 'Step 1',
+            name: 'Build Left Block (FB)',
+            desc: 'Build a 1×2×3 block on the left side. This is a 2×2×3 block with the left center. All done intuitively through blockbuilding.',
+            alg: 'Intuitive blockbuilding\nTarget: Left 1×2×3 block'
+          },
+          {
+            num: 'Step 2',
+            name: 'Build Right Block (FB)',
+            desc: 'Build a matching 1×2×3 block on the right side without disturbing the left block. Only M-slice and U moves can be used after this.',
+            alg: 'Intuitive blockbuilding\nTarget: Right 1×2×3 block'
+          },
+          {
+            num: 'Step 3',
+            name: 'CMLL — Top Corners',
+            desc: 'Orient and permute the 4 U-layer corners. Uses 42 algorithms (similar to COLL). M-slice is not used here.',
+            alg: '42 CMLL algorithms\nExample (Sune): R U R\' U R U2 R\''
+          },
+          {
+            num: 'Step 4a',
+            name: 'LSE — UL/UR Edges',
+            desc: 'Solve the UL and UR edges of the top layer using only M and U moves.',
+            alg: 'M U2 M\' — flip and insert\nU M\' U\' M — basic LSE move'
+          },
+          {
+            num: 'Step 4b',
+            name: 'LSE — Edge Orientation',
+            desc: 'Orient all remaining edges (EO). All bad edges must point the same way.',
+            alg: 'M U M U M U2 M\' U M\' U M\' U2\nand variations'
+          },
+          {
+            num: 'Step 4c',
+            name: 'LSE — Edge Permutation',
+            desc: 'Permute the last 6 edges (UF, UB, DF, DB, M-slice edges) to solve the cube.',
+            alg: 'M2 U2 M2 U2 — H-perm equivalent\nM\' U2 M — insert UF edge'
+          },
+        ]
+      },
+      zz: {
+        title: 'ZZ Method',
+        steps: [{
+            num: 'Step 1',
+            name: 'EOLine',
+            desc: 'Orient all 12 edges AND create a line of DF and DB edges simultaneously. This is the hardest step to learn but enables restriction to only R, U, L moves afterward.',
+            alg: 'F/B moves solve EO, then\nsolve DL–DR line intuitively'
+          },
+          {
+            num: 'Step 2',
+            name: 'Left Block (ZZF2L)',
+            desc: 'Solve the left 1×2×3 block using only R, U, L moves (no F or B needed after EOLine).',
+            alg: 'R-U-L moves only\nInternal blockbuilding'
+          },
+          {
+            num: 'Step 3',
+            name: 'Right Block (ZZF2L)',
+            desc: 'Solve the right 1×2×3 block. After both blocks, F2L is complete. The restriction to R-U-L makes for very ergonomic fingertricks.',
+            alg: 'R-U-L moves only\nNo cube rotation needed'
+          },
+          {
+            num: 'Step 4',
+            name: 'ZBLL — Last Layer (493 algs)',
+            desc: 'Because EO was done in step 1, the last layer can always be solved in 1 look with 0 edge flips. Full ZBLL = 493 algorithms. Most ZZ users start with 2-Look (OCLL + PLL).',
+            alg: 'Full ZBLL: 493 algorithms\n2-Look: OCLL + PLL (27 algs total)'
+          },
+        ]
+      }
+    };
+
+    document.getElementById('method-select').addEventListener('change', function() {
+      const method = this.value;
+      const container = document.getElementById('method-steps');
+      if (!method || !METHOD_DATA[method]) {
+        container.innerHTML = '';
+        container.classList.remove('visible');
+        return;
+      }
+      const data = METHOD_DATA[method];
+      container.innerHTML = `
+    <p class="section-title">${data.title}</p>
+    ${data.steps.map((s, i) => `
+      <div class="step-item" style="border-left-color: hsl(${260 + i*20}, 70%, 65%)">
+        <div class="step-num">${s.num}</div>
+        <div class="step-name">${s.name}</div>
+        <div class="step-desc">${s.desc}</div>
+        ${s.alg ? `<div class="step-alg">${s.alg.replace(/\n/g,'<br>')}</div>` : ''}
+      </div>
+    `).join('')}
+  `;
+      container.classList.add('visible');
+    });
+
+    // ============================================================
+    //  REFERENCE — Full OLL / PLL tables
+    // ============================================================
+    const FULL_OLL = [{
+        n: 'OLL 1',
+        a: 'R U2 R2 F R F\' U2 R\' F R F\''
+      }, {
+        n: 'OLL 2',
+        a: 'r U r\' U2 r U2 R\' U2 R U\' r\''
+      },
+      {
+        n: 'OLL 3',
+        a: 'r\' R2 U R\' U r U2 r\' U M\''
+      }, {
+        n: 'OLL 4',
+        a: 'M U\' r U2 r\' U\' R U\' R\' M\''
+      },
+      {
+        n: 'OLL 5',
+        a: 'r\' U2 R U R\' U r'
+      }, {
+        n: 'OLL 6',
+        a: 'r U2 R\' U\' R U\' r\''
+      },
+      {
+        n: 'OLL 7',
+        a: 'r U R\' U R U2 r\''
+      }, {
+        n: 'OLL 8',
+        a: 'r\' U\' R U\' R\' U2 r'
+      },
+      {
+        n: 'OLL 9',
+        a: 'R U R\' U\' R\' F R2 U R\' U\' F\''
+      }, {
+        n: 'OLL 10',
+        a: 'R U R\' U R\' F R F\' R U2 R\''
+      },
+      {
+        n: 'OLL 11',
+        a: 'r\' R2 U R\' U R U2 R\' U M\''
+      }, {
+        n: 'OLL 12',
+        a: 'M\' R\' U\' R U\' R\' U2 R U\' R r\''
+      },
+      {
+        n: 'OLL 13',
+        a: 'F U R U\' R2 F\' R U R U\' R\''
+      }, {
+        n: 'OLL 14',
+        a: 'R\' F R U R\' F\' R F U\' F\''
+      },
+      {
+        n: 'OLL 15',
+        a: 'r\' U\' r R\' U\' R U r\' U r'
+      }, {
+        n: 'OLL 16',
+        a: 'r U r\' R U R\' U\' r U\' r\''
+      },
+      {
+        n: 'OLL 17',
+        a: 'R U R\' U R\' F R F\' U2 R\' F R F\''
+      }, {
+        n: 'OLL 18',
+        a: 'r U R\' U R U2 r2 U\' R U\' R\' U2 r'
+      },
+      {
+        n: 'OLL 19',
+        a: 'r\' R U R U R\' U\' r R2\' F R F\''
+      }, {
+        n: 'OLL 20',
+        a: 'r U R\' U\' M2 U R U\' R\' U\' M\''
+      },
+      {
+        n: 'OLL 21',
+        a: 'R U2 R\' U\' R U R\' U\' R U\' R\''
+      }, {
+        n: 'OLL 22',
+        a: 'R U2 R2 U\' R2 U\' R2 U2 R'
+      },
+      {
+        n: 'OLL 23',
+        a: 'R2 D\' R U2 R\' D R U2 R'
+      }, {
+        n: 'OLL 24',
+        a: 'r U R\' U\' r\' F R F\''
+      },
+      {
+        n: 'OLL 25',
+        a: 'F\' r U R\' U\' r\' F R'
+      }, {
+        n: 'OLL 26',
+        a: 'R U2 R\' U\' R U\' R\''
+      },
+      {
+        n: 'OLL 27',
+        a: 'R U R\' U R U2 R\''
+      }, {
+        n: 'OLL 28',
+        a: 'r U R\' U\' r\' R U R U\' R\''
+      },
+      {
+        n: 'OLL 29',
+        a: 'R U R\' U\' R U\' R\' F\' U\' F R U R\''
+      }, {
+        n: 'OLL 30',
+        a: 'F R\' F R2 U\' R\' U\' R U R\' F2'
+      },
+      {
+        n: 'OLL 31',
+        a: 'R\' U\' F U R U\' R\' F\' R'
+      }, {
+        n: 'OLL 32',
+        a: 'L U F\' U\' L\' U L F L\''
+      },
+      {
+        n: 'OLL 33',
+        a: 'R U R\' U\' R\' F R F\''
+      }, {
+        n: 'OLL 34',
+        a: 'R U R2 U\' R\' F R U R U\' F\''
+      },
+      {
+        n: 'OLL 35',
+        a: 'R U2 R2 F R F\' R U2 R\''
+      }, {
+        n: 'OLL 36',
+        a: 'L\' U\' L U\' L\' U L U L F\' L\' F'
+      },
+      {
+        n: 'OLL 37',
+        a: 'F R U\' R\' U\' R U R\' F\''
+      }, {
+        n: 'OLL 38',
+        a: 'R U R\' U R U\' R\' U\' R\' F R F\''
+      },
+      {
+        n: 'OLL 39',
+        a: 'L F\' L\' U\' L U F U\' L\''
+      }, {
+        n: 'OLL 40',
+        a: 'R\' F R U R\' U\' F\' U R'
+      },
+      {
+        n: 'OLL 41',
+        a: 'R U R\' U R U2 R\' F R U R\' U\' F\''
+      }, {
+        n: 'OLL 42',
+        a: 'R\' U\' R U\' R\' U2 R F R U R\' U\' F\''
+      },
+      {
+        n: 'OLL 43',
+        a: 'F\' U\' L\' U L F'
+      }, {
+        n: 'OLL 44',
+        a: 'F U R U\' R\' F\''
+      },
+      {
+        n: 'OLL 45',
+        a: 'F R U R\' U\' F\''
+      }, {
+        n: 'OLL 46',
+        a: 'R\' U\' R\' F R F\' U R'
+      },
+      {
+        n: 'OLL 47',
+        a: 'R\' U\' R\' F R F\' R\' F R F\' U R'
+      }, {
+        n: 'OLL 48',
+        a: 'F R U R\' U\' R U R\' U\' F\''
+      },
+      {
+        n: 'OLL 49',
+        a: 'r U\' r2 U r2 U r2 U\' r'
+      }, {
+        n: 'OLL 50',
+        a: 'r\' U r2 U\' r2 U\' r2 U r\''
+      },
+      {
+        n: 'OLL 51',
+        a: 'f R U R\' U\' R U R\' U\' f\''
+      }, {
+        n: 'OLL 52',
+        a: 'R U R\' U R U\' B U\' B\' R\''
+      },
+      {
+        n: 'OLL 53',
+        a: 'r\' U2 R U R\' U\' R U R\' U r'
+      }, {
+        n: 'OLL 54',
+        a: 'r U2 R\' U\' R U R\' U\' R U\' r\''
+      },
+      {
+        n: 'OLL 55',
+        a: 'R U2 R2 U\' R U\' R\' U2 F R F\''
+      }, {
+        n: 'OLL 56',
+        a: 'r U r\' U R U\' R\' U R U\' R\' r U\' r\''
+      },
+      {
+        n: 'OLL 57',
+        a: 'R U R\' U\' M\' U R U\' r\''
+      },
+    ];
+
+    const FULL_PLL = [{
+        n: 'Aa',
+        a: 'x R\' U R\' D2 R U\' R\' D2 R2 x\''
+      }, {
+        n: 'Ab',
+        a: 'x R2 D2 R U R\' D2 R U\' R x\''
+      },
+      {
+        n: 'E',
+        a: 'x\' R U\' R\' D R U R\' D\' R U R\' D R U\' R\' D\' x'
+      },
+      {
+        n: 'F',
+        a: 'R\' U\' F\' R U R\' U\' R\' F R2 U\' R\' U\' R U R\' U R'
+      },
+      {
+        n: 'Ga',
+        a: 'R2 U R\' U R\' U\' R U\' R2 D U\' R\' U R D\''
+      }, {
+        n: 'Gb',
+        a: 'R\' U\' R U D\' R2 U R\' U R U\' R U\' R2 D'
+      },
+      {
+        n: 'Gc',
+        a: 'R2 U\' R U\' R U R\' U R2 D\' U R U\' R\' D'
+      }, {
+        n: 'Gd',
+        a: 'R U R\' U\' D R2 U\' R U\' R\' U R\' U R2 D\''
+      },
+      {
+        n: 'H',
+        a: 'M2 U M2 U2 M2 U M2'
+      }, {
+        n: 'Ja',
+        a: 'x R2 F R F\' R U2 r\' U r U2 x\''
+      },
+      {
+        n: 'Jb',
+        a: 'R U R\' F\' R U R\' U\' R\' F R2 U\' R\' U\''
+      }, {
+        n: 'Na',
+        a: 'R U R\' U R U R\' F\' R U R\' U\' R\' F R2 U\' R\' U2 R U\' R\''
+      },
+      {
+        n: 'Nb',
+        a: 'R\' U R U\' R\' F\' U\' F R U R\' F R\' F\' R U\' R'
+      }, {
+        n: 'Ra',
+        a: 'R U\' R\' U\' R U R D R\' U\' R D\' R\' U2 R\' U\''
+      },
+      {
+        n: 'Rb',
+        a: 'R2 F R U R U\' R\' F\' R U2 R\' U2 R'
+      }, {
+        n: 'T',
+        a: 'R U R\' U\' R\' F R2 U\' R\' U\' R U R\' F\''
+      },
+      {
+        n: 'Ua',
+        a: 'R U\' R U R U R U\' R\' U\' R2'
+      }, {
+        n: 'Ub',
+        a: 'R2 U R U R\' U\' R\' U\' R\' U R\''
+      },
+      {
+        n: 'V',
+        a: 'R\' U R\' d\' R\' F\' R2 U\' R\' U R\' F R F'
+      }, {
+        n: 'Y',
+        a: 'F R U\' R\' U\' R U R\' F\' R U R\' U\' R\' F R F\''
+      },
+      {
+        n: 'Z',
+        a: 'M\' U M2 U M2 U M\' U2 M2'
+      },
+    ];
+
+    function buildOLLGrid() {
+      const g = document.getElementById('full-oll-grid');
+      g.innerHTML = FULL_OLL.map(o => `
+    <div class="oll-card">
+      <div class="oll-name">${o.n}</div>
+      <div class="oll-alg">${o.a}</div>
+    </div>
+  `).join('');
+    }
+
+    function buildPLLGrid() {
+      const g = document.getElementById('full-pll-grid');
+      g.innerHTML = FULL_PLL.map(o => `
+    <div class="oll-card">
+      <div class="oll-name">${o.n}</div>
+      <div class="oll-alg">${o.a}</div>
+    </div>
+  `).join('');
+    }
+
+    buildOLLGrid();
+    buildPLLGrid();
+
+    // ============================================================
+    //  ACCORDIONS (Tab 4)
+    // ============================================================
+    document.querySelectorAll('.ref-accordion').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const key = btn.getAttribute('data-acc');
+        const body = document.querySelector(`.ref-body[data-acc="${key}"]`);
+        const isOpen = body.classList.contains('open');
+        // Close all
+        document.querySelectorAll('.ref-body').forEach(b => b.classList.remove('open'));
+        document.querySelectorAll('.ref-accordion').forEach(b => b.classList.remove('open'));
+        if (!isOpen) {
+          body.classList.add('open');
+          btn.classList.add('open');
+        }
+      });
+    });
+
+    // ============================================================
+    //  SETTINGS
+    // ============================================================
+    document.getElementById('set-showscramble').addEventListener('change', function() {
+      const el = document.getElementById('timer-current-scramble');
+      el.textContent = this.checked ? (currentScramble || '') : '';
+    });
+
+    document.getElementById('btn-clear-all').addEventListener('click', () => {
+      if (confirm('Clear all times and scramble history?')) {
+        times = [];
+        scrHistory = [];
+        currentScramble = '';
+        renderTimeList();
+        updateStats();
+        renderScrHistory();
+        scrambleDisplay.textContent = 'Press Generate';
+        document.getElementById('timer-current-scramble').textContent = '';
+        showToast('All data cleared');
+      }
+    });
+
+    // ============================================================
+    //  TAB NAVIGATION
+    // ============================================================
+    document.querySelectorAll('.nav-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const tab = btn.getAttribute('data-tab');
+        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById('panel-' + tab).classList.add('active');
+        // Reset timer area scroll when switching to timer
+        if (tab === 'timer') {
+          document.getElementById('panel-timer').scrollTop = 0;
+        }
+      });
+    });
+
+    // ============================================================
+    //  INITIAL SETUP
+    // ============================================================
+    // Pre-gen a scramble on load
+    doGenerateScramble();
+
+  </script>
+</body>
+
+</html>
