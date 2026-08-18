@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="en" class="h-full">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HTML Flattener Pro</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
+  <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+        
+        :root {
+            --bg-color: #0f172a;
+            --surface-color: #1e293b;
+            --text-color: #f8fafc;
+            --primary-action: #38bdf8;
+            --secondary-action: #64748b;
+        }
+
+        body {
+            font-family: 'Plus+Jakarta+Sans', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+        }
+
+        .code-font {
+            font-family: 'JetBrains+Mono', monospace;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+
+        /* Glassmorphism effect */
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+    </style>
+ </head>
+ <body class="h-full m-0 overflow-auto">
+  <div id="app-wrapper" class="w-full min-h-full p-4 md:p-8 flex flex-col items-center">
+   <!-- Header Section -->
+   <header class="w-full max-w-5xl mb-8 text-center">
+    <h1 id="main-title" class="text-4xl font-bold tracking-tight mb-2 text-transparent bg-clip-text bg-gradient-to-r from-sky-400 to-indigo-400">HTML Flattener Pro</h1>
+    <p id="main-subtitle" class="text-slate-400 text-lg">Clean and minify your HTML code instantly</p>
+   </header>
+   <main class="w-full max-w-5xl grid grid-cols-1 gap-6">
+    <!-- Alert Message -->
+    <div id="alert-message" class="hidden w-full p-4 rounded-lg bg-red-500/10 border border-red-500/50 text-red-400 flex items-center gap-3 transition-all">
+     <i data-lucide="alert-circle" class="w-5 h-5"></i> <span id="alert-text"></span>
+    </div>
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+     <!-- Input Section -->
+     <div class="flex flex-col gap-3">
+      <div class="flex items-center justify-between px-2">
+       <label for="inputCode" class="text-sm font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-2"> <i data-lucide="code-2" class="w-4 h-4"></i> Input HTML </label> <button id="clear-btn" class="text-xs text-slate-500 hover:text-slate-300 transition-colors flex items-center gap-1"> <i data-lucide="trash-2" class="w-3 h-3"></i> Clear </button>
+      </div><textarea id="inputCode" class="w-full h-80 p-4 rounded-xl glass-panel code-font text-sm focus:outline-none focus:ring-2 focus:ring-sky-500/50 resize-none custom-scrollbar" placeholder="Paste your HTML here..."></textarea> <button id="flatten-btn" class="w-full py-4 rounded-xl bg-sky-500 hover:bg-sky-400 text-white font-bold transition-all shadow-lg shadow-sky-500/20 flex items-center justify-center gap-2 active:scale-[0.98]"> <i data-lucide="scissors" class="w-5 h-5"></i> <span id="flatten-btn-text">Flatten HTML</span> </button>
+     </div><!-- Output Section -->
+     <div class="flex flex-col gap-3">
+      <div class="flex items-center justify-between px-2">
+       <label for="outputCode" class="text-sm font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-2"> <i data-lucide="zap" class="w-4 h-4"></i> Flattened Output </label> <span id="success-toast" class="hidden text-xs text-emerald-400 flex items-center gap-1"> <i data-lucide="check" class="w-3 h-3"></i> Copied! </span>
+      </div><textarea id="outputCode" readonly class="w-full h-80 p-4 rounded-xl glass-panel code-font text-sm text-slate-300 focus:outline-none resize-none custom-scrollbar" placeholder="Your minified code will appear here..."></textarea> <button id="copy-btn" class="hidden w-full py-4 rounded-xl bg-slate-700 hover:bg-slate-600 text-white font-bold transition-all flex items-center justify-center gap-2 active:scale-[0.98]"> <i data-lucide="copy" class="w-5 h-5"></i> <span id="copy-btn-text">Copy to Clipboard</span> </button>
+     </div>
+    </div><!-- Stats Section -->
+    <div id="stats-panel" class="hidden grid grid-cols-1 sm:grid-cols-3 gap-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+     <div class="glass-panel p-6 rounded-2xl flex flex-col items-center justify-center text-center">
+      <span class="text-slate-500 text-xs font-bold uppercase tracking-widest mb-1">Original Size</span> <span id="originalSize" class="text-2xl font-bold text-slate-300">0</span> <span class="text-slate-500 text-[10px] mt-1 italic">characters</span>
+     </div>
+     <div class="glass-panel p-6 rounded-2xl flex flex-col items-center justify-center text-center border-sky-500/30">
+      <span class="text-sky-500 text-xs font-bold uppercase tracking-widest mb-1">Flattened Size</span> <span id="flattenedSize" class="text-2xl font-bold text-sky-400">0</span> <span class="text-sky-500 text-[10px] mt-1 italic">characters</span>
+     </div>
+     <div class="glass-panel p-6 rounded-2xl flex flex-col items-center justify-center text-center">
+      <span class="text-slate-500 text-xs font-bold uppercase tracking-widest mb-1">Total Reduction</span> <span id="reduction" class="text-2xl font-bold text-emerald-400">0%</span> <span class="text-emerald-500 text-[10px] mt-1 italic">saved space</span>
+     </div>
+    </div>
+   </main>
+   <footer class="mt-auto py-8 text-slate-600 text-sm">
+    Created with Canva Code • Professional Developer Tools
+   </footer>
+  </div>
+  <script>
+        const inputEl = document.getElementById('inputCode');
+        const outputEl = document.getElementById('outputCode');
+        const statsPanel = document.getElementById('stats-panel');
+        const copyBtn = document.getElementById('copy-btn');
+        const alertBox = document.getElementById('alert-message');
+
+        function showAlert(message) {
+            const alertText = document.getElementById('alert-text');
+            alertText.textContent = message;
+            alertBox.classList.remove('hidden');
+            setTimeout(() => alertBox.classList.add('hidden'), 5000);
+        }
+
+        function showSuccess() {
+            const toast = document.getElementById('success-toast');
+            toast.classList.remove('hidden');
+            setTimeout(() => toast.classList.add('hidden'), 2000);
+        }
+
+        function flattenHTML() {
+            const inputCode = inputEl.value.trim();
+            
+            if (!inputCode) {
+                showAlert('Please enter some HTML code to flatten!');
+                return;
+            }
+
+            // Remove comments first
+            let withoutComments = inputCode
+                // Remove single-line comments (//)
+                .split('\n')
+                .map(line => {
+                    const commentIndex = line.indexOf('//');
+                    return commentIndex !== -1 ? line.substring(0, commentIndex) : line;
+                })
+                .join('\n')
+                // Remove multi-line comments (/* */)
+                .replace(/\/\*[\s\S]*?\*\//g, '');
+
+            // Logic provided by user
+            const flattened = withoutComments
+                .split('\n')
+                .map(line => line.trim())
+                .filter(line => line.length > 0)
+                .join('')
+                .replace(/>\s+</g, '><')
+                .replace(/\s*=\s*/g, '=')
+                .replace(/\s+/g, ' ')
+                .trim();
+
+            outputEl.value = flattened;
+            copyBtn.classList.remove('hidden');
+            showStats(inputCode, flattened);
+            
+            // Scroll to output on mobile
+            if (window.innerWidth < 1024) {
+                outputEl.scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+
+        function showStats(original, flattened) {
+            const originalSize = original.length;
+            const flattenedSize = flattened.length;
+            const reduction = originalSize === 0 ? 0 : Math.round(((originalSize - flattenedSize) / originalSize) * 100);
+
+            document.getElementById('originalSize').textContent = originalSize.toLocaleString();
+            document.getElementById('flattenedSize').textContent = flattenedSize.toLocaleString();
+            document.getElementById('reduction').textContent = reduction + '%';
+            
+            statsPanel.classList.remove('hidden');
+        }
+
+        async function copyToClipboard() {
+            try {
+                await navigator.clipboard.writeText(outputEl.value);
+                showSuccess();
+            } catch (err) {
+                // Fallback select and copy
+                outputEl.select();
+                document.execCommand('copy');
+                showSuccess();
+            }
+        }
+
+            lucide.createIcons();
+
+            // Set sample code
+            inputEl.value = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Sample Page</title>
+    <style>
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Welcome to My Website</h1>
+        <p>This is a sample paragraph with some text.</p>
+        <ul>
+            <li>First item</li>
+            <li>Second item</li>
+            <li>Third item</li>
+        </ul>
+    </div>
+</body>
+</html>`;
+
+            // Event Listeners
+            document.getElementById('flatten-btn').addEventListener('click', flattenHTML);
+            document.getElementById('copy-btn').addEventListener('click', copyToClipboard);
+            document.getElementById('clear-btn').addEventListener('click', () => {
+                inputEl.value = '';
+                outputEl.value = '';
+                copyBtn.classList.add('hidden');
+                statsPanel.classList.add('hidden');
+                inputEl.focus();
+            });
+    </script>
+</body> 
+</html>
