@@ -1,0 +1,1067 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Phone Number Detective</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background:#0a1628;color:#c8d6e5;min-height:100vh;padding:15px}
+.container{max-width:960px;margin:0 auto}
+h1{text-align:center;font-size:1.9em;color:#4fc3f7;margin-bottom:4px}
+.subtitle{text-align:center;color:#5a6e82;margin-bottom:25px;font-size:.88em}
+.input-section{background:#131f33;border-radius:14px;padding:22px;margin-bottom:18px;border:1px solid #1e3050}
+.input-row{display:flex;gap:12px;margin-bottom:12px;flex-wrap:wrap}
+.input-group{flex:1;min-width:180px}
+label{display:block;margin-bottom:5px;color:#6b8299;font-size:.78em;font-weight:700;text-transform:uppercase;letter-spacing:.6px}
+input,select{width:100%;padding:11px 14px;background:#0a1628;border:2px solid #1e3050;border-radius:8px;color:#e0e8f0;font-size:1em;transition:border-color .3s}
+input:focus,select:focus{outline:none;border-color:#4fc3f7}
+#phoneInput{font-size:1.5em;font-family:'Courier New',monospace;letter-spacing:1.5px}
+.btn-row{display:flex;gap:10px;flex-wrap:wrap}
+button{padding:11px 22px;border:none;border-radius:8px;font-size:.95em;font-weight:600;cursor:pointer;transition:all .2s}
+.btn-analyze{background:linear-gradient(135deg,#4fc3f7,#0277bd);color:#fff;flex:1;font-size:1.05em}
+.btn-analyze:hover{box-shadow:0 4px 18px rgba(79,195,247,.3);transform:translateY(-1px)}
+.btn-clear{background:#1e3050;color:#6b8299}.btn-clear:hover{background:#263d5a}
+.results{display:none}.results.show{display:block}
+.verdict{padding:16px;border-radius:10px;font-size:1.15em;font-weight:700;text-align:center;margin-bottom:16px}
+.verdict.valid{background:#122b1e;border:2px solid #43a047;color:#66bb6a}
+.verdict.invalid{background:#2b1215;border:2px solid #e53935;color:#ef5350}
+.verdict.warning{background:#2b2512;border:2px solid #f9a825;color:#fdd835}
+.verdict.fixable{background:#12202b;border:2px solid #29b6f6;color:#4fc3f7}
+.card{background:#131f33;border-radius:12px;padding:18px;margin-bottom:14px;border:1px solid #1e3050}
+.card h2{font-size:1em;margin-bottom:14px;color:#4fc3f7;display:flex;align-items:center;gap:7px}
+.detail-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px}
+.detail-item{background:#0a1628;padding:10px 12px;border-radius:7px;border:1px solid #1e3050}
+.detail-label{font-size:.7em;color:#5a6e82;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px}
+.detail-value{font-size:1em;color:#e0e8f0;font-family:'Courier New',monospace}
+.detail-value.hi{color:#4fc3f7}
+.issues{list-style:none}
+.issues li{padding:9px 13px;margin-bottom:5px;border-radius:6px;font-size:.9em;display:flex;align-items:flex-start;gap:9px;line-height:1.4}
+.issues li.error{background:rgba(229,57,53,.08);border-left:3px solid #e53935}
+.issues li.warn{background:rgba(249,168,37,.08);border-left:3px solid #f9a825}
+.issues li.ok{background:rgba(67,160,71,.08);border-left:3px solid #43a047}
+.issues li.info{background:rgba(41,182,246,.08);border-left:3px solid #29b6f6}
+.digit-map{display:flex;flex-wrap:wrap;gap:3px;justify-content:center;margin:8px 0}
+.dbox{width:36px;height:42px;display:flex;align-items:center;justify-content:center;font-family:'Courier New',monospace;font-size:1.25em;font-weight:700;border-radius:5px;border:2px solid #1e3050;background:#0a1628}
+.dbox.cc{border-color:#43a047;color:#66bb6a}
+.dbox.ac{border-color:#1e88e5;color:#42a5f5}
+.dbox.ex{border-color:#ab47bc;color:#ce93d8}
+.dbox.ln{border-color:#78909c;color:#b0bec5}
+.dbox.extra{border-color:#e53935;color:#ef5350;background:rgba(229,57,53,.1)}
+.dbox.sep{border:none;background:none;width:12px;color:#37474f;font-size:.9em}
+.legend{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-top:6px;font-size:.75em;color:#5a6e82}
+.legend-item{display:flex;align-items:center;gap:4px}
+.lsw{width:12px;height:12px;border-radius:3px;border:2px solid}
+.sug-card{background:#0a1628;border:2px solid #1e3050;border-radius:10px;padding:14px 16px;margin-bottom:8px;cursor:pointer;transition:all .2s;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.sug-card:hover{border-color:#4fc3f7;background:#0e1a2e}
+.sug-card.best{border-color:#43a047;background:#0f1f18}
+.sug-num{font-family:'Courier New',monospace;font-size:1.25em;color:#4fc3f7}
+.sug-detail{font-size:.82em;color:#5a6e82;margin-top:3px;line-height:1.4}
+.sug-right{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.badge{padding:4px 10px;border-radius:14px;font-size:.75em;font-weight:700;white-space:nowrap}
+.badge.high{background:#1b3a2a;color:#66bb6a}
+.badge.med{background:#3a351b;color:#ffa726}
+.badge.low{background:#3a1b1b;color:#ef5350}
+.btn-copy{background:#1565c0;color:#fff;padding:5px 10px;font-size:.78em;border-radius:5px}
+.btn-copy:hover{background:#1976d2}
+.section-sep{border:none;border-top:1px solid #1e3050;margin:18px 0}
+.ac-table{width:100%;border-collapse:collapse;font-size:.85em;margin-top:8px}
+.ac-table th{text-align:left;color:#5a6e82;font-size:.75em;text-transform:uppercase;padding:6px 8px;border-bottom:1px solid #1e3050}
+.ac-table td{padding:6px 8px;border-bottom:1px solid #0e1a2e;font-family:'Courier New',monospace}
+.ac-table tr:hover{background:#0e1a2e}
+.ac-table .match{color:#66bb6a;font-weight:700}
+.tab-row{display:flex;gap:4px;margin-bottom:12px;flex-wrap:wrap}
+.tab-btn{padding:7px 16px;border-radius:6px;font-size:.82em;background:#1e3050;color:#6b8299;border:none;cursor:pointer}
+.tab-btn.active{background:#0277bd;color:#fff}
+.help-text{font-size:.82em;color:#5a6e82;line-height:1.5;padding:8px 12px;background:#0a1628;border-radius:8px;margin-top:8px}
+@media(max-width:600px){.input-row{flex-direction:column}.detail-grid{grid-template-columns:1fr}h1{font-size:1.4em}}
+</style>
+</head>
+<body>
+<div class="container">
+<h1>🔍 Phone Number Detective</h1>
+<p class="subtitle">Paste a broken or unfamiliar number — I'll decode it, diagnose it, and fix it</p>
+
+<div class="input-section">
+ <div class="input-row">
+  <div class="input-group" style="flex:2">
+   <label>Phone Number (any format)</label>
+   <input type="text" id="phoneInput" placeholder="e.g. 128 390 8857, +442071234567..." autofocus>
+  </div>
+ </div>
+ <div class="input-row">
+  <div class="input-group">
+   <label>Expected Country</label>
+   <select id="expectedCountry">
+    <option value="">— Auto-detect —</option>
+    <option value="1" selected>🇺🇸 USA / Canada (+1)</option>
+    <option value="44">🇬🇧 United Kingdom (+44)</option>
+    <option value="61">🇦🇺 Australia (+61)</option>
+    <option value="49">🇩🇪 Germany (+49)</option>
+    <option value="33">🇫🇷 France (+33)</option>
+    <option value="91">🇮🇳 India (+91)</option>
+    <option value="81">🇯🇵 Japan (+81)</option>
+    <option value="86">🇨🇳 China (+86)</option>
+    <option value="55">🇧🇷 Brazil (+55)</option>
+    <option value="52">🇲🇽 Mexico (+52)</option>
+    <option value="39">🇮🇹 Italy (+39)</option>
+    <option value="34">🇪🇸 Spain (+34)</option>
+    <option value="31">🇳🇱 Netherlands (+31)</option>
+    <option value="46">🇸🇪 Sweden (+46)</option>
+    <option value="47">🇳🇴 Norway (+47)</option>
+    <option value="7">🇷🇺 Russia (+7)</option>
+    <option value="82">🇰🇷 South Korea (+82)</option>
+    <option value="65">🇸🇬 Singapore (+65)</option>
+    <option value="64">🇳🇿 New Zealand (+64)</option>
+    <option value="353">🇮🇪 Ireland (+353)</option>
+    <option value="48">🇵🇱 Poland (+48)</option>
+    <option value="27">🇿🇦 South Africa (+27)</option>
+    <option value="971">🇦🇪 UAE (+971)</option>
+    <option value="966">🇸🇦 Saudi Arabia (+966)</option>
+    <option value="63">🇵🇭 Philippines (+63)</option>
+    <option value="66">🇹🇭 Thailand (+66)</option>
+    <option value="60">🇲🇾 Malaysia (+60)</option>
+    <option value="62">🇮🇩 Indonesia (+62)</option>
+   </select>
+  </div>
+  <div class="input-group">
+   <label>Expected State / Region / City</label>
+   <input type="text" id="expectedRegion" placeholder="e.g. Michigan, London, Ontario...">
+  </div>
+ </div>
+ <div class="btn-row">
+  <button class="btn-analyze" onclick="analyze()">🔍 Analyze & Fix</button>
+  <button class="btn-clear" onclick="clearAll()">Clear</button>
+ </div>
+</div>
+
+<div class="results" id="results"></div>
+</div>
+
+<script>
+// =====================================================================
+// DATA
+// =====================================================================
+const CC={
+"1":{n:"USA/Canada",f:"🇺🇸🇨🇦",len:[10],trunk:null},"7":{n:"Russia",f:"🇷🇺",len:[10],trunk:"8"},
+"20":{n:"Egypt",f:"🇪🇬",len:[10],trunk:"0"},"27":{n:"South Africa",f:"🇿🇦",len:[9],trunk:"0"},
+"30":{n:"Greece",f:"🇬🇷",len:[10],trunk:null},"31":{n:"Netherlands",f:"🇳🇱",len:[9],trunk:"0"},
+"32":{n:"Belgium",f:"🇧🇪",len:[8,9],trunk:"0"},"33":{n:"France",f:"🇫🇷",len:[9],trunk:"0"},
+"34":{n:"Spain",f:"🇪🇸",len:[9],trunk:null},"36":{n:"Hungary",f:"🇭🇺",len:[8,9],trunk:"06"},
+"39":{n:"Italy",f:"🇮🇹",len:[9,10,11],trunk:null},"40":{n:"Romania",f:"🇷🇴",len:[9],trunk:"0"},
+"41":{n:"Switzerland",f:"🇨🇭",len:[9],trunk:"0"},"43":{n:"Austria",f:"🇦🇹",len:[7,8,9,10,11,12,13],trunk:"0"},
+"44":{n:"United Kingdom",f:"🇬🇧",len:[10],trunk:"0"},"45":{n:"Denmark",f:"🇩🇰",len:[8],trunk:null},
+"46":{n:"Sweden",f:"🇸🇪",len:[7,8,9],trunk:"0"},"47":{n:"Norway",f:"🇳🇴",len:[8],trunk:null},
+"48":{n:"Poland",f:"🇵🇱",len:[9],trunk:null},"49":{n:"Germany",f:"🇩🇪",len:[7,8,9,10,11],trunk:"0"},
+"52":{n:"Mexico",f:"🇲🇽",len:[10],trunk:null},"55":{n:"Brazil",f:"🇧🇷",len:[10,11],trunk:"0"},
+"60":{n:"Malaysia",f:"🇲🇾",len:[9,10],trunk:"0"},"61":{n:"Australia",f:"🇦🇺",len:[9],trunk:"0"},
+"62":{n:"Indonesia",f:"🇮🇩",len:[8,9,10,11,12],trunk:"0"},"63":{n:"Philippines",f:"🇵🇭",len:[10],trunk:"0"},
+"64":{n:"New Zealand",f:"🇳🇿",len:[8,9,10],trunk:"0"},"65":{n:"Singapore",f:"🇸🇬",len:[8],trunk:null},
+"66":{n:"Thailand",f:"🇹🇭",len:[9],trunk:"0"},"81":{n:"Japan",f:"🇯🇵",len:[9,10],trunk:"0"},
+"82":{n:"South Korea",f:"🇰🇷",len:[8,9,10],trunk:"0"},"86":{n:"China",f:"🇨🇳",len:[11],trunk:"0"},
+"91":{n:"India",f:"🇮🇳",len:[10],trunk:"0"},"351":{n:"Portugal",f:"🇵🇹",len:[9],trunk:null},
+"353":{n:"Ireland",f:"🇮🇪",len:[7,8,9],trunk:"0"},"358":{n:"Finland",f:"🇫🇮",len:[6,7,8,9,10],trunk:"0"},
+"380":{n:"Ukraine",f:"🇺🇦",len:[9],trunk:"0"},"420":{n:"Czech Republic",f:"🇨🇿",len:[9],trunk:null},
+"852":{n:"Hong Kong",f:"🇭🇰",len:[8],trunk:null},"886":{n:"Taiwan",f:"🇹🇼",len:[9],trunk:"0"},
+"966":{n:"Saudi Arabia",f:"🇸🇦",len:[9],trunk:"0"},"971":{n:"UAE",f:"🇦🇪",len:[9],trunk:"0"},
+"972":{n:"Israel",f:"🇮🇱",len:[9],trunk:"0"}
+};
+
+// NANP area codes – comprehensive with states/provinces, major cities
+const AC={
+"201":["NJ","New Jersey","Jersey City,Newark"],"202":["DC","Washington DC","Washington"],
+"203":["CT","Connecticut","Bridgeport,New Haven"],"204":["MB","Manitoba","Winnipeg"],
+"205":["AL","Alabama","Birmingham"],"206":["WA","Washington","Seattle"],
+"207":["ME","Maine","Portland"],"208":["ID","Idaho","Boise"],
+"209":["CA","California","Stockton,Modesto"],"210":["TX","Texas","San Antonio"],
+"212":["NY","New York","Manhattan,New York City"],"213":["CA","California","Los Angeles"],
+"214":["TX","Texas","Dallas"],"215":["PA","Pennsylvania","Philadelphia"],
+"216":["OH","Ohio","Cleveland"],"217":["IL","Illinois","Springfield"],
+"218":["MN","Minnesota","Duluth"],"219":["IN","Indiana","Gary,Hammond"],
+"220":["OH","Ohio","Newark,Zanesville"],"223":["PA","Pennsylvania","Lancaster"],
+"224":["IL","Illinois","Arlington Heights"],"225":["LA","Louisiana","Baton Rouge"],
+"226":["ON","Ontario","London,Chatham"],"228":["MS","Mississippi","Gulfport,Biloxi"],
+"229":["GA","Georgia","Albany"],"231":["MI","Michigan","Muskegon,Traverse City"],
+"234":["OH","Ohio","Akron,Canton,Youngstown"],"236":["BC","British Columbia","Vancouver"],
+"239":["FL","Florida","Fort Myers,Naples"],"240":["MD","Maryland","Bethesda,Silver Spring"],
+"248":["MI","Michigan","Troy,Pontiac,Bloomfield Hills,Auburn Hills,Royal Oak,Southfield"],
+"249":["ON","Ontario","Sudbury"],"250":["BC","British Columbia","Victoria,Kelowna"],
+"251":["AL","Alabama","Mobile"],"252":["NC","North Carolina","Greenville"],
+"253":["WA","Washington","Tacoma"],"254":["TX","Texas","Waco,Killeen"],
+"256":["AL","Alabama","Huntsville"],"260":["IN","Indiana","Fort Wayne"],
+"262":["WI","Wisconsin","Racine,Kenosha"],"267":["PA","Pennsylvania","Philadelphia"],
+"269":["MI","Michigan","Kalamazoo,Battle Creek"],
+"270":["KY","Kentucky","Bowling Green"],"272":["PA","Pennsylvania","Scranton"],
+"276":["VA","Virginia","Bristol"],"281":["TX","Texas","Houston"],
+"289":["ON","Ontario","Hamilton,Niagara Falls"],"301":["MD","Maryland","Bethesda,Silver Spring"],
+"302":["DE","Delaware","Wilmington"],"303":["CO","Colorado","Denver,Boulder"],
+"304":["WV","West Virginia","Charleston"],"305":["FL","Florida","Miami"],
+"306":["SK","Saskatchewan","Saskatoon,Regina"],"307":["WY","Wyoming","Cheyenne"],
+"308":["NE","Nebraska","Grand Island"],"309":["IL","Illinois","Peoria"],
+"310":["CA","California","Santa Monica,Beverly Hills"],"312":["IL","Illinois","Chicago"],
+"313":["MI","Michigan","Detroit,Dearborn"],
+"314":["MO","Missouri","St. Louis"],"315":["NY","New York","Syracuse"],
+"316":["KS","Kansas","Wichita"],"317":["IN","Indiana","Indianapolis"],
+"318":["LA","Louisiana","Shreveport"],"319":["IA","Iowa","Cedar Rapids"],
+"320":["MN","Minnesota","St. Cloud"],"321":["FL","Florida","Orlando,Cape Canaveral"],
+"323":["CA","California","Los Angeles"],"325":["TX","Texas","Abilene"],
+"330":["OH","Ohio","Akron,Canton,Youngstown"],"331":["IL","Illinois","Aurora,Naperville"],
+"332":["NY","New York","New York City"],"334":["AL","Alabama","Montgomery"],
+"336":["NC","North Carolina","Greensboro"],"337":["LA","Louisiana","Lafayette"],
+"339":["MA","Massachusetts","Boston suburbs"],"340":["VI","US Virgin Islands",""],
+"341":["CA","California","Oakland"],"343":["ON","Ontario","Ottawa"],
+"346":["TX","Texas","Houston"],"347":["NY","New York","New York City"],
+"351":["MA","Massachusetts","Lowell"],"352":["FL","Florida","Gainesville"],
+"360":["WA","Washington","Olympia,Bellingham"],"361":["TX","Texas","Corpus Christi"],
+"364":["KY","Kentucky","Owensboro"],"365":["ON","Ontario","Hamilton"],
+"380":["OH","Ohio","Columbus"],"385":["UT","Utah","Salt Lake City"],
+"386":["FL","Florida","Daytona Beach"],
+"401":["RI","Rhode Island","Providence"],"402":["NE","Nebraska","Omaha,Lincoln"],
+"403":["AB","Alberta","Calgary"],"404":["GA","Georgia","Atlanta"],
+"405":["OK","Oklahoma","Oklahoma City"],"406":["MT","Montana","Billings"],
+"407":["FL","Florida","Orlando"],"408":["CA","California","San Jose"],
+"409":["TX","Texas","Beaumont,Galveston"],"410":["MD","Maryland","Baltimore"],
+"412":["PA","Pennsylvania","Pittsburgh"],"413":["MA","Massachusetts","Springfield"],
+"414":["WI","Wisconsin","Milwaukee"],"415":["CA","California","San Francisco"],
+"416":["ON","Ontario","Toronto"],"417":["MO","Missouri","Springfield"],
+"418":["QC","Quebec","Quebec City"],"419":["OH","Ohio","Toledo"],
+"423":["TN","Tennessee","Chattanooga"],"424":["CA","California","Los Angeles"],
+"425":["WA","Washington","Bellevue,Redmond"],"430":["TX","Texas","Tyler"],
+"431":["MB","Manitoba","Winnipeg"],"432":["TX","Texas","Midland,Odessa"],
+"434":["VA","Virginia","Lynchburg,Charlottesville"],"435":["UT","Utah","St. George"],
+"437":["ON","Ontario","Toronto"],"438":["QC","Quebec","Montreal"],
+"440":["OH","Ohio","Cleveland suburbs"],"442":["CA","California","Oceanside"],
+"443":["MD","Maryland","Baltimore"],"458":["OR","Oregon","Eugene"],
+"463":["IN","Indiana","Indianapolis"],"469":["TX","Texas","Dallas"],
+"470":["GA","Georgia","Atlanta"],"475":["CT","Connecticut","Bridgeport"],
+"478":["GA","Georgia","Macon"],"479":["AR","Arkansas","Fort Smith,Fayetteville"],
+"480":["AZ","Arizona","Mesa,Scottsdale,Tempe"],"484":["PA","Pennsylvania","Allentown,Reading"],
+"501":["AR","Arkansas","Little Rock"],"502":["KY","Kentucky","Louisville"],
+"503":["OR","Oregon","Portland"],"504":["LA","Louisiana","New Orleans"],
+"505":["NM","New Mexico","Albuquerque"],"506":["NB","New Brunswick","Saint John"],
+"507":["MN","Minnesota","Rochester"],"508":["MA","Massachusetts","Worcester"],
+"509":["WA","Washington","Spokane"],"510":["CA","California","Oakland"],
+"512":["TX","Texas","Austin"],"513":["OH","Ohio","Cincinnati"],
+"514":["QC","Quebec","Montreal"],"515":["IA","Iowa","Des Moines"],
+"516":["NY","New York","Long Island,Hempstead"],"517":["MI","Michigan","Lansing,Jackson"],
+"518":["NY","New York","Albany"],"519":["ON","Ontario","London,Windsor"],
+"520":["AZ","Arizona","Tucson"],"530":["CA","California","Redding,Chico"],
+"531":["NE","Nebraska","Omaha"],"539":["OK","Oklahoma","Tulsa"],
+"540":["VA","Virginia","Roanoke"],"541":["OR","Oregon","Eugene,Bend"],
+"548":["ON","Ontario","Kitchener,Waterloo"],"551":["NJ","New Jersey","Jersey City"],
+"559":["CA","California","Fresno"],"561":["FL","Florida","West Palm Beach"],
+"562":["CA","California","Long Beach"],"563":["IA","Iowa","Davenport"],
+"564":["WA","Washington","Seattle area"],"567":["OH","Ohio","Toledo"],
+"570":["PA","Pennsylvania","Scranton,Wilkes-Barre"],"571":["VA","Virginia","Arlington,Fairfax"],
+"573":["MO","Missouri","Columbia,Jefferson City"],"574":["IN","Indiana","South Bend,Elkhart"],
+"575":["NM","New Mexico","Las Cruces"],"579":["QC","Quebec","Trois-Rivières"],
+"580":["OK","Oklahoma","Lawton"],"585":["NY","New York","Rochester"],
+"586":["MI","Michigan","Warren,Sterling Heights,Clinton Township,Macomb County"],
+"587":["AB","Alberta","Calgary,Edmonton"],"601":["MS","Mississippi","Jackson"],
+"602":["AZ","Arizona","Phoenix"],"603":["NH","New Hampshire","Manchester"],
+"604":["BC","British Columbia","Vancouver"],"605":["SD","South Dakota","Sioux Falls"],
+"606":["KY","Kentucky","Ashland"],"607":["NY","New York","Binghamton"],
+"608":["WI","Wisconsin","Madison"],"609":["NJ","New Jersey","Trenton"],
+"610":["PA","Pennsylvania","Allentown,Reading"],"612":["MN","Minnesota","Minneapolis"],
+"613":["ON","Ontario","Ottawa"],"614":["OH","Ohio","Columbus"],
+"615":["TN","Tennessee","Nashville"],"616":["MI","Michigan","Grand Rapids,Holland"],
+"617":["MA","Massachusetts","Boston"],"618":["IL","Illinois","East St. Louis"],
+"619":["CA","California","San Diego"],"620":["KS","Kansas","Dodge City"],
+"623":["AZ","Arizona","Glendale,Peoria"],"626":["CA","California","Pasadena"],
+"628":["CA","California","San Francisco"],"629":["TN","Tennessee","Nashville"],
+"630":["IL","Illinois","Aurora,Naperville"],"631":["NY","New York","Long Island,Suffolk"],
+"636":["MO","Missouri","St. Charles"],"639":["SK","Saskatchewan",""],
+"641":["IA","Iowa","Mason City"],"646":["NY","New York","Manhattan"],
+"647":["ON","Ontario","Toronto"],"650":["CA","California","Palo Alto,San Mateo"],
+"651":["MN","Minnesota","St. Paul"],"657":["CA","California","Anaheim"],
+"659":["AL","Alabama","Birmingham"],"660":["MO","Missouri","Sedalia"],
+"661":["CA","California","Bakersfield"],"662":["MS","Mississippi","Tupelo"],
+"667":["MD","Maryland","Baltimore"],"669":["CA","California","San Jose"],
+"678":["GA","Georgia","Atlanta"],"680":["NY","New York","Syracuse"],
+"681":["WV","West Virginia",""],"682":["TX","Texas","Fort Worth"],
+"689":["FL","Florida","Orlando"],"701":["ND","North Dakota","Fargo"],
+"702":["NV","Nevada","Las Vegas"],"703":["VA","Virginia","Arlington,Fairfax"],
+"704":["NC","North Carolina","Charlotte"],"706":["GA","Georgia","Augusta"],
+"707":["CA","California","Santa Rosa,Napa"],"708":["IL","Illinois","Cicero,Oak Park"],
+"712":["IA","Iowa","Sioux City"],"713":["TX","Texas","Houston"],
+"714":["CA","California","Anaheim,Santa Ana"],"715":["WI","Wisconsin","Wausau"],
+"716":["NY","New York","Buffalo"],"717":["PA","Pennsylvania","Harrisburg,Lancaster"],
+"718":["NY","New York","Brooklyn,Queens,Bronx,Staten Island"],"719":["CO","Colorado","Colorado Springs"],
+"720":["CO","Colorado","Denver"],"724":["PA","Pennsylvania","New Castle"],
+"725":["NV","Nevada","Las Vegas"],"726":["TX","Texas","San Antonio"],
+"727":["FL","Florida","St. Petersburg,Clearwater"],"731":["TN","Tennessee","Jackson"],
+"732":["NJ","New Jersey","New Brunswick"],"734":["MI","Michigan","Ann Arbor,Ypsilanti,Westland,Livonia"],
+"737":["TX","Texas","Austin"],"740":["OH","Ohio","Lancaster,Zanesville"],
+"743":["NC","North Carolina","Greensboro"],"747":["CA","California","Burbank,Glendale"],
+"754":["FL","Florida","Fort Lauderdale"],"757":["VA","Virginia","Virginia Beach,Norfolk"],
+"760":["CA","California","Oceanside,Palm Springs"],"762":["GA","Georgia","Augusta"],
+"763":["MN","Minnesota","Brooklyn Park"],"765":["IN","Indiana","Muncie,Lafayette"],
+"769":["MS","Mississippi","Jackson"],"770":["GA","Georgia","Marietta,Roswell"],
+"772":["FL","Florida","Port St. Lucie"],"773":["IL","Illinois","Chicago"],
+"774":["MA","Massachusetts","Worcester"],"775":["NV","Nevada","Reno"],
+"778":["BC","British Columbia","Vancouver"],"779":["IL","Illinois","Rockford"],
+"780":["AB","Alberta","Edmonton"],"781":["MA","Massachusetts","Boston suburbs"],
+"782":["NS","Nova Scotia","Halifax"],"785":["KS","Kansas","Topeka"],
+"786":["FL","Florida","Miami"],"801":["UT","Utah","Salt Lake City"],
+"802":["VT","Vermont","Burlington"],"803":["SC","South Carolina","Columbia"],
+"804":["VA","Virginia","Richmond"],"805":["CA","California","Santa Barbara,Ventura"],
+"806":["TX","Texas","Lubbock,Amarillo"],"807":["ON","Ontario","Thunder Bay"],
+"808":["HI","Hawaii","Honolulu"],"810":["MI","Michigan","Flint,Port Huron,Lapeer"],
+"812":["IN","Indiana","Evansville"],"813":["FL","Florida","Tampa"],
+"814":["PA","Pennsylvania","Erie"],"815":["IL","Illinois","Rockford,Joliet"],
+"816":["MO","Missouri","Kansas City"],"817":["TX","Texas","Fort Worth,Arlington"],
+"818":["CA","California","Burbank,Glendale,San Fernando Valley"],"819":["QC","Quebec","Sherbrooke"],
+"825":["AB","Alberta","Calgary,Edmonton"],"828":["NC","North Carolina","Asheville"],
+"830":["TX","Texas","New Braunfels"],"831":["CA","California","Santa Cruz,Salinas"],
+"832":["TX","Texas","Houston"],"838":["NY","New York","Albany"],
+"839":["SC","South Carolina","Columbia"],"843":["SC","South Carolina","Charleston"],
+"845":["NY","New York","Poughkeepsie"],"847":["IL","Illinois","Evanston,Waukegan"],
+"848":["NJ","New Jersey","New Brunswick"],"850":["FL","Florida","Tallahassee,Pensacola"],
+"854":["SC","South Carolina","Charleston"],"856":["NJ","New Jersey","Camden"],
+"857":["MA","Massachusetts","Boston"],"858":["CA","California","San Diego"],
+"859":["KY","Kentucky","Lexington"],"860":["CT","Connecticut","Hartford"],
+"862":["NJ","New Jersey","Newark"],"863":["FL","Florida","Lakeland"],
+"864":["SC","South Carolina","Greenville"],"865":["TN","Tennessee","Knoxville"],
+"867":["YT","Yukon/NWT/Nunavut",""],"870":["AR","Arkansas","Jonesboro"],
+"872":["IL","Illinois","Chicago"],"878":["PA","Pennsylvania","Pittsburgh"],
+"901":["TN","Tennessee","Memphis"],"902":["NS","Nova Scotia","Halifax"],
+"903":["TX","Texas","Tyler"],"904":["FL","Florida","Jacksonville"],
+"905":["ON","Ontario","Hamilton,Mississauga,Brampton,Oshawa"],
+"906":["MI","Michigan","Upper Peninsula,Marquette,Sault Ste. Marie"],
+"907":["AK","Alaska","Anchorage"],"908":["NJ","New Jersey","Elizabeth"],
+"909":["CA","California","San Bernardino,Ontario"],"910":["NC","North Carolina","Fayetteville"],
+"912":["GA","Georgia","Savannah"],"913":["KS","Kansas","Kansas City,Overland Park"],
+"914":["NY","New York","White Plains,Yonkers"],"915":["TX","Texas","El Paso"],
+"916":["CA","California","Sacramento"],"917":["NY","New York","New York City"],
+"918":["OK","Oklahoma","Tulsa"],"919":["NC","North Carolina","Raleigh"],
+"920":["WI","Wisconsin","Green Bay"],"925":["CA","California","Concord,Walnut Creek"],
+"928":["AZ","Arizona","Flagstaff,Yuma"],"929":["NY","New York","New York City"],
+"930":["IN","Indiana","Columbus"],"931":["TN","Tennessee","Clarksville"],
+"936":["TX","Texas","Conroe,Nacogdoches"],"937":["OH","Ohio","Dayton"],
+"938":["AL","Alabama","Huntsville"],"940":["TX","Texas","Denton,Wichita Falls"],
+"941":["FL","Florida","Sarasota"],"945":["TX","Texas","Dallas-Fort Worth"],
+"947":["MI","Michigan","Troy,Pontiac,Oakland County"],
+"948":["VA","Virginia","Virginia Beach"],"949":["CA","California","Irvine"],
+"951":["CA","California","Riverside"],"952":["MN","Minnesota","Bloomington"],
+"954":["FL","Florida","Fort Lauderdale"],"956":["TX","Texas","Laredo,McAllen"],
+"959":["CT","Connecticut","Hartford"],"970":["CO","Colorado","Fort Collins,Grand Junction"],
+"971":["OR","Oregon","Portland"],"972":["TX","Texas","Dallas"],
+"973":["NJ","New Jersey","Newark,Paterson"],"978":["MA","Massachusetts","Lowell"],
+"979":["TX","Texas","College Station"],"980":["NC","North Carolina","Charlotte"],
+"984":["NC","North Carolina","Raleigh"],"985":["LA","Louisiana","Houma"],
+"989":["MI","Michigan","Saginaw,Midland,Bay City"]
+};
+
+// NANP exchange code prefixes (central office / city-level info)
+// This maps the 2nd group of 3 digits to known info where possible
+// Since true exchange databases are huge, we'll note that exchanges
+// starting with 0 or 1 are invalid in NANP
+function validateExchange(ex) {
+  if (!ex || ex.length < 3) return null;
+  if (ex[0] === '0' || ex[0] === '1') return { valid: false, reason: `Exchange "${ex}" starts with ${ex[0]} — invalid in NANP` };
+  if (ex === '555') return { valid: true, reason: `Exchange 555 — often fictional/directory assistance`, warn: true };
+  if (ex === '911' || ex === '411' || ex === '611' || ex === '311' || ex === '211' || ex === '711' || ex === '811') return { valid: false, reason: `Exchange "${ex}" is a special service code (N11), not a valid exchange` };
+  return { valid: true };
+}
+
+// UK area codes
+const UK_AC={"20":"London","21":"Birmingham","23":"Southampton/Portsmouth","24":"Coventry","28":"Northern Ireland","29":"Cardiff","113":"Leeds","114":"Sheffield","115":"Nottingham","116":"Leicester","117":"Bristol","118":"Reading","121":"Birmingham","131":"Edinburgh","141":"Glasgow","151":"Liverpool","161":"Manchester","191":"Newcastle","1011":"Middlesbrough","1011":"Middlesbrough"};
+
+// =====================================================================
+// FUZZY ENGINE — the core detective logic
+// =====================================================================
+
+function editDistance(a, b) {
+  const m = a.length, n = b.length;
+  const dp = Array.from({length:m+1}, ()=>Array(n+1).fill(0));
+  for(let i=0;i<=m;i++) dp[i][0]=i;
+  for(let j=0;j<=n;j++) dp[0][j]=j;
+  for(let i=1;i<=m;i++) for(let j=1;j<=n;j++){
+    dp[i][j] = Math.min(
+      dp[i-1][j]+1,
+      dp[i][j-1]+1,
+      dp[i-1][j-1]+(a[i-1]===b[j-1]?0:1)
+    );
+  }
+  return dp[m][n];
+}
+
+// Find area codes matching a region hint
+function findACsForRegion(region) {
+  if (!region) return [];
+  const r = region.toLowerCase().trim();
+  const results = [];
+  for (const [code, info] of Object.entries(AC)) {
+    const state = info[1].toLowerCase();
+    const abbr = info[0].toLowerCase();
+    const cities = info[2].toLowerCase();
+    let score = 0;
+    if (abbr === r) score = 100;
+    else if (state === r) score = 90;
+    else if (cities.includes(r)) score = 85;
+    else if (state.includes(r)) score = 70;
+    else if (r.includes(state)) score = 60;
+    else if (cities.split(',').some(c => c.trim().includes(r) || r.includes(c.trim()))) score = 65;
+    // also try abbreviation match
+    else if (r.length === 2 && abbr === r) score = 100;
+    if (score > 0) results.push({ code, state: info[1], abbr: info[0], cities: info[2], score });
+  }
+  results.sort((a,b) => b.score - a.score);
+  return results;
+}
+
+// Generate all single-digit mutations of a string at each position
+function singleDigitMutations(digits) {
+  const results = [];
+  for (let i = 0; i < digits.length; i++) {
+    for (let d = 0; d <= 9; d++) {
+      if (String(d) !== digits[i]) {
+        results.push(digits.slice(0,i) + d + digits.slice(i+1));
+      }
+    }
+  }
+  return results;
+}
+
+// Generate single-digit insertions
+function singleDigitInsertions(digits) {
+  const results = [];
+  for (let i = 0; i <= digits.length; i++) {
+    for (let d = 0; d <= 9; d++) {
+      results.push(digits.slice(0,i) + d + digits.slice(i));
+    }
+  }
+  return results;
+}
+
+// Generate single-digit deletions
+function singleDigitDeletions(digits) {
+  const results = [];
+  for (let i = 0; i < digits.length; i++) {
+    results.push(digits.slice(0,i) + digits.slice(i+1));
+  }
+  return results;
+}
+
+// Adjacent transpositions
+function transpositions(digits) {
+  const results = [];
+  for (let i = 0; i < digits.length - 1; i++) {
+    const arr = digits.split('');
+    [arr[i], arr[i+1]] = [arr[i+1], arr[i]];
+    results.push(arr.join(''));
+  }
+  return results;
+}
+
+// =====================================================================
+// MAIN ANALYSIS
+// =====================================================================
+function analyze() {
+  const raw = document.getElementById('phoneInput').value.trim();
+  if (!raw) return;
+  const expectedCC = document.getElementById('expectedCountry').value;
+  const expectedRegion = document.getElementById('expectedRegion').value.trim();
+
+  const result = doAnalysis(raw, expectedCC, expectedRegion);
+  render(result);
+}
+
+function doAnalysis(raw, expCC, expRegion) {
+  const issues = [];
+  const suggestions = [];
+
+  // Clean
+  let cleaned = raw.replace(/[^\d+]/g,'');
+  const hadPlus = cleaned.startsWith('+');
+  const hadDblZero = !hadPlus && cleaned.startsWith('00');
+  let digits = cleaned.replace(/^\+/,'');
+  if (hadDblZero) digits = digits.slice(2);
+
+  issues.push({t:'info', m:`Input: "${raw}" → digits: ${digits} (${digits.length} digits)${hadPlus?' [had +]':''}${hadDblZero?' [had 00 prefix]':''}`});
+
+  // Detect CC
+  let detCC = null;
+  let natNum = digits;
+  let ccInDigits = false;
+
+  // If had + or 00, CC is definitely at the start
+  if (hadPlus || hadDblZero) {
+    detCC = detectCC(digits);
+    if (detCC) {
+      natNum = digits.slice(detCC.length);
+      ccInDigits = true;
+      issues.push({t:'ok', m:`Country code +${detCC} detected → ${CC[detCC]?.f} ${CC[detCC]?.n}`});
+    } else {
+      issues.push({t:'warn', m:`Had international prefix but couldn't match a country code`});
+    }
+  }
+
+  // If user set expected CC
+  if (expCC && !detCC) {
+    // Number might start with the CC or might not
+    if (digits.startsWith(expCC) && digits.length > parseInt(expCC.length) + 5) {
+      detCC = expCC;
+      natNum = digits.slice(expCC.length);
+      ccInDigits = true;
+      issues.push({t:'ok', m:`Starts with expected +${expCC} (${CC[expCC]?.n})`});
+    } else {
+      detCC = expCC;
+      natNum = digits;
+      ccInDigits = false;
+      issues.push({t:'info', m:`Assuming country ${CC[expCC]?.f} ${CC[expCC]?.n} (+${expCC}) — CC not in digits`});
+    }
+  }
+
+  // If still no CC, try auto from digits
+  if (!detCC && digits.length >= 10) {
+    detCC = detectCC(digits);
+    if (detCC) {
+      natNum = digits.slice(detCC.length);
+      ccInDigits = true;
+      issues.push({t:'info', m:`Auto-detected country code +${detCC} (${CC[detCC]?.f} ${CC[detCC]?.n})`});
+    }
+  }
+
+  // Fallback: assume US if 10 digits
+  if (!detCC && digits.length === 10) {
+    detCC = '1';
+    natNum = digits;
+    ccInDigits = false;
+    issues.push({t:'info', m:`10 digits with no CC — assuming US/Canada (+1)`});
+  }
+
+  const ci = detCC ? CC[detCC] : null;
+
+  // Handle trunk prefix
+  if (ci && ci.trunk && natNum.startsWith(ci.trunk)) {
+    const without = natNum.slice(ci.trunk.length);
+    if (ci.len.includes(without.length) && !ci.len.includes(natNum.length)) {
+      issues.push({t:'info', m:`Removed trunk prefix "${ci.trunk}" (domestic dialing code in ${ci.n})`});
+      natNum = without;
+    }
+  }
+
+  // Check length
+  let lenStatus = 'unknown';
+  let lenDiff = 0;
+  if (ci) {
+    if (ci.len.includes(natNum.length)) {
+      lenStatus = 'valid';
+      issues.push({t:'ok', m:`Length ${natNum.length} is valid for ${ci.n} (expected: ${ci.len.join('/')})`});
+    } else {
+      const closest = ci.len.reduce((a,b) => Math.abs(b-natNum.length)<Math.abs(a-natNum.length)?b:a);
+      lenDiff = natNum.length - closest;
+      lenStatus = lenDiff > 0 ? 'long' : 'short';
+      issues.push({t:'error', m:`Length ${natNum.length} is ${Math.abs(lenDiff)} digit(s) too ${lenStatus.toUpperCase()} for ${ci.n} (expected: ${ci.len.join('/')})`});
+    }
+  }
+
+  // ===================== NANP DEEP ANALYSIS =====================
+  let areaCode = null, areaInfo = null, exchange = null, subscriber = null;
+  let acValid = false;
+
+  if (detCC === '1') {
+    // Parse the 10-digit national number: AAA-EEE-SSSS
+    if (natNum.length >= 3) {
+      areaCode = natNum.slice(0,3);
+      areaInfo = AC[areaCode];
+      exchange = natNum.length >= 6 ? natNum.slice(3,6) : null;
+      subscriber = natNum.length >= 10 ? natNum.slice(6,10) : (natNum.length > 6 ? natNum.slice(6) : null);
+
+      if (areaInfo) {
+        acValid = true;
+        issues.push({t:'ok', m:`Area code ${areaCode} → ${areaInfo[0]} (${areaInfo[1]}) — ${areaInfo[2]}`});
+      } else {
+        issues.push({t:'error', m:`Area code "${areaCode}" is NOT a valid NANP area code`});
+        // Find close ones
+        const close = findCloseACs(areaCode);
+        if (close.length) {
+          issues.push({t:'info', m:`Similar valid area codes: ${close.slice(0,5).map(c=>`${c.code} (${c.info[1]})`).join(', ')}`});
+        }
+      }
+
+      // Check area code rules
+      if (areaCode[0]==='0'||areaCode[0]==='1') {
+        issues.push({t:'error', m:`Area code "${areaCode}" starts with ${areaCode[0]} — NANP area codes must start with 2-9`});
+      }
+
+      // Exchange validation
+      if (exchange) {
+        const exVal = validateExchange(exchange);
+        if (exVal && !exVal.valid) {
+          issues.push({t:'error', m:exVal.reason});
+        } else if (exVal && exVal.warn) {
+          issues.push({t:'warn', m:exVal.reason});
+        }
+      }
+    }
+
+    // Region matching
+    if (expRegion) {
+      const regionACs = findACsForRegion(expRegion);
+      if (regionACs.length > 0) {
+        const regionACcodes = regionACs.map(r=>r.code);
+        if (areaCode && regionACcodes.includes(areaCode)) {
+          issues.push({t:'ok', m:`Area code ${areaCode} matches expected region "${expRegion}" ✓`});
+        } else if (areaCode) {
+          issues.push({t:'warn', m:`Area code ${areaCode} (${areaInfo?areaInfo[1]:'unknown'}) does NOT match "${expRegion}"`});
+          issues.push({t:'info', m:`Area codes for "${expRegion}": ${regionACs.slice(0,8).map(r=>`${r.code} (${r.cities||r.state})`).join(', ')}`});
+        }
+      } else {
+        issues.push({t:'info', m:`No area codes found matching "${expRegion}"`});
+      }
+    }
+  }
+
+  // ===================== FUZZY SUGGESTIONS =====================
+  const seen = new Set();
+  function addSug(num, formatted, reason, confidence, details) {
+    const key = num.replace(/\D/g,'');
+    if (seen.has(key)) return;
+    seen.add(key);
+    suggestions.push({num, formatted, reason, confidence, details});
+  }
+
+  if (detCC === '1') {
+    const targetLen = 10;
+    const regionACs = expRegion ? findACsForRegion(expRegion) : [];
+    const regionCodes = new Set(regionACs.map(r=>r.code));
+
+    // --- VALID AS-IS ---
+    if (lenStatus === 'valid' && acValid) {
+      addSug('+1'+natNum, fmtNANP(natNum), 'Number is valid as-is', 'high',
+        `${areaInfo[0]} ${areaInfo[1]} — ${areaInfo[2]}`);
+    }
+
+    // --- TOO LONG: try removing digits ---
+    if (natNum.length > targetLen) {
+      // Maybe CC was included in the digits
+      if (natNum.startsWith('1') && natNum.length === 11) {
+        const trim1 = natNum.slice(1);
+        const trimAC = AC[trim1.slice(0,3)];
+        if (trimAC) {
+          const matchesRegion = regionCodes.has(trim1.slice(0,3));
+          addSug('+1'+trim1, fmtNANP(trim1),
+            'Remove leading "1" (country code was duplicated)',
+            matchesRegion ? 'high' : 'high',
+            `→ ${trimAC[0]} ${trimAC[1]} — ${trimAC[2]}`);
+        }
+      }
+      // Try every single deletion
+      for (const del of singleDigitDeletions(natNum)) {
+        if (del.length === targetLen) {
+          const delAC = del.slice(0,3);
+          const delInfo = AC[delAC];
+          const exVal = validateExchange(del.slice(3,6));
+          if (delInfo && (!exVal || exVal.valid)) {
+            const matchesRegion = regionCodes.has(delAC);
+            addSug('+1'+del, fmtNANP(del),
+              `Remove 1 extra digit → area code ${delAC}`,
+              matchesRegion ? 'high' : (delInfo ? 'med' : 'low'),
+              `${delInfo[0]} ${delInfo[1]} — ${delInfo[2]}`);
+          }
+        }
+      }
+    }
+
+    // --- TOO SHORT: try inserting a digit ---
+    if (natNum.length < targetLen && natNum.length >= targetLen - 2) {
+      // Try single insertions that produce valid area codes
+      for (const ins of singleDigitInsertions(natNum)) {
+        if (ins.length === targetLen) {
+          const insAC = ins.slice(0,3);
+          const insInfo = AC[insAC];
+          const exVal = validateExchange(ins.slice(3,6));
+          if (insInfo && (!exVal || exVal.valid)) {
+            const matchesRegion = regionCodes.has(insAC);
+            addSug('+1'+ins, fmtNANP(ins),
+              `Insert digit → area code ${insAC}`,
+              matchesRegion ? 'high' : 'med',
+              `${insInfo[0]} ${insInfo[1]} — ${insInfo[2]}`);
+          }
+        }
+      }
+    }
+
+    // --- WRONG DIGITS: mutations ---
+    if (natNum.length === targetLen) {
+      // Transpositions
+      for (const tr of transpositions(natNum)) {
+        const trAC = tr.slice(0,3);
+        const trInfo = AC[trAC];
+        const exVal = validateExchange(tr.slice(3,6));
+        if (trInfo && (!exVal || exVal.valid) && !acValid) {
+          const matchesRegion = regionCodes.has(trAC);
+          addSug('+1'+tr, fmtNANP(tr),
+            `Swap adjacent digits → area code ${trAC}`,
+            matchesRegion ? 'high' : 'med',
+            `${trInfo[0]} ${trInfo[1]} — ${trInfo[2]}`);
+        }
+      }
+
+      // Single digit substitutions (focused on area code fixes)
+      for (let i = 0; i < 3; i++) {
+        for (let d = 0; d <= 9; d++) {
+          if (String(d) === natNum[i]) continue;
+          const mut = natNum.slice(0,i) + d + natNum.slice(i+1);
+          const mutAC = mut.slice(0,3);
+          const mutInfo = AC[mutAC];
+          if (mutInfo) {
+            const matchesRegion = regionCodes.has(mutAC);
+            const exVal = validateExchange(mut.slice(3,6));
+            if (!exVal || exVal.valid) {
+              addSug('+1'+mut, fmtNANP(mut),
+                `Change digit ${i+1} (${natNum[i]}→${d}) → area code ${mutAC}`,
+                matchesRegion ? 'high' : 'med',
+                `${mutInfo[0]} ${mutInfo[1]} — ${mutInfo[2]}`);
+            }
+          }
+        }
+      }
+
+      // Also try exchange fixes
+      if (acValid && exchange) {
+        const exVal = validateExchange(exchange);
+        if (exVal && !exVal.valid) {
+          for (let i = 3; i < 6 && i < natNum.length; i++) {
+            for (let d = 0; d <= 9; d++) {
+              if (String(d) === natNum[i]) continue;
+              const mut = natNum.slice(0,i) + d + natNum.slice(i+1);
+              const mutEx = mut.slice(3,6);
+              const mutExVal = validateExchange(mutEx);
+              if (mutExVal && mutExVal.valid && !mutExVal.warn) {
+                addSug('+1'+mut, fmtNANP(mut),
+                  `Fix exchange: change digit ${i+1} (${natNum[i]}→${d}) → exchange ${mutEx}`,
+                  'med',
+                  `Keeps area code ${areaCode} (${areaInfo[1]})`);
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // --- REGION-BASED RECONSTRUCTION ---
+    // If we know the region, try replacing the area code entirely
+    if (expRegion && regionACs.length > 0) {
+      const localPart = natNum.length >= 7 ? natNum.slice(natNum.length - 7) : null;
+      if (localPart && localPart.length === 7) {
+        const exVal = validateExchange(localPart.slice(0,3));
+        if (!exVal || exVal.valid) {
+          for (const rac of regionACs.slice(0, 6)) {
+            const rebuilt = rac.code + localPart;
+            addSug('+1'+rebuilt, fmtNANP(rebuilt),
+              `Use ${expRegion} area code ${rac.code} + last 7 digits`,
+              rac.score >= 85 ? 'high' : 'med',
+              `${rac.abbr} ${rac.state} — ${rac.cities}`);
+          }
+        }
+      }
+      // If number is 7 digits (no area code), prepend region area codes
+      if (natNum.length === 7) {
+        const exVal = validateExchange(natNum.slice(0,3));
+        if (!exVal || exVal.valid) {
+          for (const rac of regionACs.slice(0, 6)) {
+            const rebuilt = rac.code + natNum;
+            addSug('+1'+rebuilt, fmtNANP(rebuilt),
+              `Add ${expRegion} area code ${rac.code}`,
+              rac.score >= 85 ? 'high' : 'med',
+              `${rac.abbr} ${rac.state} — ${rac.cities}`);
+          }
+        }
+      }
+    }
+
+    // --- DOUBLE-CC or trunk prefix issues ---
+    if (natNum.startsWith('1') && natNum.length === 11) {
+      // already handled above
+    }
+    if (natNum.length === 11 && !natNum.startsWith('1')) {
+      // Try removing each digit
+      // already handled by single deletions above
+    }
+
+    // Sort: high confidence first, then region matches
+    suggestions.sort((a,b) => {
+      const confOrder = {high:0, med:1, low:2};
+      if (confOrder[a.confidence] !== confOrder[b.confidence]) return confOrder[a.confidence] - confOrder[b.confidence];
+      // Prefer region matches
+      const aRegion = expRegion && a.details && a.details.toLowerCase().includes(expRegion.toLowerCase());
+      const bRegion = expRegion && b.details && b.details.toLowerCase().includes(expRegion.toLowerCase());
+      if (aRegion && !bRegion) return -1;
+      if (!aRegion && bRegion) return 1;
+      return 0;
+    });
+
+  } else if (ci) {
+    // Non-NANP countries — basic validation + suggestions
+    if (lenStatus === 'valid') {
+      addSug('+'+detCC+natNum, '+'+detCC+' '+formatGeneric(natNum),
+        'Number appears valid', 'high', `${ci.f} ${ci.n}`);
+    }
+    if (lenStatus === 'long') {
+      // trunk prefix
+      if (ci.trunk && natNum.startsWith(ci.trunk)) {
+        const w = natNum.slice(ci.trunk.length);
+        if (ci.len.includes(w.length)) {
+          addSug('+'+detCC+w, '+'+detCC+' '+formatGeneric(w),
+            `Remove trunk prefix "${ci.trunk}"`, 'high', `${ci.f} ${ci.n}`);
+        }
+      }
+      // doubled CC
+      if (natNum.startsWith(detCC)) {
+        const w = natNum.slice(detCC.length);
+        if (ci.len.includes(w.length)) {
+          addSug('+'+detCC+w, '+'+detCC+' '+formatGeneric(w),
+            'Country code was doubled', 'high', `${ci.f} ${ci.n}`);
+        }
+      }
+      // trim from end / start
+      for (const vl of ci.len) {
+        if (natNum.length > vl) {
+          const te = natNum.slice(0,vl);
+          addSug('+'+detCC+te, '+'+detCC+' '+formatGeneric(te),
+            `Trim ${natNum.length-vl} digit(s) from end`, 'low', `${ci.f} ${ci.n}`);
+          const ts = natNum.slice(natNum.length-vl);
+          addSug('+'+detCC+ts, '+'+detCC+' '+formatGeneric(ts),
+            `Trim ${natNum.length-vl} digit(s) from start`, 'low', `${ci.f} ${ci.n}`);
+        }
+      }
+    }
+    if (lenStatus === 'short') {
+      if (ci.trunk) {
+        const w = ci.trunk + natNum;
+        if (ci.len.includes(w.length)) {
+          addSug('+'+detCC+w, '+'+detCC+' '+formatGeneric(w),
+            `Add trunk prefix "${ci.trunk}"`, 'med', `${ci.f} ${ci.n}`);
+        }
+      }
+    }
+  }
+
+  // Determine verdict
+  let verdict;
+  if (lenStatus === 'valid' && (detCC !== '1' || acValid)) {
+    verdict = {t:'valid', m:`✅ Valid ${ci?.f||''} ${ci?.n||''} number`};
+  } else if (suggestions.some(s => s.confidence === 'high')) {
+    verdict = {t:'fixable', m:'🔧 Fixable — strong correction candidates found'};
+  } else if (suggestions.length > 0) {
+    verdict = {t:'warning', m:'⚠️ Ambiguous — possible corrections below'};
+  } else {
+    verdict = {t:'invalid', m:'❌ Could not determine a valid number'};
+  }
+
+  return { raw, digits, detCC, natNum, ci, areaCode, areaInfo, exchange, subscriber, lenStatus, lenDiff, issues, suggestions, verdict, ccInDigits, expRegion };
+}
+
+function detectCC(digits) {
+  // Try 1, 2, 3 digit CCs — prefer the one that gives valid-length national number
+  const candidates = [];
+  for (const len of [1,2,3]) {
+    if (digits.length <= len) continue;
+    const c = digits.slice(0,len);
+    if (CC[c]) {
+      const nat = digits.slice(len);
+      const ci = CC[c];
+      let natLen = nat.length;
+      if (ci.trunk && nat.startsWith(ci.trunk)) natLen = nat.length - ci.trunk.length;
+      const maxL = Math.max(...ci.len);
+      const minL = Math.min(...ci.len);
+      const exact = ci.len.includes(natLen) || ci.len.includes(nat.length);
+      const close = natLen >= minL - 2 && natLen <= maxL + 2;
+      if (exact) candidates.push({cc:c, score:10});
+      else if (close) candidates.push({cc:c, score:5});
+    }
+  }
+  candidates.sort((a,b) => b.score - a.score);
+  return candidates.length > 0 ? candidates[0].cc : null;
+}
+
+function findCloseACs(ac) {
+  const results = [];
+  for (const [code, info] of Object.entries(AC)) {
+    let diff = 0;
+    for (let i = 0; i < 3; i++) {
+      if (code[i] !== ac[i]) diff++;
+    }
+    if (diff === 1) results.push({code, info, diff});
+  }
+  return results;
+}
+
+function fmtNANP(n) {
+  if (n.length === 10) return `+1 (${n.slice(0,3)}) ${n.slice(3,6)}-${n.slice(6)}`;
+  if (n.length === 7) return `${n.slice(0,3)}-${n.slice(3)}`;
+  return '+1 ' + n;
+}
+
+function formatGeneric(n) {
+  if (n.length <= 4) return n;
+  if (n.length <= 7) return n.slice(0,3)+' '+n.slice(3);
+  if (n.length <= 10) return n.slice(0,3)+' '+n.slice(3,6)+' '+n.slice(6);
+  return n.slice(0,3)+' '+n.slice(3,7)+' '+n.slice(7);
+}
+
+// =====================================================================
+// RENDERING
+// =====================================================================
+function render(r) {
+  const el = document.getElementById('results');
+  el.classList.add('show');
+
+  let html = '';
+
+  // Verdict
+  html += `<div class="verdict ${r.verdict.t}">${r.verdict.m}</div>`;
+
+  // Digit breakdown
+  html += `<div class="card"><h2>🧬 Digit Breakdown</h2><div class="digit-map">`;
+  const parts = buildDigitMap(r);
+  html += parts.map(p => {
+    if (p.t === 'sep') return `<div class="dbox sep">·</div>`;
+    return `<div class="dbox ${p.t}" title="${p.label}">${p.d}</div>`;
+  }).join('');
+  html += `</div><div class="legend">
+    <div class="legend-item"><div class="lsw" style="border-color:#43a047;background:rgba(67,160,71,.15)"></div>Country</div>
+    <div class="legend-item"><div class="lsw" style="border-color:#1e88e5;background:rgba(30,136,229,.15)"></div>Area Code</div>
+    <div class="legend-item"><div class="lsw" style="border-color:#ab47bc;background:rgba(171,71,188,.15)"></div>Exchange</div>
+    <div class="legend-item"><div class="lsw" style="border-color:#78909c;background:rgba(120,144,156,.15)"></div>Subscriber</div>
+    <div class="legend-item"><div class="lsw" style="border-color:#e53935;background:rgba(229,57,53,.15)"></div>Extra/Invalid</div>
+  </div></div>`;
+
+  // Details grid
+  html += `<div class="card"><h2>📋 Decoded Details</h2><div class="detail-grid">`;
+  const dets = [];
+  dets.push(['Raw Input', r.raw]);
+  dets.push(['Digits', r.digits, true]);
+  dets.push(['Total Digits', r.digits.length]);
+  if (r.ci) {
+    dets.push(['Country', `${r.ci.f} ${r.ci.n}`]);
+    dets.push(['Country Code', '+'+r.detCC, true]);
+    dets.push(['Valid Lengths', r.ci.len.join(', ')+' (national)']);
+    dets.push(['National #', r.natNum, true]);
+    dets.push(['Nat. Length', `${r.natNum.length} ${r.lenStatus==='valid'?'✅':r.lenStatus==='long'?'⚠️ too long':'⚠️ too short'}`]);
+  }
+  if (r.areaCode) {
+    dets.push(['Area Code', r.areaCode, true]);
+    if (r.areaInfo) dets.push(['Region', `${r.areaInfo[0]} — ${r.areaInfo[1]}`]);
+    if (r.areaInfo) dets.push(['Cities', r.areaInfo[2]]);
+  }
+  if (r.exchange) dets.push(['Exchange', r.exchange, true]);
+  if (r.subscriber) dets.push(['Subscriber', r.subscriber, true]);
+  if (r.ci?.trunk) dets.push(['Trunk Prefix', r.ci.trunk]);
+
+  for (const [label, val, hi] of dets) {
+    html += `<div class="detail-item"><div class="detail-label">${label}</div><div class="detail-value${hi?' hi':''}">${val}</div></div>`;
+  }
+  html += `</div></div>`;
+
+  // Diagnostics
+  html += `<div class="card"><h2>🩺 Diagnostics</h2><ul class="issues">`;
+  for (const iss of r.issues) {
+    const icon = {ok:'✅',error:'❌',warn:'⚠️',info:'ℹ️'}[iss.t];
+    html += `<li class="${iss.t}">${icon} ${iss.m}</li>`;
+  }
+  html += `</ul></div>`;
+
+  // Suggestions
+  html += `<div class="card"><h2>💡 Suggested Corrections (${r.suggestions.length})</h2>`;
+  if (r.suggestions.length === 0) {
+    html += `<div class="help-text">No corrections to suggest. Try entering an expected state/region for smarter matching.</div>`;
+  } else {
+    // Show region match table if relevant
+    if (r.expRegion && r.detCC === '1') {
+      html += `<div class="help-text" style="margin-bottom:10px">🎯 Suggestions matching "<strong>${r.expRegion}</strong>" are prioritized and marked with 🟢 High confidence.</div>`;
+    }
+    const limit = 15;
+    const showing = r.suggestions.slice(0, limit);
+    for (let i = 0; i < showing.length; i++) {
+      const s = showing[i];
+      const isBest = i === 0 && s.confidence === 'high';
+      html += `<div class="sug-card${isBest?' best':''}" onclick="copySug('${s.num}',this)">
+        <div>
+          <div class="sug-num">${s.formatted}</div>
+          <div class="sug-detail">${s.reason}${s.details?' — '+s.details:''}</div>
+        </div>
+        <div class="sug-right">
+          <span class="badge ${s.confidence}">${s.confidence==='high'?'🟢 High':s.confidence==='med'?'🟡 Med':'🔴 Low'}</span>
+          <button class="btn-copy" onclick="event.stopPropagation();copySug('${s.num}',this)">📋</button>
+        </div>
+      </div>`;
+    }
+    if (r.suggestions.length > limit) {
+      html += `<div class="help-text">${r.suggestions.length - limit} more suggestions hidden. Try narrowing with a state/region hint.</div>`;
+    }
+  }
+  html += `</div>`;
+
+  // Area code lookup if NANP + region
+  if (r.detCC === '1' && r.expRegion) {
+    const regionACs = findACsForRegion(r.expRegion);
+    if (regionACs.length > 0) {
+      html += `<div class="card"><h2>📍 Area Codes for "${r.expRegion}"</h2>`;
+      html += `<table class="ac-table"><tr><th>Code</th><th>State</th><th>Cities</th></tr>`;
+      for (const rac of regionACs.slice(0,12)) {
+        const isMatch = r.areaCode === rac.code;
+        html += `<tr><td class="${isMatch?'match':''}">${rac.code}</td><td>${rac.abbr} ${rac.state}</td><td style="color:#78909c;font-family:inherit">${rac.cities}</td></tr>`;
+      }
+      html += `</table></div>`;
+    }
+  }
+
+  el.innerHTML = html;
+  el.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function buildDigitMap(r) {
+  const parts = [];
+  // Show CC if it was in digits
+  if (r.ccInDigits && r.detCC) {
+    for (const ch of r.detCC) parts.push({d:ch, t:'cc', label:'Country Code'});
+    parts.push({d:' ',t:'sep'});
+  }
+  // NANP breakdown
+  if (r.detCC === '1') {
+    const n = r.natNum;
+    for (let i = 0; i < n.length; i++) {
+      if (i < 3) parts.push({d:n[i], t: (r.areaInfo?'ac':'extra'), label:'Area Code'});
+      else if (i < 6) parts.push({d:n[i], t:'ex', label:'Exchange'});
+      else if (i < 10) parts.push({d:n[i], t:'ln', label:'Subscriber'});
+      else parts.push({d:n[i], t:'extra', label:'Extra digit'});
+      if (i === 2 || i === 5) parts.push({d:' ',t:'sep'});
+    }
+  } else {
+    const n = r.natNum;
+    for (let i = 0; i < n.length; i++) {
+      if (i < 3) parts.push({d:n[i], t:'ac', label:'Area/Prefix'});
+      else parts.push({d:n[i], t:'ln', label:'Number'});
+      if (i === 2 || i === 5) parts.push({d:' ',t:'sep'});
+    }
+  }
+  return parts;
+}
+
+function copySug(num, el) {
+  navigator.clipboard.writeText(num).then(() => {
+    const btn = el.querySelector('.btn-copy') || el;
+    const orig = btn.innerHTML;
+    btn.innerHTML = '✅';
+    setTimeout(() => btn.innerHTML = orig, 1200);
+  });
+}
+
+function clearAll() {
+  document.getElementById('phoneInput').value = '';
+  document.getElementById('expectedRegion').value = '';
+  document.getElementById('results').classList.remove('show');
+  document.getElementById('results').innerHTML = '';
+  document.getElementById('phoneInput').focus();
+}
+
+document.getElementById('phoneInput').addEventListener('keydown', e => { if(e.key==='Enter') analyze(); });
+document.getElementById('phoneInput').addEventListener('paste', () => setTimeout(analyze, 100));
+document.getElementById('expectedRegion').addEventListener('keydown', e => { if(e.key==='Enter') analyze(); });
+</script>
+</body>
+</html>
