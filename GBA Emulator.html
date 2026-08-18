@@ -1,0 +1,91 @@
+GBA Emulator<html>
+    <!-- by ImPot8o - github.com/ImPot8o - remix of emulatorjs-->
+    <head>
+    <title>GBA Emulator</title>
+        <style>
+            #game canvas {
+                resolution: .125dppx;
+                will-change: auto;
+            }
+            body, html {
+                margin: 0;
+                padding: 0;
+                color: white;
+                background-color: #050111;
+            }
+            input[type="file"]::file-selector-button {
+                background-color: #4CAF50;
+                color: #fff;
+                padding: 24px 40px;
+                border: none;
+                border-radius: 5px;
+                cursor: pointer;
+                font-family: Arial, sans-serif;
+                font-size: 32px;
+            }
+            input[type="file"]::file-selector-button:hover {
+                background-color: #3e8e41;
+            }
+            input[type="file"]::file-selector-button:active {
+                background-color: #2f6d31;
+                transform: translateY(2px);
+            }
+            input[type="file"] {
+                font-size: 0;
+            }
+            #romInput[selected] {
+                visibility: hidden;
+            }
+            #upload-container {
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                z-index: 1000;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="upload-container">
+            <input type="file" id="romInput" accept=".gba, .zip, .7zip, .rar" />
+        </div>
+        <div style="width:100%;height:100%;max-width:100%">
+            <div id="game"></div>
+        </div>
+        <script>
+            // Configure EmulatorJS settings
+            EJS_player = "#game";
+            EJS_core = "gba";
+            EJS_color = "#0064ff";
+            EJS_pathtodata = "https://cdn.emulatorjs.org/stable/data/";
+            EJS_startOnLoaded = true;
+
+            // Handle ROM file selection
+            document.getElementById('romInput').addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                // Hide file input after selection
+                e.target.setAttribute('selected', '');
+
+                const reader = new FileReader();
+                reader.onload = function() {
+                    // Remove previous loader script if exists
+                    const oldScript = document.querySelector('script[src="https://cdn.emulatorjs.org/stable/data/loader.js"]');
+                    if (oldScript) oldScript.remove();
+
+                    // Prepare ROM data
+                    const romData = new Uint8Array(reader.result);
+                    const blob = new Blob([romData], {type: 'application/octet-stream'});
+                    EJS_gameUrl = URL.createObjectURL(blob);
+
+                    // Load emulator script
+                    const script = document.createElement('script');
+                    script.src = 'https://cdn.emulatorjs.org/stable/data/loader.js';
+                    document.body.appendChild(script);
+                };
+                reader.readAsArrayBuffer(file);
+            });
+        </script>
+    </body>
+</html>
