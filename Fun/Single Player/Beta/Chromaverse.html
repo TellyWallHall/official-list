@@ -1,0 +1,824 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chromaverse: The Color Evolution Game</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            overflow: hidden;
+            margin: 0;
+            height: 100vh;
+            color: white;
+        }
+        
+        .creature {
+            position: absolute;
+            border-radius: 50%;
+            transition: all 0.5s ease;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
+        }
+        
+        .food {
+            position: absolute;
+            border-radius: 50%;
+            width: 12px;
+            height: 12px;
+            background: white;
+            box-shadow: 0 0 8px rgba(255, 255, 255, 0.5);
+        }
+        
+        .game-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+        
+        .color-picker {
+            position: relative;
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            background: conic-gradient(
+                red, orange, yellow, green, blue, indigo, violet, red
+            );
+            cursor: pointer;
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
+        }
+        
+        .color-picker-handle {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+        
+        .tutorial-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 2rem;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        
+        .evolution-particle {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            pointer-events: none;
+        }
+        
+        .stats-bar {
+            height: 8px;
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container" id="gameContainer">
+        <!-- Game elements will be created dynamically -->
+    </div>
+    
+    <div class="fixed bottom-4 left-4 right-4 bg-slate-800/80 backdrop-blur-md p-4 rounded-xl flex flex-col md:flex-row gap-4 items-center z-10">
+        <div class="color-picker" id="colorPicker">
+            <div class="color-picker-handle" id="colorPickerHandle"></div>
+        </div>
+        
+        <div class="flex-1 flex flex-col gap-2">
+            <div class="flex justify-between">
+                <span>Selected Color:</span>
+                <span id="selectedColorDisplay">#FFFFFF</span>
+            </div>
+            <div class="h-8 rounded-md" id="selectedColorPreview"></div>
+            
+            <div class="grid grid-cols-2 gap-4 mt-2">
+                <button id="feedBtn" class="bg-emerald-600 hover:bg-emerald-700 text-white py-2 px-4 rounded-lg transition">
+                    Feed Creatures
+                </button>
+                <button id="evolveBtn" class="bg-purple-600 hover:bg-purple-700 text-white py-2 px-4 rounded-lg transition">
+                    Force Evolution
+                </button>
+            </div>
+        </div>
+        
+        <div class="flex-1 flex flex-col gap-2">
+            <div class="flex justify-between">
+                <span>Ecosystem Stats</span>
+                <span id="creatureCount">0 creatures</span>
+            </div>
+            
+            <div class="flex flex-col gap-1">
+                <div class="flex justify-between text-xs">
+                    <span>Diversity</span>
+                    <span id="diversityValue">0%</span>
+                </div>
+                <div class="bg-slate-700 rounded-full h-2">
+                    <div id="diversityBar" class="stats-bar bg-gradient-to-r from-red-500 to-blue-500" style="width: 0%"></div>
+                </div>
+                
+                <div class="flex justify-between text-xs mt-1">
+                    <span>Harmony</span>
+                    <span id="harmonyValue">0%</span>
+                </div>
+                <div class="bg-slate-700 rounded-full h-2">
+                    <div id="harmonyBar" class="stats-bar bg-gradient-to-r from-yellow-500 to-green-500" style="width: 0%"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="fixed top-4 right-4 bg-slate-800/80 backdrop-blur-md p-4 rounded-xl z-10">
+        <div class="text-lg font-bold mb-2">Chromaverse</div>
+        <div class="flex gap-2">
+            <button id="helpBtn" class="bg-blue-600 hover:bg-blue-700 text-white py-1 px-3 rounded-lg text-sm transition">
+                Help
+            </button>
+            <button id="resetBtn" class="bg-red-600 hover:bg-red-700 text-white py-1 px-3 rounded-lg text-sm transition">
+                Reset
+            </button>
+        </div>
+    </div>
+    
+    <div id="tutorial" class="tutorial-overlay">
+        <div class="max-w-md bg-slate-800 p-6 rounded-xl">
+            <h2 class="text-2xl font-bold mb-4">Welcome to Chromaverse!</h2>
+            <p class="mb-4">In this infinite game, you'll nurture an ecosystem of color-based creatures that evolve based on their interactions.</p>
+            
+            <div class="space-y-4 text-left">
+                <div>
+                    <h3 class="font-bold">🎨 Select Colors</h3>
+                    <p>Use the color wheel to choose what colors to introduce to your ecosystem.</p>
+                </div>
+                
+                <div>
+                    <h3 class="font-bold">🌱 Feed Creatures</h3>
+                    <p>Feed your creatures with the selected color to help them grow and evolve.</p>
+                </div>
+                
+                <div>
+                    <h3 class="font-bold">✨ Evolution</h3>
+                    <p>Watch as creatures evolve based on their color relationships. Complementary colors may create harmony or conflict!</p>
+                </div>
+                
+                <div>
+                    <h3 class="font-bold">🔄 Infinite Play</h3>
+                    <p>There's no end goal - just create a beautiful, balanced ecosystem or cause colorful chaos!</p>
+                </div>
+            </div>
+            
+            <button id="startBtn" class="mt-6 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white py-2 px-6 rounded-lg text-lg font-medium transition pulse">
+                Start Creating
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Game state
+        const state = {
+            creatures: [],
+            foods: [],
+            selectedColor: '#FFFFFF',
+            nextCreatureId: 1,
+            gameStarted: false,
+            diversity: 0,
+            harmony: 0
+        };
+        
+        // DOM elements
+        const gameContainer = document.getElementById('gameContainer');
+        const colorPicker = document.getElementById('colorPicker');
+        const colorPickerHandle = document.getElementById('colorPickerHandle');
+        const selectedColorDisplay = document.getElementById('selectedColorDisplay');
+        const selectedColorPreview = document.getElementById('selectedColorPreview');
+        const feedBtn = document.getElementById('feedBtn');
+        const evolveBtn = document.getElementById('evolveBtn');
+        const helpBtn = document.getElementById('helpBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const tutorial = document.getElementById('tutorial');
+        const startBtn = document.getElementById('startBtn');
+        const creatureCount = document.getElementById('creatureCount');
+        const diversityValue = document.getElementById('diversityValue');
+        const diversityBar = document.getElementById('diversityBar');
+        const harmonyValue = document.getElementById('harmonyValue');
+        const harmonyBar = document.getElementById('harmonyBar');
+        
+        // Initialize the game
+        function initGame() {
+            // Create initial creatures
+            createInitialCreatures();
+            
+            // Update stats
+            updateStats();
+            
+            // Start game loop
+            setInterval(gameLoop, 100);
+        }
+        
+        // Create initial creatures
+        function createInitialCreatures() {
+            const colors = ['#FF5555', '#55FF55', '#5555FF'];
+            
+            for (let i = 0; i < 3; i++) {
+                createCreature(
+                    Math.random() * (window.innerWidth - 100) + 50,
+                    Math.random() * (window.innerHeight - 100) + 50,
+                    colors[i],
+                    30 + Math.random() * 20
+                );
+            }
+        }
+        
+        // Create a new creature
+        function createCreature(x, y, color, size) {
+            const id = state.nextCreatureId++;
+            const creature = {
+                id,
+                x,
+                y,
+                color,
+                size,
+                energy: 100,
+                direction: Math.random() * Math.PI * 2,
+                speed: 0.5 + Math.random(),
+                lastEvolution: Date.now(),
+                traits: {
+                    metabolism: 0.5 + Math.random() * 0.5,
+                    aggression: Math.random(),
+                    sociability: Math.random()
+                }
+            };
+            
+            state.creatures.push(creature);
+            
+            // Create DOM element
+            const element = document.createElement('div');
+            element.className = 'creature';
+            element.id = `creature-${id}`;
+            element.style.width = `${size}px`;
+            element.style.height = `${size}px`;
+            element.style.backgroundColor = color;
+            element.style.left = `${x}px`;
+            element.style.top = `${y}px`;
+            
+            // Add inner pattern based on traits
+            const pattern = document.createElement('div');
+            pattern.style.width = '60%';
+            pattern.style.height = '60%';
+            pattern.style.borderRadius = creature.traits.sociability > 0.5 ? '50%' : '0%';
+            pattern.style.background = creature.traits.aggression > 0.5 ? 
+                `repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(255,255,255,0.2) 5px, rgba(255,255,255,0.2) 10px)` :
+                `radial-gradient(circle, rgba(255,255,255,0.3) 0%, transparent 70%)`;
+            element.appendChild(pattern);
+            
+            element.addEventListener('click', () => interactWithCreature(creature));
+            gameContainer.appendChild(element);
+            
+            return creature;
+        }
+        
+        // Create food particle
+        function createFood(x, y, color) {
+            const food = {
+                x,
+                y,
+                color
+            };
+            
+            state.foods.push(food);
+            
+            // Create DOM element
+            const element = document.createElement('div');
+            element.className = 'food';
+            element.style.backgroundColor = color;
+            element.style.left = `${x}px`;
+            element.style.top = `${y}px`;
+            gameContainer.appendChild(element);
+        }
+        
+        // Feed creatures with selected color
+        function feedCreatures() {
+            for (let i = 0; i < 20; i++) {
+                createFood(
+                    Math.random() * window.innerWidth,
+                    Math.random() * window.innerHeight,
+                    state.selectedColor
+                );
+            }
+        }
+        
+        // Force evolution on all creatures
+        function forceEvolution() {
+            state.creatures.forEach(creature => {
+                if (creature.energy > 50) {
+                    evolveCreature(creature);
+                }
+            });
+        }
+        
+        // Evolve a creature
+        function evolveCreature(creature) {
+            // Create evolution particles
+            for (let i = 0; i < 10; i++) {
+                createEvolutionParticle(creature);
+            }
+            
+            // Modify creature traits
+            const colorShift = Math.random() > 0.5 ? 20 : -20;
+            const newColor = shiftColor(creature.color, colorShift);
+            creature.color = newColor;
+            
+            // Update creature appearance
+            const element = document.getElementById(`creature-${creature.id}`);
+            if (element) {
+                element.style.backgroundColor = newColor;
+                
+                // Growth if enough energy
+                if (creature.energy > 150) {
+                    creature.size += 5;
+                    element.style.width = `${creature.size}px`;
+                    element.style.height = `${creature.size}px`;
+                    
+                    // Chance to reproduce
+                    if (Math.random() < 0.3 && state.creatures.length < 30) {
+                        const childSize = creature.size * 0.6;
+                        creature.size *= 0.8;
+                        
+                        // Create child with slight variation
+                        const childColor = shiftColor(creature.color, Math.random() * 40 - 20);
+                        createCreature(
+                            creature.x + Math.random() * 50 - 25,
+                            creature.y + Math.random() * 50 - 25,
+                            childColor,
+                            childSize
+                        );
+                        
+                        creature.energy -= 50;
+                    }
+                }
+            }
+            
+            creature.lastEvolution = Date.now();
+            creature.energy -= 30;
+            
+            updateStats();
+        }
+        
+        // Create evolution particle effect
+        function createEvolutionParticle(creature) {
+            const particle = document.createElement('div');
+            particle.className = 'evolution-particle';
+            
+            const angle = Math.random() * Math.PI * 2;
+            const distance = creature.size / 2;
+            
+            const startX = creature.x + Math.cos(angle) * distance;
+            const startY = creature.y + Math.sin(angle) * distance;
+            
+            particle.style.left = `${startX}px`;
+            particle.style.top = `${startY}px`;
+            particle.style.backgroundColor = creature.color;
+            
+            gameContainer.appendChild(particle);
+            
+            // Animate particle
+            const endX = startX + Math.cos(angle) * (creature.size + 20);
+            const endY = startY + Math.sin(angle) * (creature.size + 20);
+            
+            const duration = 500 + Math.random() * 500;
+            
+            particle.animate([
+                { left: `${startX}px`, top: `${startY}px`, opacity: 1 },
+                { left: `${endX}px`, top: `${endY}px`, opacity: 0 }
+            ], {
+                duration,
+                easing: 'ease-out'
+            }).onfinish = () => {
+                particle.remove();
+            };
+        }
+        
+        // Interact with a creature when clicked
+        function interactWithCreature(creature) {
+            // Show creature info
+            const infoBox = document.createElement('div');
+            infoBox.className = 'absolute bg-slate-800/90 backdrop-blur-md p-3 rounded-lg text-white z-20';
+            infoBox.style.left = `${creature.x + creature.size/2}px`;
+            infoBox.style.top = `${creature.y - 120}px`;
+            infoBox.style.transform = 'translate(-50%, 0)';
+            infoBox.style.minWidth = '180px';
+            
+            infoBox.innerHTML = `
+                <div class="text-sm font-bold">Creature #${creature.id}</div>
+                <div class="grid grid-cols-2 gap-x-2 text-xs">
+                    <div>Energy:</div>
+                    <div>${Math.round(creature.energy)}%</div>
+                    <div>Size:</div>
+                    <div>${Math.round(creature.size)}px</div>
+                    <div>Metabolism:</div>
+                    <div>${Math.round(creature.traits.metabolism * 100)}%</div>
+                    <div>Sociability:</div>
+                    <div>${Math.round(creature.traits.sociability * 100)}%</div>
+                </div>
+            `;
+            
+            gameContainer.appendChild(infoBox);
+            
+            // Remove after a delay
+            setTimeout(() => {
+                infoBox.style.opacity = '0';
+                infoBox.style.transition = 'opacity 0.3s ease';
+                setTimeout(() => infoBox.remove(), 300);
+            }, 3000);
+            
+            // Feed the creature with current color
+            for (let i = 0; i < 5; i++) {
+                createFood(
+                    creature.x + Math.random() * creature.size - creature.size/2,
+                    creature.y + Math.random() * creature.size - creature.size/2,
+                    state.selectedColor
+                );
+            }
+        }
+        
+        // Game loop
+        function gameLoop() {
+            moveCreatures();
+            checkFoodCollisions();
+            updateCreatureElements();
+            checkCreatureInteractions();
+            
+            // Natural evolution chance
+            state.creatures.forEach(creature => {
+                if (Date.now() - creature.lastEvolution > 15000 && Math.random() < 0.001 && creature.energy > 70) {
+                    evolveCreature(creature);
+                }
+            });
+            
+            // Remove dead creatures
+            for (let i = state.creatures.length - 1; i >= 0; i--) {
+                if (state.creatures[i].energy <= 0 || state.creatures[i].size <= 10) {
+                    const element = document.getElementById(`creature-${state.creatures[i].id}`);
+                    if (element) {
+                        // Fade out animation
+                        element.style.transition = 'all 1s ease';
+                        element.style.opacity = '0';
+                        element.style.transform = 'scale(0.5)';
+                        
+                        setTimeout(() => element.remove(), 1000);
+                    }
+                    state.creatures.splice(i, 1);
+                    updateStats();
+                }
+            }
+        }
+        
+        // Move creatures
+        function moveCreatures() {
+            state.creatures.forEach(creature => {
+                // Change direction occasionally
+                if (Math.random() < 0.05) {
+                    creature.direction += (Math.random() - 0.5) * Math.PI / 2;
+                }
+                
+                // Move creature
+                creature.x += Math.cos(creature.direction) * creature.speed;
+                creature.y += Math.sin(creature.direction) * creature.speed;
+                
+                // Bounce off walls
+                if (creature.x < 0 || creature.x > window.innerWidth) {
+                    creature.direction = Math.PI - creature.direction;
+                    creature.x = Math.max(0, Math.min(window.innerWidth, creature.x));
+                }
+                
+                if (creature.y < 0 || creature.y > window.innerHeight) {
+                    creature.direction = -creature.direction;
+                    creature.y = Math.max(0, Math.min(window.innerHeight, creature.y));
+                }
+                
+                // Lose energy over time based on metabolism
+                creature.energy -= 0.01 * creature.traits.metabolism;
+            });
+        }
+        
+        // Check for food collisions
+        function checkFoodCollisions() {
+            for (let i = state.foods.length - 1; i >= 0; i--) {
+                const food = state.foods[i];
+                
+                for (let j = 0; j < state.creatures.length; j++) {
+                    const creature = state.creatures[j];
+                    const dx = creature.x - food.x;
+                    const dy = creature.y - food.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (distance < creature.size / 2) {
+                        // Remove food
+                        const foodElements = document.getElementsByClassName('food');
+                        if (foodElements[i]) {
+                            foodElements[i].remove();
+                        }
+                        state.foods.splice(i, 1);
+                        
+                        // Calculate color compatibility
+                        const compatibility = getColorCompatibility(creature.color, food.color);
+                        
+                        // Add energy based on compatibility
+                        const energyGain = 10 + compatibility * 20;
+                        creature.energy = Math.min(200, creature.energy + energyGain);
+                        
+                        // Chance to evolve if very compatible
+                        if (compatibility > 0.8 && Math.random() < 0.2) {
+                            evolveCreature(creature);
+                        }
+                        
+                        break;
+                    }
+                }
+            }
+        }
+        
+        // Check creature interactions
+        function checkCreatureInteractions() {
+            for (let i = 0; i < state.creatures.length; i++) {
+                const creatureA = state.creatures[i];
+                
+                for (let j = i + 1; j < state.creatures.length; j++) {
+                    const creatureB = state.creatures[j];
+                    
+                    const dx = creatureA.x - creatureB.x;
+                    const dy = creatureA.y - creatureB.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    const minDistance = (creatureA.size + creatureB.size) / 2;
+                    
+                    if (distance < minDistance) {
+                        // Calculate color relationship
+                        const compatibility = getColorCompatibility(creatureA.color, creatureB.color);
+                        
+                        // Social creatures like to be near compatible colors
+                        if (creatureA.traits.sociability > 0.6 && compatibility > 0.7) {
+                            creatureA.energy += 0.1;
+                        }
+                        
+                        if (creatureB.traits.sociability > 0.6 && compatibility > 0.7) {
+                            creatureB.energy += 0.1;
+                        }
+                        
+                        // Aggressive creatures attack incompatible colors
+                        if (creatureA.traits.aggression > 0.7 && compatibility < 0.3 && creatureA.size > creatureB.size) {
+                            creatureB.energy -= 0.5;
+                            creatureA.energy += 0.2;
+                        }
+                        
+                        if (creatureB.traits.aggression > 0.7 && compatibility < 0.3 && creatureB.size > creatureA.size) {
+                            creatureA.energy -= 0.5;
+                            creatureB.energy += 0.2;
+                        }
+                        
+                        // Push creatures apart
+                        const angle = Math.atan2(dy, dx);
+                        const pushForce = (minDistance - distance) / 10;
+                        
+                        creatureA.x += Math.cos(angle) * pushForce;
+                        creatureA.y += Math.sin(angle) * pushForce;
+                        creatureB.x -= Math.cos(angle) * pushForce;
+                        creatureB.y -= Math.sin(angle) * pushForce;
+                    }
+                }
+            }
+        }
+        
+        // Update creature DOM elements
+        function updateCreatureElements() {
+            state.creatures.forEach(creature => {
+                const element = document.getElementById(`creature-${creature.id}`);
+                if (element) {
+                    element.style.left = `${creature.x - creature.size/2}px`;
+                    element.style.top = `${creature.y - creature.size/2}px`;
+                    
+                    // Pulse effect when energy is high
+                    if (creature.energy > 150) {
+                        element.style.boxShadow = `0 0 20px ${creature.color}`;
+                    } else {
+                        element.style.boxShadow = `0 0 ${Math.max(5, creature.energy/10)}px ${creature.color}`;
+                    }
+                }
+            });
+        }
+        
+        // Update game statistics
+        function updateStats() {
+            // Update creature count
+            creatureCount.textContent = `${state.creatures.length} creatures`;
+            
+            // Calculate diversity (based on color variety)
+            if (state.creatures.length > 0) {
+                const uniqueColors = new Set(state.creatures.map(c => c.color.substring(0, 4)));
+                state.diversity = (uniqueColors.size / state.creatures.length) * 100;
+                state.diversity = Math.min(100, state.diversity * 3); // Scale for better display
+            } else {
+                state.diversity = 0;
+            }
+            
+            // Calculate harmony (based on color relationships)
+            if (state.creatures.length > 1) {
+                let totalCompatibility = 0;
+                let pairs = 0;
+                
+                for (let i = 0; i < state.creatures.length; i++) {
+                    for (let j = i + 1; j < state.creatures.length; j++) {
+                        totalCompatibility += getColorCompatibility(state.creatures[i].color, state.creatures[j].color);
+                        pairs++;
+                    }
+                }
+                
+                state.harmony = pairs > 0 ? (totalCompatibility / pairs) * 100 : 0;
+            } else {
+                state.harmony = 0;
+            }
+            
+            // Update UI
+            diversityValue.textContent = `${Math.round(state.diversity)}%`;
+            diversityBar.style.width = `${state.diversity}%`;
+            
+            harmonyValue.textContent = `${Math.round(state.harmony)}%`;
+            harmonyBar.style.width = `${state.harmony}%`;
+        }
+        
+        // Color utility functions
+        function hexToRgb(hex) {
+            const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+            return result ? {
+                r: parseInt(result[1], 16),
+                g: parseInt(result[2], 16),
+                b: parseInt(result[3], 16)
+            } : null;
+        }
+        
+        function rgbToHex(r, g, b) {
+            return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
+        }
+        
+        function shiftColor(color, amount) {
+            const rgb = hexToRgb(color);
+            if (!rgb) return color;
+            
+            // Shift each component
+            rgb.r = Math.max(0, Math.min(255, rgb.r + Math.floor(Math.random() * amount - amount/2)));
+            rgb.g = Math.max(0, Math.min(255, rgb.g + Math.floor(Math.random() * amount - amount/2)));
+            rgb.b = Math.max(0, Math.min(255, rgb.b + Math.floor(Math.random() * amount - amount/2)));
+            
+            return rgbToHex(rgb.r, rgb.g, rgb.b);
+        }
+        
+        function getColorCompatibility(color1, color2) {
+            const rgb1 = hexToRgb(color1);
+            const rgb2 = hexToRgb(color2);
+            
+            if (!rgb1 || !rgb2) return 0;
+            
+            // Calculate color distance (0 = identical, 1 = completely different)
+            const rDiff = Math.abs(rgb1.r - rgb2.r) / 255;
+            const gDiff = Math.abs(rgb1.g - rgb2.g) / 255;
+            const bDiff = Math.abs(rgb1.b - rgb2.b) / 255;
+            
+            const distance = (rDiff + gDiff + bDiff) / 3;
+            
+            // Complementary colors (around 0.5 distance) have high compatibility
+            return 1 - Math.abs(distance - 0.5) * 2;
+        }
+        
+        // Color picker functionality
+        colorPicker.addEventListener('click', function(e) {
+            const rect = colorPicker.getBoundingClientRect();
+            const x = e.clientX - rect.left - rect.width / 2;
+            const y = e.clientY - rect.top - rect.height / 2;
+            
+            // Calculate angle and distance from center
+            const angle = Math.atan2(y, x);
+            const distance = Math.sqrt(x * x + y * y);
+            const radius = rect.width / 2;
+            
+            // Only respond if click is within the circle
+            if (distance <= radius) {
+                // Position the handle
+                colorPickerHandle.style.left = `${x + radius}px`;
+                colorPickerHandle.style.top = `${y + radius}px`;
+                
+                // Convert angle to hue (0-360)
+                let hue = (angle * 180 / Math.PI + 180) % 360;
+                
+                // Convert HSV to RGB (simplified, saturation and value are fixed)
+                const saturation = distance / radius;
+                const value = 1;
+                
+                const h = hue / 60;
+                const i = Math.floor(h);
+                const f = h - i;
+                const p = value * (1 - saturation);
+                const q = value * (1 - saturation * f);
+                const t = value * (1 - saturation * (1 - f));
+                
+                let r, g, b;
+                
+                switch (i) {
+                    case 0: r = value; g = t; b = p; break;
+                    case 1: r = q; g = value; b = p; break;
+                    case 2: r = p; g = value; b = t; break;
+                    case 3: r = p; g = q; b = value; break;
+                    case 4: r = t; g = p; b = value; break;
+                    default: r = value; g = p; b = q; break;
+                }
+                
+                r = Math.round(r * 255);
+                g = Math.round(g * 255);
+                b = Math.round(b * 255);
+                
+                const hexColor = rgbToHex(r, g, b);
+                state.selectedColor = hexColor;
+                
+                // Update UI
+                selectedColorDisplay.textContent = hexColor;
+                selectedColorPreview.style.backgroundColor = hexColor;
+            }
+        });
+        
+        // Button event listeners
+        feedBtn.addEventListener('click', feedCreatures);
+        evolveBtn.addEventListener('click', forceEvolution);
+        helpBtn.addEventListener('click', () => {
+            tutorial.style.display = 'flex';
+        });
+        resetBtn.addEventListener('click', () => {
+            if (confirm('Reset the entire ecosystem?')) {
+                // Remove all creatures and food
+                document.querySelectorAll('.creature, .food, .evolution-particle').forEach(el => el.remove());
+                state.creatures = [];
+                state.foods = [];
+                state.nextCreatureId = 1;
+                
+                // Create new initial creatures
+                createInitialCreatures();
+                updateStats();
+            }
+        });
+        startBtn.addEventListener('click', () => {
+            tutorial.style.display = 'none';
+            if (!state.gameStarted) {
+                state.gameStarted = true;
+                initGame();
+            }
+        });
+        
+        // Set initial color
+        state.selectedColor = '#FF5555';
+        selectedColorDisplay.textContent = state.selectedColor;
+        selectedColorPreview.style.backgroundColor = state.selectedColor;
+        colorPickerHandle.style.left = '75%';
+        colorPickerHandle.style.top = '25%';
+        
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            // Keep creatures within bounds after resize
+            state.creatures.forEach(creature => {
+                creature.x = Math.min(window.innerWidth - 50, creature.x);
+                creature.y = Math.min(window.innerHeight - 50, creature.y);
+            });
+        });
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'947adcf1f40f62b7',t:'MTc0ODU3Mjc4Ny4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
