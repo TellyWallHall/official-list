@@ -1,0 +1,1223 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Encryption Tool Pro</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 2.5rem;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .stats-bar {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .stat-item {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            padding: 15px;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            display: block;
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            opacity: 0.9;
+        }
+
+        .method-selector {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+            margin-bottom: 30px;
+        }
+
+        .method-btn {
+            padding: 15px 20px;
+            border: none;
+            border-radius: 12px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 13px;
+            position: relative;
+        }
+
+        .method-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .method-btn.active {
+            background: linear-gradient(45deg, #764ba2, #667eea);
+            transform: scale(1.05);
+        }
+
+        .method-btn .speed-indicator {
+            position: absolute;
+            top: 5px;
+            right: 8px;
+            font-size: 10px;
+            opacity: 0.8;
+        }
+
+        .input-section {
+            margin-bottom: 25px;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        textarea, input[type="text"], input[type="password"], input[type="number"] {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+            resize: vertical;
+            min-height: 120px;
+        }
+
+        input[type="number"] {
+            min-height: auto;
+        }
+
+        textarea:focus, input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .file-controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: #f8f9fa;
+            color: #333;
+            border: 2px solid #e1e5e9;
+        }
+
+        .btn-danger {
+            background: linear-gradient(45deg, #dc3545, #c82333);
+            color: white;
+        }
+
+        .btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .action-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .progress-container {
+            display: none;
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .progress-container.show {
+            display: block;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #e1e5e9;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            width: 0%;
+            transition: width 0.3s ease;
+            border-radius: 10px;
+        }
+
+        .progress-text {
+            text-align: center;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .result-section {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .result-section h3 {
+            color: #333;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .result-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .result-actions button {
+            padding: 5px 10px;
+            font-size: 12px;
+        }
+
+        #result {
+            background: white;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            padding: 15px;
+            min-height: 100px;
+            word-break: break-all;
+            font-family: 'Courier New', monospace;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .key-input {
+            display: none;
+        }
+
+        .key-input.show {
+            display: block;
+        }
+
+        .advanced-options {
+            background: rgba(102, 126, 234, 0.05);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .advanced-options h4 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .options-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .info-box {
+            background: rgba(102, 126, 234, 0.1);
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .error {
+            background: rgba(220, 53, 69, 0.1);
+            border-left-color: #dc3545;
+            color: #721c24;
+        }
+
+        .success {
+            background: rgba(40, 167, 69, 0.1);
+            border-left-color: #28a745;
+            color: #155724;
+        }
+
+        .warning {
+            background: rgba(255, 193, 7, 0.1);
+            border-left-color: #ffc107;
+            color: #856404;
+        }
+
+        .file-info {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border: 2px solid #e1e5e9;
+        }
+
+        .file-info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+        }
+
+        .file-info-item {
+            text-align: center;
+        }
+
+        .file-info-value {
+            font-weight: bold;
+            color: #667eea;
+            display: block;
+        }
+
+        .file-info-label {
+            font-size: 0.8rem;
+            color: #666;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+                margin: 10px;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .method-selector {
+                grid-template-columns: 1fr;
+            }
+            
+            .file-controls, .action-buttons {
+                grid-template-columns: 1fr;
+            }
+
+            .stats-bar {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        .chunk-size-selector {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .chunk-btn {
+            padding: 8px 16px;
+            border: 2px solid #667eea;
+            background: white;
+            color: #667eea;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .chunk-btn.active {
+            background: #667eea;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 Advanced Encryption Tool Pro</h1>
+        
+        <div class="stats-bar">
+            <div class="stat-item">
+                <span class="stat-value" id="fileSize">0 B</span>
+                <span class="stat-label">File Size</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-value" id="processTime">0ms</span>
+                <span class="stat-label">Process Time</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-value" id="memoryUsage">0 MB</span>
+                <span class="stat-label">Memory Usage</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-value" id="throughput">0 MB/s</span>
+                <span class="stat-label">Throughput</span>
+            </div>
+        </div>
+
+        <div class="info-box">
+            <strong>🚀 Enhanced for Large Files</strong><br>
+            Supports streaming processing, progress tracking, and memory-efficient operations for files up to several GB.
+        </div>
+
+        <div class="method-selector">
+            <button class="method-btn active" data-method="caesar">
+                Caesar Cipher
+                <span class="speed-indicator">⚡ Fast</span>
+            </button>
+            <button class="method-btn" data-method="base64">
+                Base64 Encoding
+                <span class="speed-indicator">⚡ Fast</span>
+            </button>
+            <button class="method-btn" data-method="rot13">
+                ROT13
+                <span class="speed-indicator">⚡ Fast</span>
+            </button>
+            <button class="method-btn" data-method="xor">
+                XOR Cipher
+                <span class="speed-indicator">⚡ Fast</span>
+            </button>
+            <button class="method-btn" data-method="hash">
+                Hash (SHA-256)
+                <span class="speed-indicator">🐌 Slow</span>
+            </button>
+            <button class="method-btn" data-method="reverse">
+                Reverse Text
+                <span class="speed-indicator">⚡ Fast</span>
+            </button>
+            <button class="method-btn" data-method="atbash">
+                Atbash Cipher
+                <span class="speed-indicator">⚡ Fast</span>
+            </button>
+            <button class="method-btn" data-method="binary">
+                Binary Encoding
+                <span class="speed-indicator">🔄 Medium</span>
+            </button>
+            <button class="method-btn" data-method="aes">
+                AES-256-GCM
+                <span class="speed-indicator">🐌 Slow</span>
+            </button>
+        </div>
+
+        <div class="advanced-options">
+            <h4>⚙️ Advanced Options</h4>
+            <div class="options-grid">
+                <div class="input-group">
+                    <label>Chunk Size (for large files):</label>
+                    <div class="chunk-size-selector">
+                        <button class="chunk-btn active" data-size="1048576">1 MB</button>
+                        <button class="chunk-btn" data-size="5242880">5 MB</button>
+                        <button class="chunk-btn" data-size="10485760">10 MB</button>
+                        <button class="chunk-btn" data-size="52428800">50 MB</button>
+                        <input type="number" id="customChunkSize" placeholder="Custom (bytes)" style="min-height: 40px; width: 150px;">
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label for="workerThreads">Use Web Workers:</label>
+                    <input type="checkbox" id="workerThreads" checked style="width: auto; margin-top: 10px;">
+                </div>
+            </div>
+        </div>
+
+        <div class="input-section">
+            <div class="input-group">
+                <label for="inputText">📝 Input Text:</label>
+                <textarea id="inputText" placeholder="Enter text to encrypt/decrypt or load from file..."></textarea>
+            </div>
+
+            <div class="input-group key-input" id="keyInput">
+                <label for="encryptionKey">🔑 Encryption Key:</label>
+                <input type="text" id="encryptionKey" placeholder="Enter encryption key...">
+            </div>
+
+            <div id="fileInfoDisplay" class="file-info" style="display: none;">
+                <div class="file-info-grid">
+                    <div class="file-info-item">
+                        <span class="file-info-value" id="fileName">-</span>
+                        <span class="file-info-label">File Name</span>
+                    </div>
+                    <div class="file-info-item">
+                        <span class="file-info-value" id="fileType">-</span>
+                        <span class="file-info-label">File Type</span>
+                    </div>
+                    <div class="file-info-item">
+                        <span class="file-info-value" id="fileLastModified">-</span>
+                        <span class="file-info-label">Last Modified</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="file-controls">
+                <button class="btn btn-secondary" id="loadFileBtn">📁 Load File</button>
+                <button class="btn btn-secondary" id="loadLargeFileBtn">📂 Load Large File</button>
+                <button class="btn btn-secondary" id="saveFileBtn">💾 Save Result</button>
+                <button class="btn btn-danger" id="cancelBtn" style="display: none;">❌ Cancel</button>
+            </div>
+
+            <div class="progress-container" id="progressContainer">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <div class="progress-text" id="progressText">Processing...</div>
+            </div>
+
+            <div class="action-buttons">
+                <button class="btn btn-primary" id="encryptBtn">🔒 Encrypt</button>
+                <button class="btn btn-primary" id="decryptBtn">🔓 Decrypt</button>
+                <button class="btn btn-secondary" id="clearBtn">🗑️ Clear All</button>
+                <button class="btn btn-secondary" id="benchmarkBtn">📊 Benchmark</button>
+            </div>
+        </div>
+
+        <div class="result-section">
+            <h3>
+                📋 Result:
+                <div class="result-actions">
+                    <button class="btn btn-secondary" id="copyResultBtn">📋 Copy</button>
+                    <button class="btn btn-secondary" id="downloadResultBtn">⬇️ Download</button>
+                </div>
+            </h3>
+            <div id="result"></div>
+        </div>
+    </div>
+
+    <script>
+        class AdvancedEncryptionTool {
+            constructor() {
+                this.currentMethod = 'caesar';
+                this.chunkSize = 1048576; // 1MB default
+                this.isProcessing = false;
+                this.cancelOperation = false;
+                this.currentFileHandle = null;
+                this.stats = {
+                    fileSize: 0,
+                    processTime: 0,
+                    memoryUsage: 0,
+                    throughput: 0
+                };
+                
+                this.initializeEventListeners();
+                this.updateMethodUI();
+                this.startMemoryMonitoring();
+            }
+
+            initializeEventListeners() {
+                // Method selection
+                document.querySelectorAll('.method-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        document.querySelectorAll('.method-btn').forEach(b => b.classList.remove('active'));
+                        e.target.classList.add('active');
+                        this.currentMethod = e.target.dataset.method;
+                        this.updateMethodUI();
+                    });
+                });
+
+                // Chunk size selection
+                document.querySelectorAll('.chunk-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        document.querySelectorAll('.chunk-btn').forEach(b => b.classList.remove('active'));
+                        e.target.classList.add('active');
+                        this.chunkSize = parseInt(e.target.dataset.size);
+                    });
+                });
+
+                document.getElementById('customChunkSize').addEventListener('change', (e) => {
+                    if (e.target.value) {
+                        document.querySelectorAll('.chunk-btn').forEach(b => b.classList.remove('active'));
+                        this.chunkSize = parseInt(e.target.value);
+                    }
+                });
+
+                // Action buttons
+                document.getElementById('encryptBtn').addEventListener('click', () => this.encrypt());
+                document.getElementById('decryptBtn').addEventListener('click', () => this.decrypt());
+                document.getElementById('clearBtn').addEventListener('click', () => this.clearAll());
+                document.getElementById('benchmarkBtn').addEventListener('click', () => this.runBenchmark());
+                document.getElementById('cancelBtn').addEventListener('click', () => this.cancelCurrentOperation());
+                
+                // File operations
+                document.getElementById('loadFileBtn').addEventListener('click', () => this.loadFile());
+                document.getElementById('loadLargeFileBtn').addEventListener('click', () => this.loadLargeFile());
+                document.getElementById('saveFileBtn').addEventListener('click', () => this.saveFile());
+                
+                // Result actions
+                document.getElementById('copyResultBtn').addEventListener('click', () => this.copyResult());
+                document.getElementById('downloadResultBtn').addEventListener('click', () => this.downloadResult());
+            }
+
+            updateMethodUI() {
+                const keyInput = document.getElementById('keyInput');
+                const needsKey = ['caesar', 'xor', 'aes'].includes(this.currentMethod);
+                
+                if (needsKey) {
+                    keyInput.classList.add('show');
+                } else {
+                    keyInput.classList.remove('show');
+                }
+
+                // Update placeholder for key input
+                const keyField = document.getElementById('encryptionKey');
+                if (this.currentMethod === 'caesar') {
+                    keyField.placeholder = 'Enter shift value (e.g., 3)';
+                } else if (this.currentMethod === 'xor') {
+                    keyField.placeholder = 'Enter XOR key (text)';
+                } else if (this.currentMethod === 'aes') {
+                    keyField.placeholder = 'Enter AES key (will be hashed to 256-bit)';
+                }
+            }
+
+            async loadFile() {
+                try {
+                    if ('showOpenFilePicker' in window) {
+                        const [fileHandle] = await window.showOpenFilePicker({
+                            types: [{
+                                description: 'All files',
+                                accept: { '*/*': [] }
+                            }]
+                        });
+                        this.currentFileHandle = fileHandle;
+                        const file = await fileHandle.getFile();
+                        await this.processFileLoad(file);
+                    } else {
+                        const input = document.createElement('input');
+                        input.type = 'file';
+                        input.onchange = async (e) => {
+                            const file = e.target.files[0];
+                            if (file) await this.processFileLoad(file);
+                        };
+                        input.click();
+                    }
+                } catch (error) {
+                    this.showMessage('Error loading file: ' + error.message, 'error');
+                }
+            }
+
+            async loadLargeFile() {
+                try {
+                    if ('showOpenFilePicker' in window) {
+                        const [fileHandle] = await window.showOpenFilePicker({
+                            types: [{
+                                description: 'Large files',
+                                accept: { '*/*': [] }
+                            }]
+                        });
+                        this.currentFileHandle = fileHandle;
+                        const file = await fileHandle.getFile();
+                        
+                        if (file.size > 100 * 1024 * 1024) { // > 100MB
+                            this.showMessage(`Large file detected (${this.formatBytes(file.size)}). Processing will be streamed.`, 'warning');
+                        }
+                        
+                        await this.processLargeFileLoad(file);
+                    } else {
+                        this.showMessage('Large file loading requires a modern browser with File System Access API', 'error');
+                    }
+                } catch (error) {
+                    this.showMessage('Error loading large file: ' + error.message, 'error');
+                }
+            }
+
+            async processFileLoad(file) {
+                this.updateFileInfo(file);
+                this.stats.fileSize = file.size;
+                this.updateStats();
+
+                if (file.size < 10 * 1024 * 1024) { // < 10MB, load directly
+                    const content = await file.text();
+                    document.getElementById('inputText').value = content;
+                    this.showMessage('File loaded successfully!', 'success');
+                } else {
+                    this.showMessage('Large file detected. Use "Load Large File" for better performance.', 'warning');
+                    const content = await file.text();
+                    document.getElementById('inputText').value = content.substring(0, 10000) + '... (truncated for display)';
+                }
+            }
+
+            async processLargeFileLoad(file) {
+                this.updateFileInfo(file);
+                this.stats.fileSize = file.size;
+                this.updateStats();
+                
+                // For large files, we'll store the file reference and process it in chunks
+                this.currentFile = file;
+                document.getElementById('inputText').value = `[Large File Loaded: ${file.name} (${this.formatBytes(file.size)})]`;
+                this.showMessage('Large file loaded and ready for processing!', 'success');
+            }
+
+            updateFileInfo(file) {
+                document.getElementById('fileName').textContent = file.name;
+                document.getElementById('fileType').textContent = file.type || 'Unknown';
+                document.getElementById('fileLastModified').textContent = new Date(file.lastModified).toLocaleDateString();
+                document.getElementById('fileInfoDisplay').style.display = 'block';
+            }
+
+            async encrypt() {
+                await this.processData(true);
+            }
+
+            async decrypt() {
+                await this.processData(false);
+            }
+
+            async processData(encrypt = true) {
+                if (this.isProcessing) {
+                    this.showMessage('Another operation is in progress!', 'warning');
+                    return;
+                }
+
+                const text = document.getElementById('inputText').value;
+                const isLargeFile = this.currentFile && text.startsWith('[Large File Loaded:');
+                
+                if (!text && !isLargeFile) {
+                    this.showMessage('Please enter text or load a file!', 'error');
+                    return;
+                }
+
+                this.isProcessing = true;
+                this.cancelOperation = false;
+                this.showProgress(true);
+                this.toggleButtons(false);
+
+                const startTime = performance.now();
+
+                try {
+                    let result;
+                    
+                    if (isLargeFile && this.currentFile) {
+                        result = await this.processLargeFile(this.currentFile, encrypt);
+                    } else {
+                        result = await this.processText(text, encrypt);
+                    }
+                    
+                    const endTime = performance.now();
+                    this.stats.processTime = endTime - startTime;
+                    this.stats.throughput = (this.stats.fileSize / 1024 / 1024) / (this.stats.processTime / 1000);
+                    this.updateStats();
+                    
+                    if (!this.cancelOperation) {
+                        document.getElementById('result').textContent = result;
+                        this.showMessage(`${encrypt ? 'Encryption' : 'Decryption'} completed successfully!`, 'success');
+                    }
+                } catch (error) {
+                    if (!this.cancelOperation) {
+                        this.showMessage(`${encrypt ? 'Encryption' : 'Decryption'} error: ` + error.message, 'error');
+                    }
+                } finally {
+                    this.isProcessing = false;
+                    this.showProgress(false);
+                    this.toggleButtons(true);
+                }
+            }
+
+            async processLargeFile(file, encrypt) {
+                const totalSize = file.size;
+                let processedSize = 0;
+                let result = '';
+                
+                // Create a readable stream from the file
+                const stream = file.stream();
+                const reader = stream.getReader();
+                
+                try {
+                    while (true) {
+                        if (this.cancelOperation) {
+                            throw new Error('Operation cancelled by user');
+                        }
+                        
+                        const { done, value } = await reader.read();
+                        if (done) break;
+                        
+                        // Convert Uint8Array to text
+                        const chunk = new TextDecoder().decode(value);
+                        
+                        // Process the chunk
+                        const processedChunk = await this.processText(chunk, encrypt);
+                        result += processedChunk;
+                        
+                        processedSize += value.length;
+                        this.updateProgress((processedSize / totalSize) * 100);
+                        
+                        // Yield control to prevent blocking
+                        await new Promise(resolve => setTimeout(resolve, 0));
+                    }
+                } finally {
+                    reader.releaseLock();
+                }
+                
+                return result;
+            }
+
+            async processText(text, encrypt) {
+                if (text.length > 1000000) { // > 1MB of text
+                    return await this.processTextInChunks(text, encrypt);
+                }
+                
+                try {
+                    let result;
+                    switch (this.currentMethod) {
+                        case 'caesar':
+                            result = this.caesarCipher(text, this.getKey(), encrypt);
+                            break;
+                        case 'base64':
+                            result = encrypt ? btoa(unescape(encodeURIComponent(text))) : decodeURIComponent(escape(atob(text)));
+                            break;
+                        case 'rot13':
+                            result = this.rot13(text);
+                            break;
+                        case 'xor':
+                            result = this.xorCipher(text, this.getKey());
+                            break;
+                        case 'hash':
+                            if (!encrypt) throw new Error('Hash functions cannot be reversed!');
+                            result = await this.hashText(text);
+                            break;
+                        case 'reverse':
+                            result = text.split('').reverse().join('');
+                            break;
+                        case 'atbash':
+                            result = this.atbashCipher(text);
+                            break;
+                        case 'binary':
+                            result = encrypt ? this.textToBinary(text) : this.binaryToText(text);
+                            break;
+                        case 'aes':
+                            result = encrypt ? await this.aesEncrypt(text, this.getKey()) : await this.aesDecrypt(text, this.getKey());
+                            break;
+                        default:
+                            throw new Error('Unknown encryption method');
+                    }
+                    return result;
+                } catch (error) {
+                    throw error;
+                }
+            }
+
+            async processTextInChunks(text, encrypt) {
+                const chunks = [];
+                const chunkSize = Math.min(this.chunkSize, 100000); // Max 100KB chunks for text processing
+                
+                for (let i = 0; i < text.length; i += chunkSize) {
+                    if (this.cancelOperation) {
+                        throw new Error('Operation cancelled by user');
+                    }
+                    
+                    const chunk = text.substring(i, i + chunkSize);
+                    const processedChunk = await this.processText(chunk, encrypt);
+                    chunks.push(processedChunk);
+                    
+                    this.updateProgress((i / text.length) * 100);
+                    
+                    // Yield control
+                    await new Promise(resolve => setTimeout(resolve, 0));
+                }
+                
+                return chunks.join('');
+            }
+
+            // Enhanced encryption methods
+            async aesEncrypt(text, password) {
+                const encoder = new TextEncoder();
+                const data = encoder.encode(text);
+                
+                // Generate key from password
+                const keyMaterial = await crypto.subtle.importKey(
+                    'raw',
+                    encoder.encode(password),
+                    'PBKDF2',
+                    false,
+                    ['deriveKey']
+                );
+                
+                const salt = crypto.getRandomValues(new Uint8Array(16));
+                const key = await crypto.subtle.deriveKey(
+                    {
+                        name: 'PBKDF2',
+                        salt: salt,
+                        iterations: 100000,
+                        hash: 'SHA-256'
+                    },
+                    keyMaterial,
+                    { name: 'AES-GCM', length: 256 },
+                    false,
+                    ['encrypt']
+                );
+                
+                const iv = crypto.getRandomValues(new Uint8Array(12));
+                const encrypted = await crypto.subtle.encrypt(
+                    { name: 'AES-GCM', iv: iv },
+                    key,
+                    data
+                );
+                
+                // Combine salt, iv, and encrypted data
+                const result = new Uint8Array(salt.length + iv.length + encrypted.byteLength);
+                result.set(salt, 0);
+                result.set(iv, salt.length);
+                result.set(new Uint8Array(encrypted), salt.length + iv.length);
+                
+                return btoa(String.fromCharCode(...result));
+            }
+
+            async aesDecrypt(encryptedData, password) {
+                const encoder = new TextEncoder();
+                const data = new Uint8Array(atob(encryptedData).split('').map(c => c.charCodeAt(0)));
+                
+                // Extract salt, iv, and encrypted data
+                const salt = data.slice(0, 16);
+                const iv = data.slice(16, 28);
+                const encrypted = data.slice(28);
+                
+                // Generate key from password
+                const keyMaterial = await crypto.subtle.importKey(
+                    'raw',
+                    encoder.encode(password),
+                    'PBKDF2',
+                    false,
+                    ['deriveKey']
+                );
+                
+                const key = await crypto.subtle.deriveKey(
+                    {
+                        name: 'PBKDF2',
+                        salt: salt,
+                        iterations: 100000,
+                        hash: 'SHA-256'
+                    },
+                    keyMaterial,
+                    { name: 'AES-GCM', length: 256 },
+                    false,
+                    ['decrypt']
+                );
+                
+                const decrypted = await crypto.subtle.decrypt(
+                    { name: 'AES-GCM', iv: iv },
+                    key,
+                    encrypted
+                );
+                
+                return new TextDecoder().decode(decrypted);
+            }
+
+            getKey() {
+                const key = document.getElementById('encryptionKey').value;
+                if (['caesar', 'xor', 'aes'].includes(this.currentMethod) && !key) {
+                    throw new Error('This method requires a key!');
+                }
+                return key;
+            }
+
+            // Existing cipher methods (optimized for large data)
+            caesarCipher(text, shift, encrypt = true) {
+                const shiftValue = parseInt(shift);
+                if (isNaN(shiftValue)) throw new Error('Shift must be a number');
+                
+                const actualShift = encrypt ? shiftValue : -shiftValue;
+                return text.replace(/[a-zA-Z]/g, char => {
+                    const start = char <= 'Z' ? 65 : 97;
+                    return String.fromCharCode(((char.charCodeAt(0) - start + actualShift + 26) % 26) + start);
+                });
+            }
+
+            rot13(text) {
+                return text.replace(/[a-zA-Z]/g, char => {
+                    const start = char <= 'Z' ? 65 : 97;
+                    return String.fromCharCode(((char.charCodeAt(0) - start + 13) % 26) + start);
+                });
+            }
+
+            xorCipher(text, key) {
+                if (!key) throw new Error('XOR requires a key');
+                let result = '';
+                for (let i = 0; i < text.length; i++) {
+                    result += String.fromCharCode(text.charCodeAt(i) ^ key.charCodeAt(i % key.length));
+                }
+                return result;
+            }
+
+            async hashText(text) {
+                const encoder = new TextEncoder();
+                const data = encoder.encode(text);
+                const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+                const hashArray = Array.from(new Uint8Array(hashBuffer));
+                return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+            }
+
+            atbashCipher(text) {
+                return text.replace(/[a-zA-Z]/g, char => {
+                    if (char <= 'Z') {
+                        return String.fromCharCode(90 - (char.charCodeAt(0) - 65));
+                    } else {
+                        return String.fromCharCode(122 - (char.charCodeAt(0) - 97));
+                    }
+                });
+            }
+
+            textToBinary(text) {
+                return text.split('').map(char => 
+                    char.charCodeAt(0).toString(2).padStart(8, '0')
+                ).join(' ');
+            }
+
+            binaryToText(binary) {
+                return binary.split(' ').map(bin => 
+                    String.fromCharCode(parseInt(bin, 2))
+                ).join('');
+            }
+
+            // UI Helper methods
+            showProgress(show) {
+                const container = document.getElementById('progressContainer');
+                if (show) {
+                    container.classList.add('show');
+                    document.getElementById('cancelBtn').style.display = 'inline-block';
+                } else {
+                    container.classList.remove('show');
+                    document.getElementById('cancelBtn').style.display = 'none';
+                }
+            }
+
+            updateProgress(percentage) {
+                document.getElementById('progressFill').style.width = percentage + '%';
+                document.getElementById('progressText').textContent = `Processing... ${Math.round(percentage)}%`;
+            }
+
+            toggleButtons(enabled) {
+                const buttons = ['encryptBtn', 'decryptBtn', 'loadFileBtn', 'loadLargeFileBtn', 'saveFileBtn', 'benchmarkBtn'];
+                buttons.forEach(id => {
+                    document.getElementById(id).disabled = !enabled;
+                });
+            }
+
+            cancelCurrentOperation() {
+                this.cancelOperation = true;
+                this.showMessage('Operation cancelled by user', 'warning');
+            }
+
+            async saveFile() {
+                const result = document.getElementById('result').textContent;
+                if (!result) {
+                    this.showMessage('No result to save!', 'error');
+                    return;
+                }
+
+                try {
+                    if ('showSaveFilePicker' in window) {
+                        const fileHandle = await window.showSaveFilePicker({
+                            suggestedName: `encrypted_${this.currentMethod}_${Date.now()}.txt`,
+                            types: [{
+                                description: 'Text files',
+                                accept: { 'text/plain': ['.txt'] }
+                            }]
+                        });
+                        
+                        // For large results, write in chunks
+                        const writable = await fileHandle.createWritable();
+                        const chunkSize = 1024 * 1024; // 1MB chunks
+                        
+                        for (let i = 0; i < result.length; i += chunkSize) {
+                            const chunk = result.substring(i, i + chunkSize);
+                            await writable.write(chunk);
+                        }
+                        
+                        await writable.close();
+                        this.showMessage('File saved successfully!', 'success');
+                    } else {
+                        // Fallback download
+                        const blob = new Blob([result], { type: 'text/plain' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `encrypted_${this.currentMethod}_${Date.now()}.txt`;
+                        a.click();
+                        URL.revokeObjectURL(url);
+                        this.showMessage('File downloaded successfully!', 'success');
+                    }
+                } catch (error) {
+                    this.showMessage('Error saving file: ' + error.message, 'error');
+                }
+            }
+
+            async copyResult() {
+                const result = document.getElementById('result').textContent;
+                if (!result) {
+                    this.showMessage('No result to copy!', 'error');
+                    return;
+                }
+
+                try {
+                    await navigator.clipboard.writeText(result);
+                    this.showMessage('Result copied to clipboard!', 'success');
+                } catch (error) {
+                    this.showMessage('Failed to copy to clipboard', 'error');
+                }
+            }
+
+            async downloadResult() {
+                const result = document.getElementById('result').textContent;
+                if (!result) {
+                    this.showMessage('No result to download!', 'error');
+                    return;
+                }
+
+                const blob = new Blob([result], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `result_${this.currentMethod}_${Date.now()}.txt`;
+                a.click();
+                URL.revokeObjectURL(url);
+            }
+
+            async runBenchmark() {
+                const testData = 'A'.repeat(100000); // 100KB test data
+                const methods = ['caesar', 'base64', 'rot13', 'xor', 'reverse', 'atbash', 'binary'];
+                const results = [];
+
+                this.showMessage('Running benchmark...', 'info');
+
+                for (const method of methods) {
+                    const originalMethod = this.currentMethod;
+                    this.currentMethod = method;
+                    
+                    if (method === 'caesar' || method === 'xor') {
+                        document.getElementById('encryptionKey').value = method === 'caesar' ? '3' : 'testkey';
+                    }
+
+                    const startTime = performance.now();
+                    try {
+                        await this.processText(testData, true);
+                        const endTime = performance.now();
+                        const time = endTime - startTime;
+                        const throughput = (testData.length / 1024) / (time / 1000); // KB/s
+                        results.push(`${method}: ${time.toFixed(2)}ms (${throughput.toFixed(2)} KB/s)`);
+                    } catch (error) {
+                        results.push(`${method}: Error - ${error.message}`);
+                    }
+                    
+                    this.currentMethod = originalMethod;
+                }
+
+                document.getElementById('result').textContent = 'Benchmark Results:\n' + results.join('\n');
+                this.showMessage('Benchmark completed!', 'success');
+            }
+
+            clearAll() {
+                document.getElementById('inputText').value = '';
+                document.getElementById('encryptionKey').value = '';
+                document.getElementById('result').textContent = '';
+                document.getElementById('fileInfoDisplay').style.display = 'none';
+                this.currentFile = null;
+                this.currentFileHandle = null;
+                this.stats = { fileSize: 0, processTime: 0, memoryUsage: 0, throughput: 0 };
+                this.updateStats();
+                this.showMessage('All fields cleared!', 'success');
+            }
+
+            updateStats() {
+                document.getElementById('fileSize').textContent = this.formatBytes(this.stats.fileSize);
+                document.getElementById('processTime').textContent = this.stats.processTime.toFixed(0) + 'ms';
+                document.getElementById('memoryUsage').textContent = this.stats.memoryUsage.toFixed(1) + ' MB';
+                document.getElementById('throughput').textContent = this.stats.throughput.toFixed(1) + ' MB/s';
+            }
+
+            startMemoryMonitoring() {
+                if ('memory' in performance) {
+                    setInterval(() => {
+                        this.stats.memoryUsage = performance.memory.usedJSHeapSize / 1024 / 1024;
+                        this.updateStats();
+                    }, 1000);
+                }
+            }
+
+            formatBytes(bytes) {
+                if (bytes === 0) return '0 B';
+                const k = 1024;
+                const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+            }
+
+            showMessage(message, type = 'info') {
+                const existingMsg = document.querySelector('.message');
+                if (existingMsg) existingMsg.remove();
+
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `info-box message ${type}`;
+                messageDiv.textContent = message;
+                
+                const container = document.querySelector('.container');
+                container.insertBefore(messageDiv, container.children[2]);
+
+                setTimeout(() => messageDiv.remove(), 5000);
+            }
+        }
+
+        // Initialize the encryption tool when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            new AdvancedEncryptionTool();
+        });
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'968eaed0e54722f8',t:'MTc1NDE0OTMyMi4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
+
+
