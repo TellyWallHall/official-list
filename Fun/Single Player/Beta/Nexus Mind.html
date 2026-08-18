@@ -1,0 +1,491 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexus Mind - Infinite Puzzle</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 10px;
+            color: white;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .title {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .stats {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .stat {
+            background: rgba(255,255,255,0.2);
+            padding: 10px 15px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            font-weight: bold;
+        }
+
+        .game-container {
+            background: rgba(255,255,255,0.95);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            max-width: 400px;
+            width: 100%;
+        }
+
+        .puzzle-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            margin-bottom: 20px;
+            aspect-ratio: 1;
+        }
+
+        .puzzle-cell {
+            background: #f0f0f0;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            user-select: none;
+            color: #333;
+            min-height: 60px;
+        }
+
+        .puzzle-cell:hover {
+            background: #e0e0e0;
+            transform: scale(1.05);
+        }
+
+        .puzzle-cell.active {
+            background: #4CAF50;
+            color: white;
+            border-color: #45a049;
+        }
+
+        .puzzle-cell.error {
+            background: #f44336;
+            color: white;
+            border-color: #da190b;
+            animation: shake 0.5s ease-in-out;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        .pattern-display {
+            background: #2196F3;
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+            font-weight: bold;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            background: #FF9800;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 25px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1rem;
+        }
+
+        .btn:hover {
+            background: #F57C00;
+            transform: translateY(-2px);
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .success-message {
+            background: #4CAF50;
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+            font-weight: bold;
+            display: none;
+            animation: fadeIn 0.5s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .difficulty-selector {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .difficulty-btn {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 2px solid rgba(255,255,255,0.3);
+            padding: 8px 15px;
+            margin: 0 5px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .difficulty-btn.active {
+            background: rgba(255,255,255,0.4);
+            border-color: rgba(255,255,255,0.6);
+        }
+
+        @media (max-width: 480px) {
+            .title {
+                font-size: 2rem;
+            }
+            
+            .puzzle-cell {
+                font-size: 1rem;
+                min-height: 50px;
+            }
+            
+            .stats {
+                gap: 10px;
+            }
+            
+            .stat {
+                padding: 8px 12px;
+                font-size: 0.9rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1 class="title">🧩 NEXUS MIND</h1>
+        <div class="difficulty-selector">
+            <button class="difficulty-btn active" onclick="setDifficulty('easy')">Easy</button>
+            <button class="difficulty-btn" onclick="setDifficulty('medium')">Medium</button>
+            <button class="difficulty-btn" onclick="setDifficulty('hard')">Hard</button>
+            <button class="difficulty-btn" onclick="setDifficulty('insane')">Insane</button>
+        </div>
+    </div>
+
+    <div class="stats">
+        <div class="stat">Level: <span id="level">1</span></div>
+        <div class="stat">Score: <span id="score">0</span></div>
+        <div class="stat">Streak: <span id="streak">0</span></div>
+    </div>
+
+    <div class="game-container">
+        <div class="success-message" id="successMessage">
+            🎉 Brilliant! Pattern solved! 🎉
+        </div>
+
+        <div class="pattern-display" id="patternDisplay">
+            Watch the pattern carefully...
+        </div>
+
+        <div class="puzzle-grid" id="puzzleGrid">
+            <!-- Grid cells will be generated by JavaScript -->
+        </div>
+
+        <div class="controls">
+            <button class="btn" onclick="startNewPuzzle()">New Puzzle</button>
+            <button class="btn" onclick="showHint()" id="hintBtn">Hint (3)</button>
+            <button class="btn" onclick="repeatPattern()">Repeat</button>
+        </div>
+    </div>
+
+    <script>
+        class NexusMind {
+            constructor() {
+                this.level = 1;
+                this.score = 0;
+                this.streak = 0;
+                this.hints = 3;
+                this.difficulty = 'easy';
+                this.currentPattern = [];
+                this.playerPattern = [];
+                this.isShowingPattern = false;
+                this.gridSize = 4;
+                this.patterns = {
+                    easy: { length: 3, speed: 1000 },
+                    medium: { length: 4, speed: 800 },
+                    hard: { length: 6, speed: 600 },
+                    insane: { length: 8, speed: 400 }
+                };
+                
+                this.initializeGrid();
+                this.startNewPuzzle();
+            }
+
+            initializeGrid() {
+                const grid = document.getElementById('puzzleGrid');
+                grid.innerHTML = '';
+                
+                for (let i = 0; i < this.gridSize * this.gridSize; i++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'puzzle-cell';
+                    cell.dataset.index = i;
+                    cell.addEventListener('click', () => this.handleCellClick(i));
+                    grid.appendChild(cell);
+                }
+            }
+
+            generatePattern() {
+                const patternLength = this.patterns[this.difficulty].length + Math.floor(this.level / 3);
+                const pattern = [];
+                const gridCells = this.gridSize * this.gridSize;
+                
+                // Create increasingly complex patterns
+                for (let i = 0; i < patternLength; i++) {
+                    let nextCell;
+                    do {
+                        nextCell = Math.floor(Math.random() * gridCells);
+                    } while (pattern.length > 0 && nextCell === pattern[pattern.length - 1]);
+                    
+                    pattern.push(nextCell);
+                }
+                
+                return pattern;
+            }
+
+            async showPattern() {
+                this.isShowingPattern = true;
+                const patternDisplay = document.getElementById('patternDisplay');
+                const speed = this.patterns[this.difficulty].speed;
+                
+                patternDisplay.textContent = `Level ${this.level} - Watch carefully...`;
+                
+                await this.delay(1000);
+                
+                for (let i = 0; i < this.currentPattern.length; i++) {
+                    const cellIndex = this.currentPattern[i];
+                    const cell = document.querySelector(`[data-index="${cellIndex}"]`);
+                    
+                    // Show number in sequence
+                    cell.textContent = i + 1;
+                    cell.classList.add('active');
+                    
+                    await this.delay(speed);
+                    
+                    cell.classList.remove('active');
+                    cell.textContent = '';
+                    
+                    await this.delay(200);
+                }
+                
+                patternDisplay.textContent = 'Now repeat the pattern in order!';
+                this.isShowingPattern = false;
+            }
+
+            handleCellClick(index) {
+                if (this.isShowingPattern) return;
+                
+                const cell = document.querySelector(`[data-index="${index}"]`);
+                const expectedIndex = this.currentPattern[this.playerPattern.length];
+                
+                if (index === expectedIndex) {
+                    // Correct!
+                    this.playerPattern.push(index);
+                    cell.textContent = this.playerPattern.length;
+                    cell.classList.add('active');
+                    
+                    if (this.playerPattern.length === this.currentPattern.length) {
+                        // Pattern completed!
+                        this.handleSuccess();
+                    }
+                } else {
+                    // Wrong!
+                    cell.classList.add('error');
+                    setTimeout(() => {
+                        cell.classList.remove('error');
+                        this.resetPlayerPattern();
+                    }, 500);
+                }
+            }
+
+            handleSuccess() {
+                const successMsg = document.getElementById('successMessage');
+                successMsg.style.display = 'block';
+                
+                // Calculate score
+                const baseScore = this.level * 10;
+                const difficultyMultiplier = { easy: 1, medium: 1.5, hard: 2, insane: 3 }[this.difficulty];
+                const streakBonus = this.streak * 5;
+                const points = Math.floor((baseScore * difficultyMultiplier) + streakBonus);
+                
+                this.score += points;
+                this.streak++;
+                this.level++;
+                
+                this.updateDisplay();
+                
+                setTimeout(() => {
+                    successMsg.style.display = 'none';
+                    this.startNewPuzzle();
+                }, 2000);
+            }
+
+            resetPlayerPattern() {
+                this.playerPattern = [];
+                document.querySelectorAll('.puzzle-cell').forEach(cell => {
+                    cell.classList.remove('active', 'error');
+                    cell.textContent = '';
+                });
+                
+                const patternDisplay = document.getElementById('patternDisplay');
+                patternDisplay.textContent = 'Try again! Click the cells in the correct order.';
+            }
+
+            startNewPuzzle() {
+                this.currentPattern = this.generatePattern();
+                this.playerPattern = [];
+                
+                // Clear grid
+                document.querySelectorAll('.puzzle-cell').forEach(cell => {
+                    cell.classList.remove('active', 'error');
+                    cell.textContent = '';
+                });
+                
+                this.showPattern();
+            }
+
+            showHint() {
+                if (this.hints <= 0 || this.isShowingPattern) return;
+                
+                this.hints--;
+                document.getElementById('hintBtn').textContent = `Hint (${this.hints})`;
+                
+                if (this.hints === 0) {
+                    document.getElementById('hintBtn').disabled = true;
+                }
+                
+                // Show next correct cell
+                if (this.playerPattern.length < this.currentPattern.length) {
+                    const nextIndex = this.currentPattern[this.playerPattern.length];
+                    const cell = document.querySelector(`[data-index="${nextIndex}"]`);
+                    
+                    cell.style.background = '#FFC107';
+                    setTimeout(() => {
+                        cell.style.background = '';
+                    }, 1500);
+                }
+            }
+
+            repeatPattern() {
+                if (!this.isShowingPattern) {
+                    this.resetPlayerPattern();
+                    this.showPattern();
+                }
+            }
+
+            setDifficulty(newDifficulty) {
+                this.difficulty = newDifficulty;
+                this.level = 1;
+                this.streak = 0;
+                this.hints = 3;
+                
+                document.querySelectorAll('.difficulty-btn').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                event.target.classList.add('active');
+                
+                document.getElementById('hintBtn').textContent = `Hint (${this.hints})`;
+                document.getElementById('hintBtn').disabled = false;
+                
+                this.updateDisplay();
+                this.startNewPuzzle();
+            }
+
+            updateDisplay() {
+                document.getElementById('level').textContent = this.level;
+                document.getElementById('score').textContent = this.score;
+                document.getElementById('streak').textContent = this.streak;
+            }
+
+            delay(ms) {
+                return new Promise(resolve => setTimeout(resolve, ms));
+            }
+        }
+
+        // Global functions for HTML onclick handlers
+        let game;
+
+        function startNewPuzzle() {
+            game.startNewPuzzle();
+        }
+
+        function showHint() {
+            game.showHint();
+        }
+
+        function repeatPattern() {
+            game.repeatPattern();
+        }
+
+        function setDifficulty(difficulty) {
+            game.setDifficulty(difficulty);
+        }
+
+        // Initialize game when page loads
+        window.addEventListener('load', () => {
+            game = new NexusMind();
+        });
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'95648543e0841d01',t:'MTc1MTAyMjg2NC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
+
+
