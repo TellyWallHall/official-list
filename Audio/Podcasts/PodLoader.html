@@ -1,0 +1,2150 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+  <title>PodLoader</title>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style>
+    :root {
+      --bg: #0a0a10;
+      --sf: #12131e;
+      --cd: #191a28;
+      --cd2: #1f2035;
+      --bd: #2a2c42;
+      --tx: #e4e2dc;
+      --mt: #6e7088;
+      --dm: #484a5e;
+      --ac: #d97a22;
+      --ac2: #ee9a42;
+      --acG: rgba(217, 122, 34, .2);
+      --ok: #2dd4a0;
+      --er: #f47070;
+      --wn: #f5be30;
+      --info: #5ea8f8;
+      --rad: 10px;
+      --rs: 6px
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box
+    }
+
+    html,
+    body {
+      height: 100%;
+      overflow: hidden
+    }
+
+    body {
+      font-family: 'Space Grotesk', sans-serif;
+      background: var(--bg);
+      color: var(--tx);
+      display: flex;
+      flex-direction: column
+    }
+
+    ::-webkit-scrollbar {
+      width: 5px
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--bd);
+      border-radius: 3px
+    }
+
+    input,
+    select,
+    button {
+      font-family: inherit;
+      font-size: inherit
+    }
+
+    .hdr {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      background: var(--sf);
+      border-bottom: 1px solid var(--bd);
+      flex-shrink: 0;
+      z-index: 10
+    }
+
+    .hdr .lg {
+      display: flex;
+      align-items: center;
+      gap: 8px
+    }
+
+    .hdr .lg i {
+      font-size: 20px;
+      color: var(--ac)
+    }
+
+    .hdr .lg h1 {
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: .5px
+    }
+
+    .hdr .lg span {
+      color: var(--ac)
+    }
+
+    .hdr .hr {
+      display: flex;
+      gap: 6px
+    }
+
+    .ib {
+      width: 34px;
+      height: 34px;
+      border-radius: var(--rs);
+      border: 1px solid var(--bd);
+      background: var(--cd);
+      color: var(--mt);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: .2s;
+      font-size: 13px
+    }
+
+    .ib:hover {
+      color: var(--tx);
+      border-color: var(--ac)
+    }
+
+    .ib.glow {
+      border-color: var(--ac);
+      color: var(--ac);
+      animation: gl 2s ease infinite
+    }
+
+    @keyframes gl {
+
+      0%,
+      100% {
+        box-shadow: 0 0 4px var(--acG)
+      }
+
+      50% {
+        box-shadow: 0 0 14px var(--acG)
+      }
+    }
+
+    .stp {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 7px 12px;
+      background: var(--sf);
+      border-bottom: 1px solid var(--bd);
+      flex-shrink: 0
+    }
+
+    .si {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      cursor: pointer;
+      padding: 4px 10px;
+      border-radius: var(--rs);
+      transition: .2s;
+      opacity: .4
+    }
+
+    .si.a {
+      opacity: 1;
+      background: var(--acG)
+    }
+
+    .si.d {
+      opacity: .6
+    }
+
+    .sn {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: 700;
+      border: 2px solid var(--dm);
+      color: var(--dm);
+      transition: .2s
+    }
+
+    .si.a .sn {
+      border-color: var(--ac);
+      color: var(--ac);
+      box-shadow: 0 0 8px var(--acG)
+    }
+
+    .si.d .sn {
+      border-color: var(--ok);
+      color: var(--ok);
+      background: rgba(45, 212, 160, .08)
+    }
+
+    .sl {
+      font-size: 11px;
+      font-weight: 600;
+      white-space: nowrap
+    }
+
+    .sar {
+      color: var(--dm);
+      font-size: 9px;
+      margin: 0 3px
+    }
+
+    .mn {
+      flex: 1;
+      overflow: hidden;
+      position: relative
+    }
+
+    .pn {
+      position: absolute;
+      inset: 0;
+      overflow-y: auto;
+      padding: 14px;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateX(16px);
+      transition: opacity .22s, transform .22s
+    }
+
+    .pn.a {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateX(0)
+    }
+
+    .cd {
+      background: var(--cd);
+      border: 1px solid var(--bd);
+      border-radius: var(--rad);
+      padding: 14px;
+      margin-bottom: 10px
+    }
+
+    .ct {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--mt);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 5px
+    }
+
+    .ct i {
+      color: var(--ac);
+      font-size: 11px
+    }
+
+    .ig {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 6px
+    }
+
+    .ig input,
+    .ig select {
+      flex: 1;
+      padding: 8px 10px;
+      border-radius: var(--rs);
+      border: 1px solid var(--bd);
+      background: var(--sf);
+      color: var(--tx);
+      outline: none;
+      transition: .2s;
+      font-size: 12px
+    }
+
+    .ig input:focus {
+      border-color: var(--ac);
+      box-shadow: 0 0 0 2px var(--acG)
+    }
+
+    .ig input::placeholder {
+      color: var(--dm)
+    }
+
+    .bt {
+      padding: 7px 14px;
+      border-radius: var(--rs);
+      border: none;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 11px;
+      transition: .15s;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      white-space: nowrap
+    }
+
+    .bt:active {
+      transform: scale(.97)
+    }
+
+    .bt-p {
+      background: var(--ac);
+      color: #fff
+    }
+
+    .bt-p:hover {
+      background: var(--ac2);
+      box-shadow: 0 3px 10px var(--acG)
+    }
+
+    .bt-s {
+      background: var(--cd2);
+      color: var(--tx);
+      border: 1px solid var(--bd)
+    }
+
+    .bt-s:hover {
+      border-color: var(--ac)
+    }
+
+    .bt-d {
+      background: #7f1d1d;
+      color: #fca5a5;
+      border: 1px solid #991b1b
+    }
+
+    .bt-sm {
+      padding: 5px 9px;
+      font-size: 10px
+    }
+
+    .bt:disabled {
+      opacity: .3;
+      cursor: not-allowed;
+      pointer-events: none
+    }
+
+    .sg {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 8px;
+      margin-top: 6px
+    }
+
+    .pc {
+      display: flex;
+      gap: 8px;
+      padding: 8px;
+      background: var(--sf);
+      border: 1px solid var(--bd);
+      border-radius: var(--rs);
+      cursor: pointer;
+      transition: .2s
+    }
+
+    .pc:hover {
+      border-color: var(--ac);
+      transform: translateY(-1px);
+      box-shadow: 0 3px 10px rgba(0, 0, 0, .3)
+    }
+
+    .pc img {
+      width: 46px;
+      height: 46px;
+      border-radius: 4px;
+      object-fit: cover;
+      flex-shrink: 0
+    }
+
+    .pc .inf {
+      flex: 1;
+      min-width: 0
+    }
+
+    .pc .inf h3 {
+      font-size: 11px;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis
+    }
+
+    .pc .inf p {
+      font-size: 9px;
+      color: var(--mt);
+      margin-top: 1px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis
+    }
+
+    .etb {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      align-items: center;
+      margin-bottom: 6px
+    }
+
+    .ec {
+      font-size: 10px;
+      color: var(--mt);
+      margin-left: auto
+    }
+
+    .el {
+      max-height: calc(100vh - 290px);
+      overflow-y: auto;
+      border: 1px solid var(--bd);
+      border-radius: var(--rs);
+      background: var(--sf)
+    }
+
+    .ei {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 5px 9px;
+      border-bottom: 1px solid var(--bd);
+      transition: .1s;
+      cursor: pointer;
+      font-size: 11px
+    }
+
+    .ei:last-child {
+      border-bottom: none
+    }
+
+    .ei:hover {
+      background: var(--cd)
+    }
+
+    .ei.sel {
+      background: rgba(217, 122, 34, .04)
+    }
+
+    .ei input[type=checkbox] {
+      accent-color: var(--ac);
+      width: 14px;
+      height: 14px;
+      flex-shrink: 0
+    }
+
+    .ei .et2 {
+      flex: 1;
+      min-width: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis
+    }
+
+    .ei .es {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      color: var(--mt);
+      flex-shrink: 0
+    }
+
+    .ei .ed {
+      font-size: 9px;
+      color: var(--dm);
+      flex-shrink: 0;
+      width: 58px;
+      text-align: right
+    }
+
+    .nr {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      margin-bottom: 8px
+    }
+
+    .nm {
+      padding: 6px 10px;
+      border-radius: var(--rs);
+      border: 1px solid var(--bd);
+      background: var(--sf);
+      cursor: pointer;
+      font-size: 10px;
+      font-weight: 500;
+      transition: .2s
+    }
+
+    .nm:hover {
+      border-color: var(--ac)
+    }
+
+    .nm.a {
+      border-color: var(--ac);
+      background: var(--acG);
+      color: var(--ac)
+    }
+
+    .cg {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px 12px;
+      margin-bottom: 8px
+    }
+
+    .cl {
+      font-size: 10px;
+      font-weight: 500;
+      color: var(--mt);
+      margin-bottom: 2px
+    }
+
+    .cv {
+      padding: 6px 8px;
+      border-radius: var(--rs);
+      border: 1px solid var(--bd);
+      background: var(--sf);
+      color: var(--tx);
+      outline: none;
+      font-size: 11px;
+      width: 100%;
+      font-family: 'JetBrains Mono', monospace
+    }
+
+    .cv:focus {
+      border-color: var(--ac)
+    }
+
+    .cf {
+      grid-column: 1/-1
+    }
+
+    .pt {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 10px
+    }
+
+    .pt th {
+      text-align: left;
+      padding: 5px 7px;
+      background: var(--sf);
+      color: var(--mt);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      font-size: 8px;
+      position: sticky;
+      top: 0;
+      z-index: 1
+    }
+
+    .pt td {
+      padding: 3px 7px;
+      border-bottom: 1px solid var(--bd)
+    }
+
+    .pt td.mo {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      color: var(--ac2);
+      word-break: break-all
+    }
+
+    .pt td.pa {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      color: var(--info)
+    }
+
+    .pt tr:hover td {
+      background: var(--cd)
+    }
+
+    .ps {
+      max-height: 220px;
+      overflow-y: auto;
+      border: 1px solid var(--bd);
+      border-radius: var(--rs)
+    }
+
+    .pb-bg {
+      height: 18px;
+      background: var(--sf);
+      border-radius: 9px;
+      overflow: hidden;
+      position: relative;
+      border: 1px solid var(--bd)
+    }
+
+    .pb-fl {
+      height: 100%;
+      background: linear-gradient(90deg, var(--ac), var(--ac2));
+      border-radius: 9px;
+      transition: width .3s;
+      position: relative
+    }
+
+    .pb-fl::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .1), transparent);
+      animation: shm 2s infinite
+    }
+
+    @keyframes shm {
+      0% {
+        transform: translateX(-100%)
+      }
+
+      100% {
+        transform: translateX(100%)
+      }
+    }
+
+    .pb-tx {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 9px;
+      font-weight: 700;
+      color: #fff;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, .6)
+    }
+
+    .stg {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+      gap: 5px;
+      margin-bottom: 10px
+    }
+
+    .sc {
+      background: var(--sf);
+      border: 1px solid var(--bd);
+      border-radius: var(--rs);
+      padding: 7px 8px;
+      text-align: center
+    }
+
+    .sc .sv {
+      font-size: 14px;
+      font-weight: 800;
+      font-family: 'JetBrains Mono', monospace
+    }
+
+    .sc .sl2 {
+      font-size: 8px;
+      color: var(--mt);
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      margin-top: 1px
+    }
+
+    .al {
+      max-height: 140px;
+      overflow-y: auto;
+      margin-bottom: 8px
+    }
+
+    .ai {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 5px 8px;
+      background: var(--sf);
+      border: 1px solid var(--bd);
+      border-radius: var(--rs);
+      margin-bottom: 3px;
+      font-size: 10px
+    }
+
+    .ai .an {
+      flex: 1;
+      min-width: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis
+    }
+
+    .ai .ab {
+      width: 70px;
+      height: 4px;
+      background: var(--cd2);
+      border-radius: 2px;
+      overflow: hidden;
+      flex-shrink: 0
+    }
+
+    .ai .ab div {
+      height: 100%;
+      background: var(--ac);
+      border-radius: 2px;
+      transition: width .2s
+    }
+
+    .ai .ap {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      color: var(--ac);
+      width: 32px;
+      text-align: right;
+      flex-shrink: 0
+    }
+
+    .la {
+      background: var(--sf);
+      border: 1px solid var(--bd);
+      border-radius: var(--rs);
+      padding: 6px;
+      max-height: 120px;
+      overflow-y: auto;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      line-height: 1.4;
+      color: var(--mt)
+    }
+
+    .la .lok {
+      color: var(--ok)
+    }
+
+    .la .ler {
+      color: var(--er)
+    }
+
+    .la .lwn {
+      color: var(--wn)
+    }
+
+    .mo {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, .65);
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: .2s;
+      backdrop-filter: blur(3px)
+    }
+
+    .mo.sh {
+      opacity: 1;
+      pointer-events: auto
+    }
+
+    .mb {
+      background: var(--cd);
+      border: 1px solid var(--bd);
+      border-radius: var(--rad);
+      padding: 18px;
+      max-width: 480px;
+      width: 92%;
+      max-height: 80vh;
+      overflow-y: auto;
+      transform: scale(.95);
+      transition: .2s
+    }
+
+    .mo.sh .mb {
+      transform: scale(1)
+    }
+
+    .mb h2 {
+      font-size: 15px;
+      font-weight: 700;
+      margin-bottom: 10px
+    }
+
+    .mb p {
+      font-size: 11px;
+      color: var(--mt);
+      margin-bottom: 6px;
+      line-height: 1.5
+    }
+
+    .tc {
+      position: fixed;
+      bottom: 14px;
+      right: 14px;
+      z-index: 200;
+      display: flex;
+      flex-direction: column;
+      gap: 5px
+    }
+
+    .tt {
+      padding: 8px 12px;
+      border-radius: var(--rs);
+      font-size: 11px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transform: translateX(120%);
+      transition: .3s;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, .4);
+      max-width: 300px
+    }
+
+    .tt.sh {
+      transform: translateX(0)
+    }
+
+    .tt-s {
+      background: #064e3b;
+      color: #a7f3d0;
+      border: 1px solid #065f46
+    }
+
+    .tt-e {
+      background: #7f1d1d;
+      color: #fca5a5;
+      border: 1px solid #991b1b
+    }
+
+    .tt-i {
+      background: #1e3a5f;
+      color: #93c5fd;
+      border: 1px solid #1e40af
+    }
+
+    .tt-w {
+      background: #78350f;
+      color: #fde68a;
+      border: 1px solid #92400e
+    }
+
+    .abar {
+      display: flex;
+      gap: 6px;
+      justify-content: flex-end;
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid var(--bd)
+    }
+
+    .dv {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 10px 0;
+      color: var(--dm);
+      font-size: 9px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px
+    }
+
+    .dv::before,
+    .dv::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--bd)
+    }
+
+    .pi {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px;
+      background: var(--sf);
+      border: 1px solid var(--bd);
+      border-radius: var(--rad);
+      margin-bottom: 10px
+    }
+
+    .pi img {
+      width: 50px;
+      height: 50px;
+      border-radius: 5px;
+      object-fit: cover
+    }
+
+    .pi h2 {
+      font-size: 13px;
+      font-weight: 700
+    }
+
+    .pi p {
+      font-size: 10px;
+      color: var(--mt);
+      margin-top: 1px
+    }
+
+    .gw1 {
+      position: fixed;
+      top: -120px;
+      right: -120px;
+      width: 350px;
+      height: 350px;
+      background: radial-gradient(circle, var(--acG), transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+      opacity: .5
+    }
+
+    .gw2 {
+      position: fixed;
+      bottom: -120px;
+      left: -120px;
+      width: 300px;
+      height: 300px;
+      background: radial-gradient(circle, rgba(94, 168, 248, .05), transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+      opacity: .4
+    }
+
+    @media(max-width:600px) {
+      .sl {
+        display: none
+      }
+
+      .sg {
+        grid-template-columns: 1fr
+      }
+
+      .stg {
+        grid-template-columns: repeat(2, 1fr)
+      }
+
+      .cg {
+        grid-template-columns: 1fr
+      }
+
+      .ei .ed {
+        display: none
+      }
+
+      .pt td:first-child,
+      .pt th:first-child {
+        display: none
+      }
+    }
+
+  </style>
+</head>
+
+<body>
+  <div class="gw1"></div>
+  <div class="gw2"></div>
+  <header class="hdr">
+    <div class="lg"><i class="fas fa-podcast"></i>
+      <h1>Pod<span>Loader</span></h1>
+    </div>
+    <div class="hr"><button class="ib" id="bRsm" title="Resume interrupted download"><i class="fas fa-rotate-left"></i></button></div>
+  </header>
+  <nav class="stp">
+    <div class="si a" data-s="1"><span class="sn">1</span><span class="sl">Feed</span></div><i class="fas fa-chevron-right sar"></i>
+    <div class="si" data-s="2"><span class="sn">2</span><span class="sl">Episodes</span></div><i class="fas fa-chevron-right sar"></i>
+    <div class="si" data-s="3"><span class="sn">3</span><span class="sl">Configure</span></div><i class="fas fa-chevron-right sar"></i>
+    <div class="si" data-s="4"><span class="sn">4</span><span class="sl">Download</span></div>
+  </nav>
+  <main class="mn">
+    <section class="pn a" id="p1">
+      <div class="cd">
+        <div class="ct"><i class="fas fa-magnifying-glass"></i> Search Podcasts</div>
+        <div class="ig"><input type="text" id="sI" placeholder="Search by name, author, topic..."><button class="bt bt-p" id="sB"><i class="fas fa-search"></i> Search</button></div>
+        <div id="sR" class="sg"></div>
+      </div>
+      <div class="dv">or paste RSS feed URL</div>
+      <div class="cd">
+        <div class="ct"><i class="fas fa-rss"></i> RSS Feed URL</div>
+        <div class="ig"><input type="text" id="rI" placeholder="https://feeds.example.com/podcast.xml"><button class="bt bt-p" id="rB"><i class="fas fa-arrow-right"></i> Load</button></div>
+      </div>
+    </section>
+    <section class="pn" id="p2">
+      <div id="pBar" class="pi" style="display:none"></div>
+      <div class="etb">
+        <button class="bt bt-sm bt-s" id="eA"><i class="fas fa-check-double"></i> All</button>
+        <button class="bt bt-sm bt-s" id="eN"><i class="fas fa-xmark"></i> None</button>
+        <button class="bt bt-sm bt-s" id="eV"><i class="fas fa-arrow-right-arrow-left"></i> Invert</button>
+        <button class="bt bt-sm bt-s" id="eR"><i class="fas fa-arrows-up-down"></i> Range</button>
+        <input type="text" id="eF" placeholder="Filter..." style="flex:1;min-width:80px;padding:4px 7px;border-radius:var(--rs);border:1px solid var(--bd);background:var(--sf);color:var(--tx);font-size:10px">
+        <span class="ec" id="eC">0 selected</span>
+      </div>
+      <div class="el" id="eL"></div>
+      <div class="abar"><button class="bt bt-s" id="b21"><i class="fas fa-arrow-left"></i> Back</button><button class="bt bt-p" id="b23" disabled><i class="fas fa-arrow-right"></i> Continue</button></div>
+    </section>
+    <section class="pn" id="p3">
+      <div class="cd">
+        <div class="ct"><i class="fas fa-file-signature"></i> File Naming</div>
+        <div class="cl" style="margin-bottom:3px">Numbering Order</div>
+        <div class="nr" id="nOrd">
+          <div class="nm a" data-v="top-down">Top-Down</div>
+          <div class="nm" data-v="bottom-up">Bottom-Up</div>
+          <div class="nm" data-v="none">No Numbers</div>
+        </div>
+        <div class="cl" style="margin-bottom:3px">Folder Grouping</div>
+        <div class="nr" id="gOrd">
+          <div class="nm a" data-v="none">Flat</div>
+          <div class="nm" data-v="season">By Season (RSS)</div>
+          <div class="nm" data-v="every">Every N Episodes</div>
+        </div>
+        <div id="evR" style="display:none;margin-bottom:6px">
+          <div class="cl">Episodes per group</div><input type="number" id="evN" value="50" min="5" max="200" class="cv" style="width:80px">
+        </div>
+        <div class="cl">Filename Template <span style="color:var(--dm)">(use / for subfolders)</span></div>
+        <input type="text" id="tI" value="{num} - {title}" class="cv cf" style="margin-bottom:4px">
+        <div style="font-size:8px;color:var(--dm)">{num} {title} {date} {podcast} {artist} {season} {epnum} {part} — use / for subfolders</div>
+        <div style="margin-top:6px;display:flex;align-items:center;gap:6px">
+          <div class="cl" style="margin:0">Padding:</div>
+          <select id="nP" style="padding:3px 5px;border-radius:var(--rs);border:1px solid var(--bd);background:var(--sf);color:var(--tx);font-size:10px">
+            <option value="2">2 (01)</option>
+            <option value="3" selected>3 (001)</option>
+            <option value="4">4 (0001)</option>
+          </select>
+        </div>
+      </div>
+      <div class="cd">
+        <div class="ct"><i class="fas fa-gear"></i> Download Settings</div>
+        <div class="cg">
+          <div>
+            <div class="cl">Parallel Downloads</div><input type="number" id="cC" value="3" min="1" max="8" class="cv">
+          </div>
+          <div>
+            <div class="cl">Retries per File</div><input type="number" id="cR" value="3" min="0" max="10" class="cv">
+          </div>
+          <div class="cf">
+            <div class="cl">CORS Proxy URL</div><input type="text" id="cP" placeholder="https://proxy.example/?url=" class="cv cf">
+          </div>
+        </div>
+      </div>
+      <div class="cd">
+        <div class="ct"><i class="fas fa-folder-open"></i> Output Directory</div>
+        <p style="font-size:10px;color:var(--mt);margin-bottom:6px">Choose a folder on your device.</p>
+        <button class="bt bt-s" id="pD"><i class="fas fa-folder-plus"></i> Choose Directory</button>
+        <span id="dN" style="margin-left:6px;font-size:10px;color:var(--ok)"></span>
+      </div>
+      <div class="cd">
+        <div class="ct"><i class="fas fa-eye"></i> Live Preview</div>
+        <div class="ps" id="pvS">
+          <table class="pt">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Episode</th>
+                <th>Path</th>
+              </tr>
+            </thead>
+            <tbody id="pvB"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="abar"><button class="bt bt-s" id="b32"><i class="fas fa-arrow-left"></i> Back</button><button class="bt bt-p" id="goD" disabled><i class="fas fa-download"></i> Start Download</button></div>
+    </section>
+    <section class="pn" id="p4">
+      <div style="margin-bottom:10px">
+        <div class="pb-bg">
+          <div class="pb-fl" id="oF" style="width:0%"></div>
+          <div class="pb-tx" id="oT">0%</div>
+        </div>
+      </div>
+      <div class="stg">
+        <div class="sc">
+          <div class="sv" style="color:var(--ok)" id="sDn">0</div>
+          <div class="sl2">Done</div>
+        </div>
+        <div class="sc">
+          <div class="sv" style="color:var(--er)" id="sFl">0</div>
+          <div class="sl2">Failed</div>
+        </div>
+        <div class="sc">
+          <div class="sv" style="color:var(--ac)" id="sSp">—</div>
+          <div class="sl2">Speed</div>
+        </div>
+        <div class="sc">
+          <div class="sv" style="color:var(--info)" id="sEt">—</div>
+          <div class="sl2">ETA</div>
+        </div>
+        <div class="sc">
+          <div class="sv" id="sBy">0 B</div>
+          <div class="sl2">Downloaded</div>
+        </div>
+        <div class="sc">
+          <div class="sv" style="color:var(--ac)" id="sAc">0</div>
+          <div class="sl2">Active</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:5px;margin-bottom:8px;flex-wrap:wrap">
+        <button class="bt bt-sm bt-s" id="pauB"><i class="fas fa-pause"></i> Pause</button>
+        <button class="bt bt-sm bt-d" id="stoB"><i class="fas fa-stop"></i> Stop &amp; Save</button>
+      </div>
+      <div class="ct"><i class="fas fa-bolt"></i> Active</div>
+      <div class="al" id="acL"></div>
+      <div class="ct"><i class="fas fa-list"></i> Log</div>
+      <div class="la" id="lgA"></div>
+    </section>
+  </main>
+  <div class="mo" id="cfM">
+    <div class="mb">
+      <h2><i class="fas fa-triangle-exclamation" style="color:var(--wn)"></i> Confirm</h2>
+      <div id="cfB"></div>
+      <label style="display:flex;align-items:center;gap:5px;font-size:11px;cursor:pointer;margin-top:6px"><input type="checkbox" id="cfC" style="accent-color:var(--ac);width:14px;height:14px"> I understand — download files to the selected directory</label>
+      <div class="abar"><button class="bt bt-s" id="cfN">Cancel</button><button class="bt bt-p" id="cfG" disabled><i class="fas fa-download"></i> Download</button></div>
+    </div>
+  </div>
+  <div class="mo" id="rsM">
+    <div class="mb">
+      <h2><i class="fas fa-rotate-left" style="color:var(--info)"></i> Resume</h2>
+      <div id="rsB"></div>
+      <div class="abar"><button class="bt bt-d" id="rsN"><i class="fas fa-trash"></i> Discard</button><button class="bt bt-p" id="rsG"><i class="fas fa-play"></i> Resume</button></div>
+    </div>
+  </div>
+  <div class="tc" id="tC"></div>
+  <script>
+    const $ = s => document.querySelector(s),
+      $$ = s => document.querySelectorAll(s);
+    const esc = s => (s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const san = (n, mx = 90) => {
+      let s = n.replace(/[/\\?%*:|"<>]/g, ' ').replace(/\s+/g, ' ').trim();
+      return s.length > mx ? s.substring(0, mx).trim() : s || 'untitled'
+    };
+    const fB = (b, d = 1) => {
+      if (!b || b < 0) return '0 B';
+      const u = ['B', 'KB', 'MB', 'GB'],
+        i = Math.min(Math.floor(Math.log(Math.max(1, b)) / Math.log(1024)), u.length - 1);
+      return (b / Math.pow(1024, i)).toFixed(d) + ' ' + u[i]
+    };
+    const fS = b => fB(b) + '/s';
+    const fE = s => {
+      if (!s || !isFinite(s) || s < 0) return '—';
+      const h = Math.floor(s / 3600),
+        m = Math.floor((s % 3600) / 60),
+        sc = Math.floor(s % 60);
+      return h > 0 ? `${h}:${String(m).padStart(2,'0')}:${String(sc).padStart(2,'0')}` : `${m}:${String(sc).padStart(2,'0')}`
+    };
+    const gExt = (url, ct) => {
+      if (ct) {
+        const m = ct.match(/audio\/(\w+)/);
+        if (m) {
+          let e = m[1];
+          if (e === 'mpeg') e = 'mp3';
+          if (e === 'mp4') e = 'm4a';
+          return '.' + e
+        }
+      }
+      try {
+        const p = new URL(url).pathname,
+          d = p.lastIndexOf('.');
+        if (d > -1) {
+          const e = p.substring(d + 1).toLowerCase();
+          if (['mp3', 'm4a', 'ogg', 'wav', 'flac', 'aac', 'opus', 'wma'].includes(e)) return '.' + e
+        }
+      } catch (x) {}
+      return '.mp3'
+    };
+
+    function toast(m, t = 'info') {
+      const c = $('#tC'),
+        e = document.createElement('div');
+      e.className = `tt tt-${t}`;
+      const ic = {
+        success: 'check-circle',
+        error: 'exclamation-circle',
+        info: 'info-circle',
+        warn: 'exclamation-triangle'
+      };
+      e.innerHTML = `<i class="fas fa-${ic[t]||'info-circle'}"></i><span>${m}</span>`;
+      c.appendChild(e);
+      requestAnimationFrame(() => e.classList.add('sh'));
+      setTimeout(() => {
+        e.classList.remove('sh');
+        setTimeout(() => {
+          if (e.parentNode) e.remove()
+        }, 300)
+      }, 4000)
+    }
+
+    const S = {
+      step: 1,
+      pod: null,
+      eps: [],
+      sel: new Set(),
+      nOrd: 'top-down',
+      gOrd: 'none',
+      evN: 50,
+      tpl: '{num} - {title}',
+      nP: 3,
+      dirH: null
+    };
+
+    function goS(n) {
+      S.step = n;
+      $$('.pn').forEach(p => p.classList.remove('a'));
+      $(`#p${n}`).classList.add('a');
+      $$('.si').forEach(s => {
+        const v = +s.dataset.s;
+        s.classList.remove('a', 'd');
+        if (v === n) s.classList.add('a');
+        else if (v < n) s.classList.add('d')
+      })
+    }
+
+    /* Search */
+    async function sPod(q) {
+      const r = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(q)}&media=podcast&limit=30`);
+      if (!r.ok) throw new Error('Search failed');
+      return (await r.json()).results.map(x => ({
+        title: x.collectionName || '?',
+        artist: x.artistName || '',
+        feedUrl: x.feedUrl || '',
+        art: (x.artworkUrl100 || '').replace('100x100', '200x200'),
+        genre: x.primaryGenreName || ''
+      }))
+    }
+
+    /* RSS */
+    function pRSS(xml, fu) {
+      const doc = new DOMParser().parseFromString(xml, 'text/xml'),
+        ch = doc.querySelector('channel');
+      if (!ch) throw new Error('Invalid RSS');
+      const t = ch.querySelector('title')?.textContent?.trim() || '?',
+        img = ch.querySelector('image>url')?.textContent?.trim() || ch.querySelector('itunes\\:image')?.getAttribute('href')?.trim() || '',
+        art = ch.querySelector('itunes\\:author')?.textContent?.trim() || '',
+        eps = [];
+      ch.querySelectorAll('item').forEach((it, i) => {
+        const en = it.querySelector('enclosure'),
+          u = en?.getAttribute('url') || '';
+        if (!u) return;
+        eps.push({
+          title: it.querySelector('title')?.textContent?.trim() || `Ep ${i+1}`,
+          audioUrl: u,
+          fileSize: parseInt(en?.getAttribute('length') || '0') || 0,
+          pubDate: it.querySelector('pubDate')?.textContent?.trim() || '',
+          duration: it.querySelector('itunes\\:duration')?.textContent?.trim() || '',
+          season: it.querySelector('itunes\\:season')?.textContent?.trim() || '',
+          epnum: it.querySelector('itunes\\:episode')?.textContent?.trim() || '',
+          _i: i
+        })
+      });
+      return {
+        pod: {
+          title: t,
+          image: img,
+          artist: art,
+          feedUrl: fu
+        },
+        episodes: eps
+      }
+    }
+
+    async function fFeed(url) {
+      const p = $('#cP').value.trim(),
+        u = p ? p + encodeURIComponent(url) : url;
+      const r = await fetch(u);
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      return r.text()
+    }
+
+    /* Search UI */
+    $('#sB').addEventListener('click', async () => {
+      const q = $('#sI').value.trim();
+      if (!q) return toast('Enter a search term', 'warn');
+      const g = $('#sR');
+      g.innerHTML = '<div style="padding:14px;text-align:center;color:var(--mt)"><i class="fas fa-spinner fa-spin"></i> Searching...</div>';
+      try {
+        const r = await sPod(q);
+        if (!r.length) {
+          g.innerHTML = '<div style="padding:14px;text-align:center;color:var(--mt)">No results</div>';
+          return
+        }
+        g.innerHTML = r.map(x => `<div class="pc" data-f="${esc(x.feedUrl)}" data-t="${esc(x.title)}" data-a="${esc(x.artist)}" data-i="${esc(x.art)}"><img src="${x.art||'https://picsum.photos/seed/pd/46/46.jpg'}" alt=""><div class="inf"><h3>${esc(x.title)}</h3><p>${esc(x.artist)}${x.genre?' · '+esc(x.genre):''}</p></div></div>`).join('');
+        g.querySelectorAll('.pc').forEach(c => c.addEventListener('click', () => ldFeed(c.dataset.f, {
+          title: c.dataset.t,
+          artist: c.dataset.a,
+          image: c.dataset.i,
+          feedUrl: c.dataset.f
+        })))
+      } catch (e) {
+        g.innerHTML = `<div style="padding:14px;text-align:center;color:var(--er)">Error: ${esc(e.message)}</div>`
+      }
+    });
+    $('#sI').addEventListener('keydown', e => {
+      if (e.key === 'Enter') $('#sB').click()
+    });
+    $('#rB').addEventListener('click', async () => {
+      const u = $('#rI').value.trim();
+      if (!u) return toast('Enter an RSS URL', 'warn');
+      await ldFeed(u, null)
+    });
+    $('#rI').addEventListener('keydown', e => {
+      if (e.key === 'Enter') $('#rB').click()
+    });
+
+    async function ldFeed(url, pi) {
+      toast('Loading feed...', 'info');
+      try {
+        const xml = await fFeed(url),
+          pd = pRSS(xml, url);
+        S.pod = pi || pd.pod;
+        S.pod.feedUrl = url;
+        S.eps = pd.episodes;
+        S.sel = new Set(S.eps.map((_, i) => i));
+        rEps();
+        goS(2);
+        toast(`Loaded ${S.eps.length} episodes`, 'success')
+      } catch (e) {
+        toast('Feed error: ' + e.message, 'error')
+      }
+    }
+
+    /* Episodes */
+    function rEps() {
+      if (S.pod) {
+        const b = $('#pBar');
+        b.style.display = 'flex';
+        b.innerHTML = `<img src="${S.pod.image||'https://picsum.photos/seed/pd/50/50.jpg'}"><div><h2>${esc(S.pod.title)}</h2><p>${S.eps.length} episodes${S.pod.artist?' · '+esc(S.pod.artist):''}</p></div>`
+      }
+      const l = $('#eL'),
+        parts = [];
+      for (let i = 0; i < S.eps.length; i++) {
+        const e = S.eps[i],
+          s = S.sel.has(i);
+        parts.push(`<div class="ei${s?' sel':''}" data-i="${i}"><input type="checkbox" ${s?'checked':''}><span class="et2" title="${esc(e.title)}">${esc(e.title)}</span><span class="es">${e.fileSize?fB(e.fileSize,0):'?'}</span><span class="ed">${e.pubDate?new Date(e.pubDate).toLocaleDateString('en',{month:'short',day:'numeric',year:'2-digit'}):''}</span></div>`)
+      }
+      l.innerHTML = parts.join('');
+      l.querySelectorAll('.ei').forEach(el => {
+        const cb = el.querySelector('input'),
+          idx = +el.dataset.i;
+        cb.addEventListener('change', e => {
+          e.stopPropagation();
+          if (cb.checked) S.sel.add(idx);
+          else S.sel.delete(idx);
+          el.classList.toggle('sel', cb.checked);
+          uEC()
+        });
+        el.addEventListener('click', e => {
+          if (e.target.tagName === 'INPUT') return;
+          cb.checked = !cb.checked;
+          cb.dispatchEvent(new Event('change'))
+        })
+      });
+      uEC()
+    }
+
+    function uEC() {
+      const t = S.eps.length,
+        s = S.sel.size,
+        sz = [...S.sel].reduce((a, i) => a + (S.eps[i]?.fileSize || 0), 0);
+      $('#eC').textContent = `${s}/${t} selected${sz?' · ~'+fB(sz):''}`;
+      $('#b23').disabled = s === 0
+    }
+    $('#eA').addEventListener('click', () => {
+      S.sel = new Set(S.eps.map((_, i) => i));
+      rEps()
+    });
+    $('#eN').addEventListener('click', () => {
+      S.sel.clear();
+      rEps()
+    });
+    $('#eV').addEventListener('click', () => {
+      const n = new Set();
+      S.eps.forEach((_, i) => {
+        if (!S.sel.has(i)) n.add(i)
+      });
+      S.sel = n;
+      rEps()
+    });
+    let rSt = null;
+    $('#eR').addEventListener('click', () => {
+      if (rSt === null) {
+        rSt = S.sel.size ? [...S.sel].pop() : 0;
+        toast('Range start set. Click Range again for end.', 'info')
+      } else {
+        const end = S.sel.size ? [...S.sel].pop() : S.eps.length - 1,
+          lo = Math.min(rSt, end),
+          hi = Math.max(rSt, end);
+        for (let i = lo; i <= hi; i++) S.sel.add(i);
+        rSt = null;
+        rEps()
+      }
+    });
+    $('#eF').addEventListener('input', e => {
+      const q = e.target.value.toLowerCase();
+      $('#eL').querySelectorAll('.ei').forEach(el => {
+        el.style.display = el.querySelector('.et2').textContent.toLowerCase().includes(q) ? '' : 'none'
+      })
+    });
+    $('#b21').addEventListener('click', () => goS(1));
+    $('#b23').addEventListener('click', () => {
+      rPrev();
+      goS(3)
+    });
+
+    function evaluateExpression(expression, context) {
+      try {
+        // Create a new function with the context variables as arguments
+        const keys = Object.keys(context);
+        const values = Object.values(context);
+        const func = new Function(...keys, `return (${expression});`);
+        return func(...values);
+      } catch (error) {
+        console.error('Error evaluating expression:', error);
+        return '';
+      }
+    }
+
+    /* Naming Engine */
+    function gNames() {
+      // Filter episodes based on selection
+      const eps = S.eps.filter((_, i) => S.sel.has(i));
+      const pad = S.nP; // Padding length for episode numbers
+      const mode = S.nOrd; // Ordering mode ('top-down', 'bottom-up', etc.)
+      const grp = S.gOrd; // Grouping order ('season', 'every', etc.)
+      const ev = S.evN; // Episodes per group in 'every' mode
+      const tpl = S.tpl; // Template string for naming
+
+      // Create an array of items with episode and number
+      const items = eps.map((ep, i) => {
+        let num;
+        if (mode === 'top-down') {
+          num = i + 1; // Number episodes from top down
+        } else if (mode === 'bottom-up') {
+          num = eps.length - i; // Number episodes from bottom up
+        } else {
+          num = 0; // Default case, no numbering
+        }
+        return {
+          ep, // Episode object
+          num // Episode number
+        };
+      });
+
+      // Assign groups and per-group numbering
+      const seasonBuckets = new Map(); // Map to hold season buckets
+      let partNum = 0; // Part number
+      let partEpCnt = 0; // Episode count within a part
+
+      items.forEach((it, i) => {
+        if (grp === 'season') {
+          const s = it.ep.season || '1'; // Get season number or default to '1'
+          if (!seasonBuckets.has(s)) {
+            const idx = seasonBuckets.size; // Index of the season
+            seasonBuckets.set(s, {
+              idx,
+              count: 0 // Initialize episode count for the season
+            });
+          }
+          const b = seasonBuckets.get(s); // Get bucket for the season
+          it.season = s; // Set season number
+          it.seasonIdx = b.idx + 1; // Set season index
+          b.count++; // Increment episode count for the season
+          it.seasonEpNum = b.count; // Set episode number within the season
+        } else if (grp === 'every') {
+          if (partEpCnt === 0) partNum++; // Increment part number when starting a new part
+          partEpCnt++; // Increment episode count within the part
+          it.part = partNum; // Set part number
+          it.partEpNum = partEpCnt; // Set episode number within the part
+          if (partEpCnt >= ev) partEpCnt = 0; // Reset episode count after reaching the limit
+        }
+      });
+
+      // Generate final names using the template
+      const results = items.map(it => {
+        const ext = gExt(it.ep.audioUrl); // Get file extension
+        const padStr = it.num > 0 ? String(it.num).padStart(pad, '0') : ''; // Padded episode number
+        const dateStr = it.ep.pubDate ? new Date(it.ep.pubDate).toISOString().slice(0, 10) : ''; // Publication date
+        const seasonPad = it.season ? String(it.season).padStart(2, '0') : '01'; // Padded season number
+        const partPad = it.part ? String(it.part).padStart(2, '0') : ''; // Padded part number
+        const epnumStr = it.ep.epnum || padStr || String(it.num); // Episode number or padded number
+        const seasonEpPad = it.seasonEpNum ? String(it.seasonEpNum).padStart(pad, '0') : ''; // Padded episode number within the season
+        const partEpPad = it.partEpNum ? String(it.partEpNum).padStart(pad, '0') : ''; // Padded episode number within the part
+
+        // Define context for evaluation
+        const context = {
+          num: it.num,
+          title: san(it.ep.title),
+          date: dateStr,
+          podcast: san(S.pod?.title || ''),
+          artist: san(S.pod?.artist || ''),
+          season: seasonPad,
+          epnum: epnumStr,
+          part: partPad,
+          seasonep: seasonEpPad,
+          partep: partEpPad
+        };
+
+        // Replace placeholders in the template
+        let name = tpl.replace(/\{([^}]+)\}/g, (match, expr) => {
+          // Trim spaces and evaluate expression
+          return evaluateExpression(expr.trim(), context);
+        });
+
+        let folder = '', // Folder path
+          filename = name; // Filename
+
+        // Separate folder and filename if there's a '/'
+        const ls = name.lastIndexOf('/');
+        if (ls >= 0) {
+          folder = san(name.substring(0, ls)); // Sanitize folder path
+          filename = name.substring(ls + 1); // Extract filename
+        }
+
+        filename = san(filename, 120) + ext; // Sanitize filename and append extension
+        const fullPath = folder ? folder + '/' + filename : filename; // Full path
+
+        return {
+          ep: it.ep, // Episode object
+          filename, // Filename
+          folder, // Folder path
+          fullPath, // Full path
+          num: it.num // Episode number
+        };
+      });
+
+      // Deduplicate filenames by appending a counter if needed
+      const seen = new Map(); // Map to track seen filenames
+      for (const r of results) {
+        const k = r.fullPath; // Key is the full path
+        const c = seen.get(k) || 0; // Count how many times this path has been seen
+        seen.set(k, c + 1); // Increment count
+        if (c > 0) {
+          const ext = gExt(r.ep.audioUrl); // Get file extension
+          const base = r.filename.replace(ext, ''); // Base filename without extension
+          r.filename = `${base} (${c + 1})${ext}`; // Append counter to filename
+          r.fullPath = r.folder ? r.folder + '/' + r.filename : r.filename; // Update full path
+        }
+      }
+
+      return results; // Return the list of named episodes
+    }
+
+    /* Naming UI */
+    function autoTpl() {
+      const g = S.gOrd; // Grouping order
+      const n = S.nOrd; // Ordering mode
+
+      // Set template based on grouping and ordering
+      if (g === 'season') {
+        S.tpl = n === 'none' ? 'Season {season}/{title}' : 'Season {season}/{num} - {title}';
+      } else if (g === 'every') {
+        S.tpl = n === 'none' ? 'Part {part}/{title}' : 'Part {part}/{num} - {title}';
+      } else {
+        S.tpl = n === 'none' ? '{title}' : '{num} - {title}';
+      }
+
+      $('#tI').value = S.tpl; // Update input field with the new template
+    }
+
+    // Event listeners for UI interactions
+    $('#nOrd').addEventListener('click', e => {
+      const o = e.target.closest('.nm'); // Find closest element with class 'nm'
+      if (!o) return; // Exit if not found
+
+      $$('#nOrd .nm').forEach(x => x.classList.remove('a')); // Remove active class from all elements
+      o.classList.add('a'); // Add active class to clicked element
+      S.nOrd = o.dataset.v; // Set ordering mode from data attribute
+      autoTpl(); // Update template
+      rPrev(); // Refresh preview
+    });
+
+    $('#gOrd').addEventListener('click', e => {
+      const o = e.target.closest('.nm'); // Find closest element with class 'nm'
+      if (!o) return; // Exit if not found
+
+      $$('#gOrd .nm').forEach(x => x.classList.remove('a')); // Remove active class from all elements
+      o.classList.add('a'); // Add active class to clicked element
+      S.gOrd = o.dataset.v; // Set grouping order from data attribute
+      $('#evR').style.display = S.gOrd === 'every' ? '' : 'none'; // Show/hide episodes per group input
+      autoTpl(); // Update template
+      rPrev(); // Refresh preview
+    });
+
+    $('#evN').addEventListener('input', e => {
+      S.evN = Math.max(5, +e.target.value || 50); // Set episodes per group, minimum 5
+      rPrev(); // Refresh preview
+    });
+
+    $('#tI').addEventListener('input', e => {
+      S.tpl = e.target.value; // Set template from input field
+      rPrev(); // Refresh preview
+    });
+
+    $('#nP').addEventListener('change', e => {
+      S.nPad = +e.target.value; // Set padding length for episode numbers
+      rPrev(); // Refresh preview
+    });
+
+    /* Live Preview */
+    let prevTimer = null;
+
+    function rPrev() {
+      clearTimeout(prevTimer);
+      prevTimer = setTimeout(_rPrev, 80)
+    }
+
+    function _rPrev() {
+      const files = gNames(),
+        bd = $('#pvB');
+      const head = files.slice(0, 20),
+        tail = files.length > 30 ? files.slice(-8) : [];
+      const mid = files.length > 28 ? `<tr><td colspan="3" style="text-align:center;color:var(--dm);padding:6px">... ${files.length-28} more ...</td></tr>` : '';
+      let h = '';
+      const render = (sl, si) => sl.forEach((f, i) => {
+        h += `<tr><td>${si+i+1}</td><td title="${esc(f.ep.title)}">${esc(f.ep.title.substring(0,50))}</td><td class="pa">${esc(f.fullPath)}</td></tr>`
+      });
+      render(head, 0);
+      if (mid) h += mid;
+      if (tail.length) render(tail, files.length - tail.length);
+      bd.innerHTML = h
+    }
+
+    /* Directory */
+    $('#pD').addEventListener('click', async () => {
+      try {
+        if (!window.showDirectoryPicker) {
+          toast('File System Access API not supported', 'error');
+          return
+        }
+        S.dirH = await window.showDirectoryPicker({
+          mode: 'readwrite'
+        });
+        $('#dN').innerHTML = `<i class="fas fa-check-circle"></i> ${S.dirH.name}`;
+        $('#goD').disabled = false;
+        toast('Directory: ' + S.dirH.name, 'success')
+      } catch (e) {
+        if (e.name !== 'AbortError') toast('Error: ' + e.message, 'error')
+      }
+    });
+
+    /* Confirm */
+    $('#goD').addEventListener('click', () => {
+      const f = gNames(),
+        ts = f.reduce((s, x) => s + (x.ep.fileSize || 0), 0),
+        flds = new Set(f.map(x => x.folder).filter(Boolean));
+      $('#cfB').innerHTML = `<p>Download <strong>${f.length} files</strong>${ts?' (~'+fB(ts)+')':''} to <strong>${S.dirH?.name||'?'}</strong>${flds.size?' ('+flds.size+' subfolder'+(flds.size>1?'s':'')+')':''}.</p><p style="color:var(--wn);font-size:10px;margin-top:4px"><i class="fas fa-triangle-exclamation"></i> Existing files will be resumed or overwritten.</p>`;
+      $('#cfC').checked = false;
+      $('#cfG').disabled = true;
+      $('#cfM').classList.add('sh')
+    });
+    $('#cfC').addEventListener('change', e => {
+      $('#cfG').disabled = !e.target.checked
+    });
+    $('#cfN').addEventListener('click', () => $('#cfM').classList.remove('sh'));
+    $('#cfG').addEventListener('click', () => {
+      $('#cfM').classList.remove('sh');
+      startDL()
+    });
+
+    /* ============ DOWNLOAD ENGINE v3 — Memory Safe ============ */
+    class Engine {
+      constructor(dir, conc, ret, proxy) {
+        this.dir = dir;
+        this.conc = conc;
+        this.ret = ret;
+        this.proxy = proxy;
+        this.queue = [];
+        this.actCount = 0;
+        this.abortMap = new Map();
+        this.done = 0;
+        this.fail = 0;
+        this.total = 0;
+        this.bytesDone = 0;
+        this.startT = 0;
+        this.running = false;
+        this.paused = false;
+        this.stopped = false;
+        this._saveIv = null;
+        this._procLock = false;
+      }
+      px(u) {
+        return this.proxy ? this.proxy + encodeURIComponent(u) : u
+      }
+      async start(files) {
+        this.total = files.length;
+        this.done = 0;
+        this.fail = 0;
+        this.bytesDone = 0;
+        this.running = true;
+        this.paused = false;
+        this.stopped = false;
+        this.startT = Date.now();
+        // Filter already-complete
+        const todo = [];
+        for (const f of files) {
+          try {
+            const d = f.folder ? await this._dir(f.folder) : this.dir;
+            const fh = await d.getFileHandle(f.filename);
+            const fi = await fh.getFile();
+            if (f.ep.fileSize && fi.size >= f.ep.fileSize) {
+              this.done++;
+              this.bytesDone += fi.size;
+              aLog(`Already complete: ${f.fullPath}`, 'ok');
+              continue
+            }
+          } catch (e) {}
+          todo.push(f);
+        }
+        this.queue = todo.map(f => ({
+          ...f,
+          retries: 0
+        }));
+        uStats();
+        this._save();
+        this._saveIv = setInterval(() => this._save(), 4000);
+        this._process();
+      }
+      async _dir(p) {
+        let d = this.dir;
+        for (const s of p.split('/')) d = await d.getDirectoryHandle(s, {
+          create: true
+        });
+        return d
+      }
+
+      _process() {
+        if (!this.running || this.paused || this.stopped || this._procLock) return;
+        while (this.queue.length > 0 && this.actCount < this.conc) {
+          const item = this.queue.shift();
+          this.actCount++;
+          this.abortMap.set(item.fullPath, new AbortController());
+          this._runItem(item); // fire and forget — _runItem handles completion
+        }
+      }
+
+      async _runItem(item) {
+        const {
+          fullPath
+        } = item;
+        const ctrl = this.abortMap.get(fullPath);
+        let ok = false;
+        try {
+          await this._dlFile(item, ctrl.signal);
+          ok = true;
+        } catch (err) {
+          if (err.name === 'AbortError') {
+            this.actCount--;
+            this.abortMap.delete(fullPath);
+            uUI();
+            return
+          }
+          item.retries++;
+          if (item.retries <= this.ret) {
+            aLog(`Retry ${item.retries}/${this.ret}: ${fullPath}`, 'wn');
+            await new Promise(r => setTimeout(r, Math.min(5000, 800 * item.retries)));
+            if (!this.stopped && !this.paused) {
+              this.actCount--;
+              this.abortMap.delete(fullPath);
+              this.queue.unshift(item);
+              uUI();
+              this._process();
+              return
+            }
+            this.actCount--;
+            this.abortMap.delete(fullPath);
+            return;
+          }
+        }
+        if (ok) {
+          this.done++;
+          aLog(`Done: ${fullPath}`, 'ok')
+        } else {
+          this.fail++;
+          aLog(`Failed: ${fullPath}`, 'er')
+        }
+        this.actCount--;
+        this.abortMap.delete(fullPath);
+        uUI();
+        this._save();
+        this._check();
+        // Brief yield for GC
+        await new Promise(r => setTimeout(r, 80));
+        this._process();
+      }
+
+      async _dlFile(item, signal) {
+        const {
+          ep,
+          filename,
+          folder,
+          fullPath
+        } = item;
+        const dir = folder ? await this._dir(folder) : this.dir;
+        const fh = await dir.getFileHandle(filename, {
+          create: true
+        });
+
+        // Check partial
+        let resumeFrom = 0;
+        try {
+          const f = await fh.getFile();
+          resumeFrom = f.size;
+          if (ep.fileSize && resumeFrom >= ep.fileSize) return
+        } catch (e) {}
+
+        const url = this.px(ep.audioUrl);
+        const hdrs = {};
+        if (resumeFrom > 0) hdrs['Range'] = `bytes=${resumeFrom}-`;
+        const resp = await fetch(url, {
+          headers: hdrs,
+          signal
+        });
+
+        if (resp.status === 416) return; // already complete
+        if (!resp.ok && resp.status !== 206) throw new Error(`HTTP ${resp.status}`);
+
+        const isR = resp.status === 206;
+        const cLen = parseInt(resp.headers.get('Content-Length') || '0');
+        const totalSz = isR ? resumeFrom + cLen : (cLen || ep.fileSize || 0);
+
+        // NEVER use keepExistingData — it loads entire file into RAM
+        const w = await fh.createWritable();
+        try {
+          // Resume: copy existing in 256KB chunks (never loads whole file)
+          if (isR && resumeFrom > 0) {
+            const exF = await fh.getFile();
+            const CS = 256 * 1024;
+            for (let off = 0; off < resumeFrom; off += CS) {
+              if (signal.aborted) throw new DOMException('Aborted', 'AbortError');
+              const end = Math.min(off + CS, resumeFrom);
+              const sl = exF.slice(off, end);
+              const buf = await sl.arrayBuffer();
+              await w.write(new Uint8Array(buf));
+            }
+          }
+          // Stream fetch data
+          const rd = resp.body.getReader();
+          let dl = isR ? resumeFrom : 0,
+            lastUp = 0;
+          try {
+            while (true) {
+              if (signal.aborted) throw new DOMException('Aborted', 'AbortError');
+              const {
+                done: dn,
+                value: val
+              } = await rd.read();
+              if (dn) break;
+              await w.write(val);
+              dl += val.length;
+              const now = Date.now();
+              if (now - lastUp > 350) {
+                lastUp = now;
+                this.abortMap.set(fullPath, {
+                  signal,
+                  dl,
+                  totalSz
+                });
+                uUI()
+              }
+            }
+          } finally {
+            rd.releaseLock()
+          }
+          await w.close();
+          this.bytesDone += dl - (isR ? resumeFrom : 0);
+        } catch (e) {
+          try {
+            await w.abort()
+          } catch (x) {}
+          throw e
+        }
+      }
+
+      _check() {
+        if (this.done + this.fail >= this.total && this.queue.length === 0 && this.actCount === 0) {
+          this.running = false;
+          if (this._saveIv) clearInterval(this._saveIv);
+          aLog(this.fail ? `Done with ${this.fail} failures.` : 'All downloads complete!', this.fail ? 'wn' : 'ok');
+          toast(this.fail ? `Complete: ${this.done} ok, ${this.fail} failed` : `All ${this.done} files downloaded!`, this.fail ? 'warn' : 'success');
+          clrS();
+        }
+      }
+      pause() {
+        this.paused = true;
+        for (const [, c] of this.abortMap) {
+          try {
+            c.abort()
+          } catch (e) {}
+        }
+        this._save();
+        aLog('Paused — state saved', 'wn');
+        toast('Paused', 'info')
+      }
+      resume() {
+        this.paused = false;
+        this._process();
+        aLog('Resuming...', 'ok');
+        toast('Resuming', 'info')
+      }
+      stop() {
+        this.stopped = true;
+        this.running = false;
+        for (const [, c] of this.abortMap) {
+          try {
+            c.abort()
+          } catch (e) {}
+        }
+        if (this._saveIv) clearInterval(this._saveIv);
+        this._save();
+        aLog('Stopped — resume state saved', 'wn');
+        toast('Stopped. Resume later.', 'warn')
+      }
+
+      _save() {
+        try {
+          const st = {
+            podTitle: S.pod?.title || '',
+            feedUrl: S.pod?.feedUrl || '',
+            nOrd: S.nOrd,
+            gOrd: S.gOrd,
+            evN: S.evN,
+            tpl: S.tpl,
+            nP: S.nP,
+            proxy: this.proxy,
+            conc: this.conc,
+            ret: this.ret,
+            done: this.done,
+            fail: this.fail,
+            total: this.total,
+            bytesDone: this.bytesDone,
+            startT: this.startT,
+            files: gNames().map(f => ({
+              au: f.ep.audioUrl,
+              t: f.ep.title,
+              sz: f.ep.fileSize,
+              pd: f.ep.pubDate,
+              ss: f.ep.season,
+              en: f.ep.epnum,
+              fn: f.filename,
+              fd: f.folder,
+              fp: f.fullPath
+            })),
+            ts: Date.now()
+          };
+          localStorage.setItem('pl_r', JSON.stringify(st))
+        } catch (e) {}
+      }
+    }
+
+    function clrS() {
+      try {
+        localStorage.removeItem('pl_r')
+      } catch (e) {}
+    }
+
+    let eng = null;
+    async function startDL() {
+      const f = gNames();
+      if (!S.dirH) {
+        toast('No directory', 'error');
+        return
+      }
+      eng = new Engine(S.dirH, +$('#cC').value || 3, +$('#cR').value || 3, $('#cP').value.trim());
+      goS(4);
+      eng.start(f)
+    }
+
+    /* Stats */
+    function uStats() {
+      if (!eng) return;
+      const el = Math.max(1, (Date.now() - eng.startT) / 1000),
+        spd = eng.bytesDone / el,
+        rem = eng.total - eng.done - eng.fail,
+        avg = eng.done > 0 ? el / eng.done : 0,
+        eta = rem * avg;
+      $('#sDn').textContent = eng.done;
+      $('#sFl').textContent = eng.fail;
+      $('#sSp').textContent = fS(spd);
+      $('#sEt').textContent = fE(eta);
+      $('#sBy').textContent = fB(eng.bytesDone);
+      $('#sAc').textContent = eng.actCount;
+      const pct = eng.total > 0 ? Math.round((eng.done + eng.fail) / eng.total * 100) : 0;
+      $('#oF').style.width = pct + '%';
+      $('#oT').textContent = `${pct}% (${eng.done}/${eng.total})`
+    }
+
+    function uUI() {
+      uStats();
+      const l = $('#acL');
+      if (!eng || eng.actCount === 0) {
+        l.innerHTML = '<div style="padding:8px;text-align:center;color:var(--dm);font-size:10px">No active downloads</div>';
+        return
+      }
+      l.innerHTML = [...eng.abortMap.entries()].map(([fp, obj]) => {
+        const pct = obj.totalSz > 0 ? Math.round((obj.dl || 0) / obj.totalSz * 100) : 0;
+        return `<div class="ai"><span class="an">${esc(fp)}</span><div class="ab"><div style="width:${pct}%"></div></div><span class="ap">${pct}%</span></div>`
+      }).join('')
+    }
+
+    const MAX_LOG = 80;
+    let logCnt = 0;
+
+    function aLog(m, t = '') {
+      const a = $('#lgA'),
+        cls = t === 'ok' ? 'lok' : t === 'er' ? 'ler' : t === 'wn' ? 'lwn' : '';
+      const tm = new Date().toLocaleTimeString('en', {
+        hour12: false,
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      });
+      const d = document.createElement('div');
+      if (cls) d.className = cls;
+      d.textContent = `[${tm}] ${m}`;
+      a.appendChild(d);
+      logCnt++;
+      while (logCnt > MAX_LOG && a.firstChild) {
+        a.firstChild.remove();
+        logCnt--
+      }
+      a.scrollTop = a.scrollHeight
+    }
+
+    $('#pauB').addEventListener('click', () => {
+      if (!eng) return;
+      if (!eng.paused) {
+        eng.pause();
+        $('#pauB').innerHTML = '<i class="fas fa-play"></i> Resume'
+      } else {
+        eng.resume();
+        $('#pauB').innerHTML = '<i class="fas fa-pause"></i> Pause'
+      }
+    });
+    $('#stoB').addEventListener('click', () => {
+      if (!eng) return;
+      eng.stop();
+      $('#pauB').innerHTML = '<i class="fas fa-pause"></i> Pause'
+    });
+
+    /* Resume */
+    $('#bRsm').addEventListener('click', chkRsm);
+    async function chkRsm() {
+      let st;
+      try {
+        st = JSON.parse(localStorage.getItem('pl_r'))
+      } catch (e) {}
+      if (!st || !st.files?.length) {
+        toast('No interrupted download found', 'info');
+        return
+      }
+      $('#rsB').innerHTML = `<p>Found interrupted download from <strong>${st.ts?new Date(st.ts).toLocaleString():'?'}</strong>.</p><p>Podcast: <strong>${esc(st.podTitle)}</strong></p><p>Progress: <strong>${st.done||0}/${st.total||st.files.length}</strong> completed.</p><p style="color:var(--wn);font-size:10px;margin-top:4px">Select the same output directory to resume.</p>`;
+      $('#rsM').classList.add('sh')
+    }
+    $('#rsN').addEventListener('click', () => {
+      clrS();
+      $('#rsM').classList.remove('sh');
+      toast('State discarded', 'info')
+    });
+    $('#rsG').addEventListener('click', async () => {
+      $('#rsM').classList.remove('sh');
+      let st;
+      try {
+        st = JSON.parse(localStorage.getItem('pl_r'))
+      } catch (e) {
+        return
+      }
+      try {
+        if (!window.showDirectoryPicker) {
+          toast('Not supported', 'error');
+          return
+        }
+        S.dirH = await window.showDirectoryPicker({
+          mode: 'readwrite'
+        });
+        toast('Directory: ' + S.dirH.name, 'success')
+      } catch (e) {
+        if (e.name !== 'AbortError') toast('Error: ' + e.message, 'error');
+        return
+      }
+      S.nOrd = st.nOrd || 'top-down';
+      S.gOrd = st.gOrd || 'none';
+      S.evN = st.evN || 50;
+      S.tpl = st.tpl || '{num} - {title}';
+      S.nP = st.nP || 3;
+      $('#cP').value = st.proxy || '';
+      const comp = st.done || 0;
+      const todo = st.files.slice(comp).map(f => ({
+        ep: {
+          title: f.t,
+          audioUrl: f.au,
+          fileSize: f.sz,
+          pubDate: f.pd || '',
+          duration: '',
+          season: f.ss || '',
+          epnum: f.en || ''
+        },
+        filename: f.fn,
+        folder: f.fd || '',
+        fullPath: f.fp || f.fn,
+        retries: 0
+      }));
+      if (!todo.length) {
+        toast('All complete!', 'success');
+        clrS();
+        return
+      }
+      eng = new Engine(S.dirH, st.conc || 3, st.ret || 3, st.proxy || '');
+      eng.done = comp;
+      eng.total = st.total || st.files.length;
+      eng.bytesDone = st.bytesDone || 0;
+      eng.startT = st.startT || Date.now();
+      goS(4);
+      aLog(`Resuming ${todo.length} downloads...`, 'ok');
+      eng.queue = todo;
+      eng.running = true;
+      eng._saveIv = setInterval(() => eng._save(), 4000);
+      eng._process()
+    });
+
+    /* Stepper nav */
+    $$('.si').forEach(s => s.addEventListener('click', () => {
+      const t = +s.dataset.s;
+      if (t < S.step) goS(t)
+    }));
+    $('#b32').addEventListener('click', () => goS(2));
+
+    /* Lifecycle */
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden && eng?.running) eng._save()
+    });
+    window.addEventListener('beforeunload', () => {
+      if (eng?.running) eng._save()
+    });
+    document.addEventListener('freeze', () => {
+      if (eng?.running) eng._save()
+    });
+
+    /* Periodic UI refresh for download stats */
+    setInterval(() => {
+      if (eng?.running) uUI()
+    }, 500);
+
+    /* Init: check resume */
+    (() => {
+      let st;
+      try {
+        st = JSON.parse(localStorage.getItem('pl_r'))
+      } catch (e) {}
+      if (st && st.files?.length && (st.done || 0) < (st.total || st.files.length)) {
+        $('#bRsm').classList.add('glow');
+        toast('Interrupted download found — click resume', 'info')
+      }
+    })();
+
+  </script>
+</body>
+
+</html>
