@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>LexiDict – Dictionary</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --cream: #faf6f0;
+      --brown: #5c3d1e;
+      --light-brown: #8b6340;
+      --accent: #c0392b;
+      --border: #d4c4a8;
+      --card-bg: #ffffff;
+      --shadow: rgba(92, 61, 30, 0.12);
+      --muted: #7a6a58;
+      --tag-bg: #f0e8da;
+    }
+
+    body {
+      font-family: 'Georgia', serif;
+      background-color: var(--cream);
+      color: var(--brown);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Header ── */
+    header {
+      background: linear-gradient(135deg, #3b2106 0%, #5c3d1e 60%, #7a5230 100%);
+      color: #faf6f0;
+      padding: 18px 20px 14px;
+      text-align: center;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.35);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .header-title {
+      font-size: 1.7rem;
+      letter-spacing: 2px;
+      font-weight: bold;
+      font-variant: small-caps;
+      text-shadow: 1px 1px 3px rgba(0,0,0,0.4);
+    }
+
+    .header-subtitle {
+      font-size: 0.72rem;
+      letter-spacing: 3px;
+      color: #d4b896;
+      margin-top: 2px;
+      text-transform: uppercase;
+    }
+
+    /* ── Search Bar ── */
+    .search-wrapper {
+      background: #4a2d10;
+      padding: 12px 16px;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      position: sticky;
+      top: 72px;
+      z-index: 99;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+
+    .search-input {
+      flex: 1;
+      padding: 10px 14px;
+      border-radius: 6px;
+      border: 2px solid var(--border);
+      background: var(--cream);
+      font-family: 'Georgia', serif;
+      font-size: 1rem;
+      color: var(--brown);
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .search-input:focus {
+      border-color: var(--light-brown);
+    }
+
+    .search-input::placeholder {
+      color: #b09070;
+      font-style: italic;
+    }
+
+    .search-btn {
+      padding: 10px 16px;
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-family: 'Georgia', serif;
+      font-size: 0.9rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+      letter-spacing: 0.5px;
+      white-space: nowrap;
+    }
+
+    .search-btn:active {
+      transform: scale(0.96);
+      background: #a93226;
+    }
+
+    /* ── Tab Bar ── */
+    .tabs {
+      display: flex;
+      background: #f0e8da;
+      border-bottom: 2px solid var(--border);
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+
+    .tabs::-webkit-scrollbar { display: none; }
+
+    .tab-btn {
+      flex: 1;
+      min-width: 100px;
+      padding: 10px 8px;
+      border: none;
+      background: transparent;
+      font-family: 'Georgia', serif;
+      font-size: 0.8rem;
+      color: var(--muted);
+      cursor: pointer;
+      border-bottom: 3px solid transparent;
+      transition: all 0.2s;
+      letter-spacing: 0.5px;
+      font-variant: small-caps;
+      font-size: 0.85rem;
+    }
+
+    .tab-btn.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+      background: white;
+      font-weight: bold;
+    }
+
+    /* ── Main Content ── */
+    main {
+      flex: 1;
+      padding: 16px;
+      max-width: 680px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    /* ── Landing State ── */
+    .landing {
+      text-align: center;
+      padding: 50px 20px;
+    }
+
+    .landing-icon {
+      font-size: 4rem;
+      margin-bottom: 16px;
+      opacity: 0.6;
+    }
+
+    .landing h2 {
+      font-size: 1.3rem;
+      color: var(--light-brown);
+      margin-bottom: 8px;
+      font-variant: small-caps;
+      letter-spacing: 1px;
+    }
+
+    .landing p {
+      font-size: 0.9rem;
+      color: var(--muted);
+      font-style: italic;
+      line-height: 1.6;
+    }
+
+    .word-of-day-btn {
+      margin-top: 24px;
+      display: inline-block;
+      padding: 10px 22px;
+      background: var(--brown);
+      color: var(--cream);
+      border: none;
+      border-radius: 6px;
+      font-family: 'Georgia', serif;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: background 0.2s;
+      letter-spacing: 0.5px;
+    }
+
+    .word-of-day-btn:active {
+      background: var(--light-brown);
+    }
+
+    /* ── Loading ── */
+    .loader {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 60px 20px;
+      gap: 14px;
+    }
+
+    .spinner {
+      width: 36px;
+      height: 36px;
+      border: 4px solid var(--border);
+      border-top-color: var(--brown);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .loader p {
+      color: var(--muted);
+      font-style: italic;
+      font-size: 0.9rem;
+    }
+
+    /* ── Entry Card ── */
+    .entry-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 18px;
+      padding-bottom: 14px;
+      border-bottom: 2px solid var(--border);
+    }
+
+    .entry-word {
+      font-size: 2rem;
+      font-weight: bold;
+      color: var(--brown);
+      letter-spacing: 1px;
+      line-height: 1.1;
+    }
+
+    .entry-phonetic {
+      font-size: 0.85rem;
+      color: var(--muted);
+      font-style: italic;
+      margin-top: 4px;
+      letter-spacing: 0.5px;
+    }
+
+    .result-count {
+      font-size: 0.75rem;
+      color: var(--muted);
+      background: var(--tag-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 3px 10px;
+      white-space: nowrap;
+      margin-top: 6px;
+    }
+
+    .definition-card {
+      background: var(--card-bg);
+      border-radius: 10px;
+      padding: 18px;
+      margin-bottom: 14px;
+      box-shadow: 0 2px 8px var(--shadow);
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--light-brown);
+      position: relative;
+    }
+
+    .def-number {
+      font-size: 0.72rem;
+      font-weight: bold;
+      color: white;
+      background: var(--light-brown);
+      border-radius: 50%;
+      width: 22px;
+      height: 22px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 10px;
+    }
+
+    .part-of-speech {
+      font-size: 0.78rem;
+      font-style: italic;
+      color: var(--accent);
+      font-weight: bold;
+      text-transform: lowercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+      display: block;
+    }
+
+    .definition-text {
+      font-size: 0.95rem;
+      line-height: 1.75;
+      color: #3a2d20;
+      margin-bottom: 12px;
+    }
+
+    .example-block {
+      background: var(--tag-bg);
+      border-left: 3px solid var(--border);
+      padding: 10px 14px;
+      border-radius: 0 6px 6px 0;
+      margin-top: 10px;
+    }
+
+    .example-label {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--muted);
+      font-family: sans-serif;
+      margin-bottom: 5px;
+    }
+
+    .example-text {
+      font-size: 0.88rem;
+      font-style: italic;
+      color: var(--light-brown);
+      line-height: 1.6;
+    }
+
+    /* ── Vote Bar ── */
+    .vote-bar {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-top: 14px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
+    }
+
+    .vote-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.82rem;
+      color: var(--muted);
+      font-family: sans-serif;
+    }
+
+    .vote-icon {
+      font-size: 1rem;
+    }
+
+    .vote-count {
+      font-weight: bold;
+      color: var(--brown);
+    }
+
+    .relevance-bar {
+      flex: 1;
+      height: 5px;
+      background: var(--border);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .relevance-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #27ae60, #f1c40f, #e74c3c);
+      border-radius: 3px;
+      transition: width 0.5s ease;
+    }
+
+    /* ── Tags ── */
+    .tags-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 10px;
+    }
+
+    .tag {
+      background: var(--tag-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 3px 10px;
+      font-size: 0.75rem;
+      color: var(--light-brown);
+      font-family: sans-serif;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .tag:active {
+      background: var(--border);
+    }
+
+    /* ── Related Section ── */
+    .section-label {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: var(--muted);
+      font-family: sans-serif;
+      margin: 20px 0 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .section-label::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    /* ── Error ── */
+    .error-box {
+      background: #fff5f5;
+      border: 1px solid #e8c0c0;
+      border-left: 4px solid var(--accent);
+      border-radius: 8px;
+      padding: 20px;
+      text-align: center;
+    }
+
+    .error-box h3 {
+      color: var(--accent);
+      margin-bottom: 8px;
+      font-size: 1rem;
+    }
+
+    .error-box p {
+      font-size: 0.88rem;
+      color: var(--muted);
+      font-style: italic;
+    }
+
+    /* ── No Results ── */
+    .no-results {
+      text-align: center;
+      padding: 40px 20px;
+    }
+
+    .no-results h3 {
+      font-size: 1.1rem;
+      color: var(--brown);
+      margin-bottom: 8px;
+    }
+
+    .no-results p {
+      font-size: 0.88rem;
+      color: var(--muted);
+      font-style: italic;
+      line-height: 1.6;
+    }
+
+    /* ── Footer ── */
+    footer {
+      text-align: center;
+      padding: 16px;
+      font-size: 0.72rem;
+      color: #b09878;
+      border-top: 1px solid var(--border);
+      font-family: sans-serif;
+      letter-spacing: 0.5px;
+    }
+
+    /* ── Pagination ── */
+    .pagination {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 12px;
+      margin: 20px 0 10px;
+    }
+
+    .page-btn {
+      padding: 8px 18px;
+      background: var(--brown);
+      color: var(--cream);
+      border: none;
+      border-radius: 6px;
+      font-family: 'Georgia', serif;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: background 0.2s, opacity 0.2s;
+    }
+
+    .page-btn:disabled {
+      opacity: 0.35;
+      cursor: default;
+    }
+
+    .page-info {
+      font-size: 0.8rem;
+      color: var(--muted);
+      font-style: italic;
+    }
+
+    /* Highlight searched term in definitions */
+    .highlight {
+      background: #fff3cd;
+      border-radius: 2px;
+      padding: 0 2px;
+    }
+
+    @media (min-width: 480px) {
+      .entry-word { font-size: 2.4rem; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-title">📖 Dictionary</div>
+  <div class="header-subtitle">The Comprehensive English Dictionary</div>
+</header>
+
+<div class="search-wrapper">
+  <input
+    class="search-input"
+    id="searchInput"
+    type="text"
+    placeholder="Look up a word…"
+    autocomplete="off"
+    autocorrect="off"
+    autocapitalize="off"
+    spellcheck="false"
+  />
+  <button class="search-btn" id="searchBtn">Search</button>
+</div>
+
+<div class="tabs">
+  <button class="tab-btn active" data-tab="definitions">Definitions</button>
+  <button class="tab-btn" data-tab="examples">Examples</button>
+  <button class="tab-btn" data-tab="related">Related</button>
+</div>
+
+<main id="mainContent">
+  <div class="landing">
+    <div class="landing-icon">📚</div>
+    <h2>Welcome to Dictionary</h2>
+    <p>Search any word to find its definition,<br/>usage examples, and related terms.</p>
+    <button class="word-of-day-btn" id="wodBtn">🎲 Discover a Random Word</button>
+  </div>
+</main>
+
+<footer>
+  LexiDict &copy; 2024 &nbsp;|&nbsp; Comprehensive English Lexicon &nbsp;|&nbsp; v4.2.1
+</footer>
+
+<script>
+  // ── State ──────────────────────────────────────────────
+  const state = {
+    results: [],
+    query: '',
+    page: 0,
+    perPage: 5,
+    activeTab: 'definitions',
+  };
+
+  const PROXY = '';
+  const UD_BASE = 'https://api.urbandictionary.com/v0';
+
+  const RANDOM_WORDS = [
+    'vibe', 'slay', 'bussin', 'lowkey', 'simp',
+    'sus', 'salty', 'ghost', 'flex', 'cap',
+    'woke', 'clout', 'drip', 'goat', 'lit',
+  ];
+
+  // Fake phonetics for aesthetic
+  const fakePhonetics = (word) => {
+    const vowels = { a:'æ', e:'ɛ', i:'ɪ', o:'ɒ', u:'ʌ' };
+    return '/' + word.split('').map(c => vowels[c] || c).join('') + '/';
+  };
+
+  // Clean Urban Dictionary markup ([word] → word)
+  const cleanText = (text) =>
+    text.replace(/\[([^\]]+)\]/g, '$1').trim();
+
+  // Highlight search term
+  const highlightTerm = (text, term) => {
+    if (!term) return text;
+    const re = new RegExp(`(${term.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')})`, 'gi');
+    return text.replace(re, '<span class="highlight">$1</span>');
+  };
+
+  // Fake part-of-speech labels to look legit
+  const guessPOS = (def) => {
+    const lower = def.toLowerCase();
+    if (lower.startsWith('to ') || lower.includes(' to ')) return 'verb';
+    if (lower.includes(' noun') || lower.includes('person') || lower.includes('thing')) return 'noun';
+    if (lower.includes(' when ') || lower.includes('refers to')) return 'expression';
+    return ['noun', 'verb', 'adjective', 'adverb', 'idiom'][Math.floor(Math.random() * 5)];
+  };
+
+  // Relevance score from thumbs
+  const relevancePercent = (up, down) => {
+    const total = up + down;
+    return total === 0 ? 50 : Math.round((up / total) * 100);
+  };
+
+  // ── API ────────────────────────────────────────────────
+  async function fetchDefinitions(word) {
+    const url = `${UD_BASE}/define?term=${encodeURIComponent(word)}`;
+    const proxyUrl = `${PROXY}${encodeURIComponent(url)}`;
+
+    try {
+      const resp = await fetch(proxyUrl);
+      if (!resp.ok) throw new Error('Network error');
+      const data = await resp.json();
+      const parsed = JSON.parse(data.contents);
+      return parsed.list || [];
+    } catch (e) {
+      // Fallback: try direct (may fail due to CORS)
+      try {
+        const resp2 = await fetch(`${UD_BASE}/define?term=${encodeURIComponent(word)}`);
+        const data2 = await resp2.json();
+        return data2.list || [];
+      } catch {
+        throw new Error('Could not connect to dictionary service.');
+      }
+    }
+  }
+
+  async function fetchRandom() {
+    const word = RANDOM_WORDS[Math.floor(Math.random() * RANDOM_WORDS.length)];
+    return { word, results: await fetchDefinitions(word) };
+  }
+
+  // ── Render ─────────────────────────────────────────────
+  function renderLoading(msg = 'Consulting the lexicon…') {
+    document.getElementById('mainContent').innerHTML = `
+      <div class="loader">
+        <div class="spinner"></div>
+        <p>${msg}</p>
+      </div>`;
+  }
+
+  function renderError(msg) {
+    document.getElementById('mainContent').innerHTML = `
+      <div class="error-box">
+        <h3>⚠ Entry Not Found</h3>
+        <p>${msg}</p>
+      </div>`;
+  }
+
+  function renderNoResults(word) {
+    document.getElementById('mainContent').innerHTML = `
+      <div class="no-results">
+        <h3>No entries for "<em>${word}</em>"</h3>
+        <p>This word does not appear in our current lexicon.<br/>
+        Please check your spelling or try a related term.</p>
+      </div>`;
+  }
+
+  function renderResults() {
+    const { results, query, page, perPage, activeTab } = state;
+
+    if (!results.length) { renderNoResults(query); return; }
+
+    const start = page * perPage;
+    const slice = results.slice(start, start + perPage);
+    const totalPages = Math.ceil(results.length / perPage);
+
+    const mc = document.getElementById('mainContent');
+    let html = '';
+
+    // ── Entry Header ──
+    html += `
+      <div class="entry-header">
+        <div>
+          <div class="entry-word">${query}</div>
+          <div class="entry-phonetic">${fakePhonetics(query)}</div>
+        </div>
+        <div class="result-count">${results.length} definition${results.length !== 1 ? 's' : ''}</div>
+      </div>`;
+
+    // ── Definitions Tab ──
+    if (activeTab === 'definitions') {
+      slice.forEach((item, idx) => {
+        const defClean = cleanText(item.definition);
+        const exClean = cleanText(item.example);
+        const pos = guessPOS(defClean);
+        const rel = relevancePercent(item.thumbs_up, item.thumbs_down);
+
+        html += `
+          <div class="definition-card">
+            <div class="def-number">${start + idx + 1}</div>
+            <span class="part-of-speech">${pos}</span>
+            <div class="definition-text">${highlightTerm(defClean, query)}</div>
+            ${exClean ? `
+            <div class="example-block">
+              <div class="example-label">Example</div>
+              <div class="example-text">"${highlightTerm(exClean, query)}"</div>
+            </div>` : ''}
+          </div>`;
+      });
+    }
+
+    // ── Examples Tab ──
+    if (activeTab === 'examples') {
+      const withExamples = results.filter(r => cleanText(r.example).length > 3);
+      if (!withExamples.length) {
+        html += `<div class="no-results"><p>No usage examples found for this entry.</p></div>`;
+      } else {
+        html += `<div class="section-label">Usage Examples</div>`;
+        withExamples.slice(0, 8).forEach((item, idx) => {
+          html += `
+            <div class="definition-card">
+              <div class="def-number">${idx + 1}</div>
+              <span class="part-of-speech">illustrative sentence</span>
+              <div class="example-text" style="font-size:0.95rem;line-height:1.8;font-style:italic;color:#3a2d20;">
+                "${highlightTerm(cleanText(item.example), query)}"
+              </div>
+            </div>`;
+        });
+      }
+    }
+
+    // ── Related Tab ──
+    if (activeTab === 'related') {
+      // Extract words mentioned in definitions as "related"
+      const allText = results.map(r => r.definition).join(' ');
+      const wordMatches = [...allText.matchAll(/\[([^\]]+)\]/g)];
+      const related = [...new Set(wordMatches.map(m => m[1]).filter(w => w.toLowerCase() !== query.toLowerCase()))].slice(0, 16);
+
+      if (related.length) {
+        html += `<div class="section-label">Related Terms</div>`;
+        html += `<div class="tags-row">`;
+        related.forEach(w => {
+          html += `<span class="tag" onclick="searchWord('${w.replace(/'/g,"\\'")}')">🔗 ${w}</span>`;
+        });
+        html += `</div>`;
+      } else {
+        html += `<div class="section-label">Related Terms</div>
+          <div class="no-results"><p>No cross-references found in this entry.</p></div>`;
+      }
+
+      // Also show contributor info styled as "editors"
+      const authors = [...new Set(results.slice(0,5).map(r => r.author))];
+      if (authors.length) {
+        html += `<div class="section-label" style="margin-top:28px">Contributing Editors</div>`;
+        authors.forEach(a => {
+          html += `<div class="definition-card" style="padding:12px 16px;">
+            <span style="font-size:0.88rem;color:var(--muted);">✍️ &nbsp;<em>${a}</em></span>
+          </div>`;
+        });
+      }
+    }
+
+    // ── Pagination (definitions tab only) ──
+    if (activeTab === 'definitions' && totalPages > 1) {
+      html += `
+        <div class="pagination">
+          <button class="page-btn" id="prevBtn" ${page === 0 ? 'disabled' : ''} onclick="changePage(-1)">← Prev</button>
+          <span class="page-info">Page ${page + 1} of ${totalPages}</span>
+          <button class="page-btn" id="nextBtn" ${page >= totalPages - 1 ? 'disabled' : ''} onclick="changePage(1)">Next →</button>
+        </div>`;
+    }
+
+    mc.innerHTML = html;
+    mc.scrollTop = 0;
+  }
+
+  // ── Actions ────────────────────────────────────────────
+  async function searchWord(word) {
+    if (!word.trim()) return;
+    state.query = word.trim();
+    state.page = 0;
+    document.getElementById('searchInput').value = state.query;
+    renderLoading();
+    try {
+      state.results = await fetchDefinitions(state.query);
+      renderResults();
+    } catch (e) {
+      renderError(e.message);
+    }
+  }
+
+  function changePage(dir) {
+    const totalPages = Math.ceil(state.results.length / state.perPage);
+    state.page = Math.max(0, Math.min(totalPages - 1, state.page + dir));
+    renderResults();
+    document.getElementById('mainContent').scrollIntoView({ behavior: 'smooth' });
+  }
+
+  // ── Event Listeners ────────────────────────────────────
+  document.getElementById('searchBtn').addEventListener('click', () => {
+    searchWord(document.getElementById('searchInput').value);
+  });
+
+  document.getElementById('searchInput').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') searchWord(e.target.value);
+  });
+
+  document.getElementById('wodBtn').addEventListener('click', async () => {
+    renderLoading('Selecting a random entry…');
+    try {
+      const { word, results } = await fetchRandom();
+      state.query = word;
+      state.page = 0;
+      state.results = results;
+      document.getElementById('searchInput').value = word;
+      renderResults();
+    } catch (e) {
+      renderError(e.message);
+    }
+  });
+
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      state.activeTab = btn.dataset.tab;
+      if (state.results.length) renderResults();
+    });
+  });
+</script>
+</body>
+</html>
