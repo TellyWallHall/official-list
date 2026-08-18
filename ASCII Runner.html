@@ -1,0 +1,428 @@
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ASCII Adventure</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+        
+        body {
+            font-family: 'VT323', monospace;
+            touch-action: manipulation;
+            overflow: hidden;
+            background-color: #0a0a0a;
+        }
+        
+        #game-container {
+            white-space: pre;
+            line-height: 1;
+            letter-spacing: 0.1em;
+            overflow: hidden;
+        }
+        
+        .control-btn {
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        #search-bar {
+           position: absolute;
+        }
+        #body {
+            padding-top: 10px;
+        }  
+        
+        .pulse {
+            animation: pulse 0.5s infinite;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        @keyframes shake {
+            0% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            50% { transform: translateX(5px); }
+            75% { transform: translateX(-5px); }
+            100% { transform: translateX(0); }
+        }
+        
+        .shake {
+            animation: shake 0.5s;
+        }
+    </style>
+</head>
+<button id='search-bar' onclick="document.getElementById('body').requestFullscreen();">Fullscreen</button>
+<body class="text-green-400">
+    <div class="flex flex-col h-screen" id="body">
+        <!-- Game header -->
+        <div class="bg-gray-900 p-2 flex justify-between items-center">
+            <div class="text-xl">ASCII Runner</div>
+            <div class="flex gap-4">
+                <div>Score: <span id="score" class="font-bold">0</span></div>
+                <div>Lives: <span id="lives" class="font-bold">3</span></div>
+            </div>
+        </div>
+        
+        <!-- Game area -->
+        <div id="game-container" class="flex-grow bg-black text-green-400 overflow-hidden"></div>
+        
+        <!-- Controls for mobile -->
+        <div class="bg-gray-900 p-2 grid grid-cols-3 gap-2 text-center">
+            <div></div>
+            <button id="up-btn" class="control-btn bg-gray-800 rounded-lg p-3 text-xl">↑</button>
+            <div></div>
+            <button id="left-btn" class="control-btn bg-gray-800 rounded-lg p-3 text-xl">←</button>
+            <button id="down-btn" class="control-btn bg-gray-800 rounded-lg p-3 text-xl">↓</button>
+            <button id="right-btn" class="control-btn bg-gray-800 rounded-lg p-3 text-xl">→</button>
+        </div>
+        
+        <!-- Game over screen -->
+        <div id="game-over" class="absolute inset-0 bg-black bg-opacity-80 flex flex-col items-center justify-center hidden">
+            <div class="text-4xl mb-4 text-red-500">GAME OVER</div>
+            <div class="text-2xl mb-6">Final Score: <span id="final-score">0</span></div>
+            <button id="restart-btn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-lg text-xl">
+                Play Again
+            </button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Game elements
+            const gameContainer = document.getElementById('game-container');
+            const scoreElement = document.getElementById('score');
+            const livesElement = document.getElementById('lives');
+            const gameOverScreen = document.getElementById('game-over');
+            const finalScoreElement = document.getElementById('final-score');
+            const restartBtn = document.getElementById('restart-btn');
+            
+            // Control buttons
+            const upBtn = document.getElementById('up-btn');
+            const downBtn = document.getElementById('down-btn');
+            const leftBtn = document.getElementById('left-btn');
+            const rightBtn = document.getElementById('right-btn');
+            
+            // Game state
+            let gameWidth = 0;
+            let gameHeight = 0;
+            let gameGrid = [];
+            let player = { x: 0, y: 0, char: '@' };
+            let obstacles = [];
+            let collectibles = [];
+            let score = 0;
+            let lives = 3;
+            let gameSpeed = 200;
+            let gameInterval;
+            let isGameOver = false;
+            
+            // ASCII art elements
+            const obstacleChars = ['#', '%', '&', '+'];
+            const collectibleChars = ['*', '$', '!', '?'];
+            const backgroundChars = ['.', ' ', ' ', '`', ' ', ' ', ' '];
+            
+            // Initialize game
+            function initGame() {
+                // Reset game state
+                isGameOver = false;
+                gameOverScreen.classList.add('hidden');
+                score = 0;
+                lives = 3;
+                obstacles = [];
+                collectibles = [];
+                gameSpeed = 200;
+                
+                // Update display
+                scoreElement.textContent = score;
+                livesElement.textContent = lives;
+                
+                // Calculate game dimensions based on viewport
+                updateGameDimensions();
+                
+                // Create initial game grid
+                createGameGrid();
+                
+                // Place player in the middle bottom of the screen
+                player.x = Math.floor(gameWidth / 2);
+                player.y = gameHeight - 3;
+                
+                // Start game loop
+                if (gameInterval) clearInterval(gameInterval);
+                gameInterval = setInterval(gameLoop, gameSpeed);
+                
+                // Add initial obstacles and collectibles
+                addObstacles(3);
+                addCollectibles(2);
+                
+                // Render initial state
+                alert('Dodge obstacles (#, %, &, +) and collected items (*, $, !, ?) to increase your score!');
+                render();
+            }
+            
+            function updateGameDimensions() {
+                // Calculate how many characters can fit in the game container
+                const tempChar = document.createElement('span');
+                tempChar.textContent = 'X';
+                tempChar.style.visibility = 'hidden';
+                gameContainer.appendChild(tempChar);
+                
+                const charWidth = tempChar.getBoundingClientRect().width;
+                const charHeight = tempChar.getBoundingClientRect().height;
+                gameContainer.removeChild(tempChar);
+                
+                gameWidth = Math.floor(gameContainer.clientWidth / charWidth);
+                gameHeight = Math.floor(gameContainer.clientHeight / charHeight);
+                
+                // Ensure minimum dimensions
+                gameWidth = Math.max(gameWidth, 20);
+                gameHeight = Math.max(gameHeight, 10);
+            }
+            
+            function createGameGrid() {
+                gameGrid = [];
+                for (let y = 0; y < gameHeight; y++) {
+                    const row = [];
+                    for (let x = 0; x < gameWidth; x++) {
+                        // Add random background characters
+                        row.push(backgroundChars[Math.floor(Math.random() * backgroundChars.length)]);
+                    }
+                    gameGrid.push(row);
+                }
+            }
+            
+            function addObstacles(count) {
+                for (let i = 0; i < count; i++) {
+                    const x = Math.floor(Math.random() * gameWidth);
+                    obstacles.push({
+                        x: x,
+                        y: 0,
+                        char: obstacleChars[Math.floor(Math.random() * obstacleChars.length)]
+                    });
+                }
+            }
+            
+            function addCollectibles(count) {
+                for (let i = 0; i < count; i++) {
+                    const x = Math.floor(Math.random() * gameWidth);
+                    collectibles.push({
+                        x: x,
+                        y: 0,
+                        char: collectibleChars[Math.floor(Math.random() * collectibleChars.length)]
+                    });
+                }
+            }
+            
+            function gameLoop() {
+                if (isGameOver) return;
+                
+                // Move obstacles and collectibles down
+                moveObjects();
+                
+                // Check collisions
+                checkCollisions();
+                
+                // Add new obstacles and collectibles randomly
+                if (Math.random() < 0.1) {
+                    addObstacles(1);
+                }
+                if (Math.random() < 0.05) {
+                    addCollectibles(1);
+                }
+                
+                // Increase game speed over time
+                if (score > 0 && score % 10 === 0 && gameSpeed > 50) {
+                    gameSpeed -= 5;
+                    clearInterval(gameInterval);
+                    gameInterval = setInterval(gameLoop, gameSpeed);
+                }
+                
+                // Render the game
+                render();
+            }
+            
+            function moveObjects() {
+                // Move obstacles down
+                for (let i = obstacles.length - 1; i >= 0; i--) {
+                    obstacles[i].y++;
+                    
+                    // Remove obstacles that go off screen
+                    if (obstacles[i].y >= gameHeight) {
+                        obstacles.splice(i, 1);
+                    }
+                }
+                
+                // Move collectibles down
+                for (let i = collectibles.length - 1; i >= 0; i--) {
+                    collectibles[i].y++;
+                    
+                    // Remove collectibles that go off screen
+                    if (collectibles[i].y >= gameHeight) {
+                        collectibles.splice(i, 1);
+                    }
+                }
+            }
+            
+            function checkCollisions() {
+                // Check obstacle collisions
+                for (let i = obstacles.length - 1; i >= 0; i--) {
+                    if (obstacles[i].x === player.x && obstacles[i].y === player.y) {
+                        // Player hit an obstacle
+                        lives--;
+                        livesElement.textContent = lives;
+                        livesElement.classList.add('shake');
+                        setTimeout(() => livesElement.classList.remove('shake'), 500);
+                        
+                        obstacles.splice(i, 1);
+                        
+                        if (lives <= 0) {
+                            gameOver();
+                        }
+                    }
+                }
+                
+                // Check collectible collisions
+                for (let i = collectibles.length - 1; i >= 0; i--) {
+                    if (collectibles[i].x === player.x && collectibles[i].y === player.y) {
+                        // Player collected an item
+                        score++;
+                        scoreElement.textContent = score;
+                        scoreElement.classList.add('pulse');
+                        setTimeout(() => scoreElement.classList.remove('pulse'), 500);
+                        
+                        collectibles.splice(i, 1);
+                    }
+                }
+            }
+            
+            function render() {
+                // Reset the grid with background characters
+                createGameGrid();
+                
+                // Add obstacles to the grid
+                obstacles.forEach(obstacle => {
+                    if (obstacle.y >= 0 && obstacle.y < gameHeight && 
+                        obstacle.x >= 0 && obstacle.x < gameWidth) {
+                        gameGrid[obstacle.y][obstacle.x] = obstacle.char;
+                    }
+                });
+                
+                // Add collectibles to the grid
+                collectibles.forEach(collectible => {
+                    if (collectible.y >= 0 && collectible.y < gameHeight && 
+                        collectible.x >= 0 && collectible.x < gameWidth) {
+                        gameGrid[collectible.y][collectible.x] = collectible.char;
+                    }
+                });
+                
+                // Add player to the grid
+                if (player.y >= 0 && player.y < gameHeight && 
+                    player.x >= 0 && player.x < gameWidth) {
+                    gameGrid[player.y][player.x] = player.char;
+                }
+                
+                // Render the grid to the game container
+                gameContainer.textContent = gameGrid.map(row => row.join('')).join('\n');
+            }
+            
+            function movePlayer(dx, dy) {
+                if (isGameOver) return;
+                
+                const newX = player.x + dx;
+                const newY = player.y + dy;
+                
+                // Check boundaries
+                if (newX >= 0 && newX < gameWidth && newY >= 0 && newY < gameHeight) {
+                    player.x = newX;
+                    player.y = newY;
+                    
+                    // Check for collisions after moving
+                    checkCollisions();
+                    render();
+                }
+            }
+            
+            function gameOver() {
+                isGameOver = true;
+                clearInterval(gameInterval);
+                finalScoreElement.textContent = score;
+                gameOverScreen.classList.remove('hidden');
+                gameOverScreen.classList.add('fade-in');
+            }
+            
+            // Event listeners for keyboard controls
+            document.addEventListener('keydown', (e) => {
+                switch (e.key) {
+                    case 'ArrowUp':
+                        movePlayer(0, -1);
+                        break;
+                    case 'ArrowDown':
+                        movePlayer(0, 1);
+                        break;
+                    case 'ArrowLeft':
+                        movePlayer(-1, 0);
+                        break;
+                    case 'ArrowRight':
+                        movePlayer(1, 0);
+                        break;
+                }
+            });
+            
+            // Event listeners for touch controls
+            upBtn.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                movePlayer(0, -1);
+            });
+            
+            downBtn.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                movePlayer(0, 1);
+            });
+            
+            leftBtn.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                movePlayer(-1, 0);
+            });
+            
+            rightBtn.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                movePlayer(1, 0);
+            });
+            
+            // Also add click events for desktop testing
+            upBtn.addEventListener('click', () => movePlayer(0, -1));
+            downBtn.addEventListener('click', () => movePlayer(0, 1));
+            leftBtn.addEventListener('click', () => movePlayer(-1, 0));
+            rightBtn.addEventListener('click', () => movePlayer(1, 0));
+            
+            // Restart button
+            restartBtn.addEventListener('click', initGame);
+            
+            // Handle window resize
+            window.addEventListener('resize', () => {
+                updateGameDimensions();
+                createGameGrid();
+                render();
+            });
+            
+            // Initialize the game
+            initGame();
+        });
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'94a8ebe6923fef0e',t:'MTc0OTA1NTc0NS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
