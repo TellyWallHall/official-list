@@ -1,0 +1,668 @@
+<!doctype html>
+<html lang="en">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>3D Racing Game</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <style>
+    body {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      font-family: 'Arial', sans-serif;
+      width: 100%;
+      height: 100%;
+      touch-action: none;
+    }
+    
+    html, body {
+      height: 100%;
+      width: 100%;
+    }
+    
+    #game-container {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      background: linear-gradient(to bottom, #87CEEB 0%, #E0F6FF 100%);
+    }
+    
+    #game-canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+    
+    #ui-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+    
+    #hud {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      right: 20px;
+      display: flex;
+      justify-content: space-between;
+      color: white;
+      font-size: 24px;
+      font-weight: bold;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+      pointer-events: none;
+    }
+    
+    #speed-meter {
+      background: rgba(0,0,0,0.5);
+      padding: 10px 20px;
+      border-radius: 10px;
+    }
+    
+    #score {
+      background: rgba(0,0,0,0.5);
+      padding: 10px 20px;
+      border-radius: 10px;
+    }
+    
+    #touch-controls {
+      position: absolute;
+      bottom: 30px;
+      left: 0;
+      right: 0;
+      display: flex;
+      justify-content: space-around;
+      padding: 0 20px;
+      pointer-events: auto;
+    }
+    
+    .control-button {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.3);
+      border: 3px solid rgba(255,255,255,0.6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 36px;
+      color: white;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+      touch-action: manipulation;
+      user-select: none;
+      transition: background 0.1s;
+    }
+    
+    .control-button:active {
+      background: rgba(255,255,255,0.6);
+      transform: scale(0.95);
+    }
+    
+    #start-screen {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.8);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      pointer-events: auto;
+    }
+    
+    #game-title {
+      font-size: 48px;
+      font-weight: bold;
+      color: #FFD700;
+      margin-bottom: 30px;
+      text-shadow: 3px 3px 6px rgba(0,0,0,0.8);
+    }
+    
+    #start-button {
+      padding: 20px 50px;
+      font-size: 28px;
+      font-weight: bold;
+      background: linear-gradient(to bottom, #4CAF50, #45a049);
+      color: white;
+      border: none;
+      border-radius: 50px;
+      cursor: pointer;
+      box-shadow: 0 6px 0 #2d6b2f;
+      touch-action: manipulation;
+      transition: transform 0.1s;
+    }
+    
+    #start-button:active {
+      transform: translateY(4px);
+      box-shadow: 0 2px 0 #2d6b2f;
+    }
+    
+    #game-over-screen {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.9);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      pointer-events: auto;
+    }
+    
+    #game-over-title {
+      font-size: 56px;
+      font-weight: bold;
+      color: #FF4444;
+      margin-bottom: 20px;
+      text-shadow: 3px 3px 6px rgba(0,0,0,0.8);
+    }
+    
+    #final-score {
+      font-size: 32px;
+      color: white;
+      margin-bottom: 30px;
+    }
+    
+    #restart-button {
+      padding: 20px 50px;
+      font-size: 28px;
+      font-weight: bold;
+      background: linear-gradient(to bottom, #2196F3, #1976D2);
+      color: white;
+      border: none;
+      border-radius: 50px;
+      cursor: pointer;
+      box-shadow: 0 6px 0 #0d47a1;
+      touch-action: manipulation;
+      transition: transform 0.1s;
+    }
+    
+    #restart-button:active {
+      transform: translateY(4px);
+      box-shadow: 0 2px 0 #0d47a1;
+    }
+    
+    .hidden {
+      display: none !important;
+    }
+  </style>
+  <style>@view-transition { navigation: auto; }</style>
+  <script src="https://cdn.tailwindcss.com" type="text/javascript"></script>
+ </head>
+ <body>
+  <div id="game-container">
+   <canvas id="game-canvas"></canvas>
+   <div id="ui-overlay">
+    <div id="hud" class="hidden">
+     <div id="speed-meter">
+      Speed: <span id="speed-value">0</span> mph
+     </div>
+     <div id="score">
+      Score: <span id="score-value">0</span>
+     </div>
+    </div>
+    <div id="touch-controls" class="hidden">
+     <div class="control-button" id="left-button">
+      ◄
+     </div>
+     <div class="control-button" id="right-button">
+      ►
+     </div>
+    </div>
+    <div id="start-screen">
+     <div id="game-title">
+      Turbo Racer
+     </div><button id="start-button">Start Race!</button>
+    </div>
+    <div id="game-over-screen">
+     <div id="game-over-title">
+      Game Over!
+     </div>
+     <div id="final-score">
+      Final Score: <span id="final-score-value">0</span>
+     </div><button id="restart-button">Race Again</button>
+    </div>
+   </div>
+  </div>
+  <script>
+    const defaultConfig = {
+      game_title: "Turbo Racer",
+      start_button_text: "Start Race!",
+      primary_color: "#4CAF50",
+      secondary_color: "#2196F3",
+      accent_color: "#FFD700",
+      text_color: "#FFFFFF",
+      background_color: "#87CEEB"
+    };
+
+    let config = {};
+
+    function onConfigChange(newConfig) {
+      config = newConfig;
+      
+      const gameTitle = document.getElementById('game-title');
+      const startButton = document.getElementById('start-button');
+      const container = document.getElementById('game-container');
+      
+      if (gameTitle) {
+        gameTitle.textContent = config.game_title || defaultConfig.game_title;
+        gameTitle.style.color = config.accent_color || defaultConfig.accent_color;
+      }
+      
+      if (startButton) {
+        startButton.textContent = config.start_button_text || defaultConfig.start_button_text;
+        const primaryColor = config.primary_color || defaultConfig.primary_color;
+        startButton.style.background = `linear-gradient(to bottom, ${primaryColor}, ${adjustBrightness(primaryColor, -20)})`;
+      }
+      
+      if (container) {
+        const bgColor = config.background_color || defaultConfig.background_color;
+        container.style.background = `linear-gradient(to bottom, ${bgColor} 0%, ${adjustBrightness(bgColor, 20)} 100%)`;
+      }
+    }
+
+    function adjustBrightness(hex, percent) {
+      const num = parseInt(hex.replace("#",""), 16);
+      const amt = Math.round(2.55 * percent);
+      const R = Math.min(255, Math.max(0, (num >> 16) + amt));
+      const G = Math.min(255, Math.max(0, (num >> 8 & 0x00FF) + amt));
+      const B = Math.min(255, Math.max(0, (num & 0x0000FF) + amt));
+      return "#" + (0x1000000 + (R << 16) + (G << 8) + B).toString(16).slice(1);
+    }
+
+    if (window.elementSdk) {
+      window.elementSdk.init({
+        defaultConfig: defaultConfig,
+        onConfigChange: onConfigChange,
+        mapToCapabilities: (config) => ({
+          recolorables: [
+            {
+              get: () => config.background_color || defaultConfig.background_color,
+              set: (value) => {
+                config.background_color = value;
+                window.elementSdk.setConfig({ background_color: value });
+              }
+            },
+            {
+              get: () => config.primary_color || defaultConfig.primary_color,
+              set: (value) => {
+                config.primary_color = value;
+                window.elementSdk.setConfig({ primary_color: value });
+              }
+            },
+            {
+              get: () => config.secondary_color || defaultConfig.secondary_color,
+              set: (value) => {
+                config.secondary_color = value;
+                window.elementSdk.setConfig({ secondary_color: value });
+              }
+            },
+            {
+              get: () => config.accent_color || defaultConfig.accent_color,
+              set: (value) => {
+                config.accent_color = value;
+                window.elementSdk.setConfig({ accent_color: value });
+              }
+            },
+            {
+              get: () => config.text_color || defaultConfig.text_color,
+              set: (value) => {
+                config.text_color = value;
+                window.elementSdk.setConfig({ text_color: value });
+              }
+            }
+          ],
+          borderables: [],
+          fontEditable: undefined,
+          fontSizeable: undefined
+        }),
+        mapToEditPanelValues: (config) => new Map([
+          ["game_title", config.game_title || defaultConfig.game_title],
+          ["start_button_text", config.start_button_text || defaultConfig.start_button_text]
+        ])
+      });
+      
+      config = window.elementSdk.config;
+    } else {
+      config = defaultConfig;
+    }
+
+    let scene, camera, renderer;
+    let playerCar, road, obstacles = [];
+    let gameState = 'start';
+    let score = 0;
+    let speed = 0;
+    let targetSpeed = 0;
+    let carPosition = 0;
+    let obstacleSpeed = 0.1;
+
+    function init() {
+      const canvas = document.getElementById('game-canvas');
+      
+      scene = new THREE.Scene();
+      scene.fog = new THREE.Fog(0x87CEEB, 50, 200);
+      
+      camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+      camera.position.set(0, 5, 10);
+      camera.lookAt(0, 0, 0);
+      
+      renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.shadowMap.enabled = true;
+      
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+      scene.add(ambientLight);
+      
+      const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+      directionalLight.position.set(10, 20, 10);
+      directionalLight.castShadow = true;
+      scene.add(directionalLight);
+      
+      createRoad();
+      createPlayerCar();
+      
+      window.addEventListener('resize', onWindowResize);
+      
+      setupControls();
+      
+      onConfigChange(config);
+    }
+    
+    function createRoad() {
+      const roadGeometry = new THREE.PlaneGeometry(8, 200);
+      const roadMaterial = new THREE.MeshStandardMaterial({ color: 0x333333 });
+      road = new THREE.Mesh(roadGeometry, roadMaterial);
+      road.rotation.x = -Math.PI / 2;
+      road.position.z = -50;
+      road.receiveShadow = true;
+      scene.add(road);
+      
+      for (let i = 0; i < 20; i++) {
+        const lineGeometry = new THREE.BoxGeometry(0.3, 0.1, 3);
+        const lineMaterial = new THREE.MeshStandardMaterial({ color: 0xFFFFFF });
+        const line = new THREE.Mesh(lineGeometry, lineMaterial);
+        line.position.set(0, 0.05, -i * 10);
+        scene.add(line);
+      }
+      
+      const leftEdgeGeometry = new THREE.BoxGeometry(1, 0.2, 200);
+      const edgeMaterial = new THREE.MeshStandardMaterial({ color: 0xFF0000 });
+      const leftEdge = new THREE.Mesh(leftEdgeGeometry, edgeMaterial);
+      leftEdge.position.set(-4.5, 0.1, -50);
+      scene.add(leftEdge);
+      
+      const rightEdge = leftEdge.clone();
+      rightEdge.position.set(4.5, 0.1, -50);
+      scene.add(rightEdge);
+    }
+    
+    function createPlayerCar() {
+      const carGroup = new THREE.Group();
+      
+      const bodyGeometry = new THREE.BoxGeometry(1.5, 0.6, 2.5);
+      const bodyMaterial = new THREE.MeshStandardMaterial({ color: 0xFF0000 });
+      const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+      body.position.y = 0.5;
+      body.castShadow = true;
+      carGroup.add(body);
+      
+      const roofGeometry = new THREE.BoxGeometry(1.2, 0.5, 1.2);
+      const roofMaterial = new THREE.MeshStandardMaterial({ color: 0xFF0000 });
+      const roof = new THREE.Mesh(roofGeometry, roofMaterial);
+      roof.position.set(0, 1, -0.2);
+      roof.castShadow = true;
+      carGroup.add(roof);
+      
+      const wheelGeometry = new THREE.CylinderGeometry(0.3, 0.3, 0.2, 16);
+      const wheelMaterial = new THREE.MeshStandardMaterial({ color: 0x222222 });
+      
+      const wheels = [
+        { x: -0.8, z: 0.8 },
+        { x: 0.8, z: 0.8 },
+        { x: -0.8, z: -0.8 },
+        { x: 0.8, z: -0.8 }
+      ];
+      
+      wheels.forEach(pos => {
+        const wheel = new THREE.Mesh(wheelGeometry, wheelMaterial);
+        wheel.rotation.z = Math.PI / 2;
+        wheel.position.set(pos.x, 0.3, pos.z);
+        wheel.castShadow = true;
+        carGroup.add(wheel);
+      });
+      
+      carGroup.position.set(0, 0, 5);
+      playerCar = carGroup;
+      scene.add(playerCar);
+    }
+    
+    function createObstacle() {
+      const types = ['car', 'cone', 'barrier'];
+      const type = types[Math.floor(Math.random() * types.length)];
+      
+      let obstacle;
+      
+      if (type === 'car') {
+        obstacle = createObstacleCar();
+      } else if (type === 'cone') {
+        obstacle = createCone();
+      } else {
+        obstacle = createBarrier();
+      }
+      
+      const lanes = [-2.5, 0, 2.5];
+      const lane = lanes[Math.floor(Math.random() * lanes.length)];
+      
+      obstacle.position.set(lane, 0, -50);
+      scene.add(obstacle);
+      obstacles.push(obstacle);
+    }
+    
+    function createObstacleCar() {
+      const carGroup = new THREE.Group();
+      
+      const colors = [0x0000FF, 0x00FF00, 0xFFFF00, 0xFF00FF];
+      const color = colors[Math.floor(Math.random() * colors.length)];
+      
+      const bodyGeometry = new THREE.BoxGeometry(1.5, 0.6, 2.5);
+      const bodyMaterial = new THREE.MeshStandardMaterial({ color: color });
+      const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+      body.position.y = 0.5;
+      body.castShadow = true;
+      carGroup.add(body);
+      
+      const roofGeometry = new THREE.BoxGeometry(1.2, 0.5, 1.2);
+      const roof = new THREE.Mesh(roofGeometry, bodyMaterial);
+      roof.position.set(0, 1, -0.2);
+      roof.castShadow = true;
+      carGroup.add(roof);
+      
+      return carGroup;
+    }
+    
+    function createCone() {
+      const coneGeometry = new THREE.ConeGeometry(0.4, 1, 8);
+      const coneMaterial = new THREE.MeshStandardMaterial({ color: 0xFF8800 });
+      const cone = new THREE.Mesh(coneGeometry, coneMaterial);
+      cone.position.y = 0.5;
+      cone.castShadow = true;
+      return cone;
+    }
+    
+    function createBarrier() {
+      const barrierGeometry = new THREE.BoxGeometry(2, 0.5, 0.3);
+      const barrierMaterial = new THREE.MeshStandardMaterial({ color: 0xFFFF00 });
+      const barrier = new THREE.Mesh(barrierGeometry, barrierMaterial);
+      barrier.position.y = 0.25;
+      barrier.castShadow = true;
+      return barrier;
+    }
+    
+    function setupControls() {
+      const leftButton = document.getElementById('left-button');
+      const rightButton = document.getElementById('right-button');
+      const startButton = document.getElementById('start-button');
+      const restartButton = document.getElementById('restart-button');
+      
+      let leftPressed = false;
+      let rightPressed = false;
+      
+      leftButton.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        leftPressed = true;
+      });
+      
+      leftButton.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        leftPressed = false;
+      });
+      
+      rightButton.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        rightPressed = true;
+      });
+      
+      rightButton.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        rightPressed = false;
+      });
+      
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
+          leftPressed = true;
+        }
+        if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
+          rightPressed = true;
+        }
+      });
+      
+      document.addEventListener('keyup', (e) => {
+        if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
+          leftPressed = false;
+        }
+        if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
+          rightPressed = false;
+        }
+      });
+      
+      setInterval(() => {
+        if (gameState === 'playing') {
+          if (leftPressed) {
+            carPosition -= 0.15;
+            carPosition = Math.max(carPosition, -2.5);
+          }
+          if (rightPressed) {
+            carPosition += 0.15;
+            carPosition = Math.max(Math.min(carPosition, 2.5), -2.5);
+          }
+        }
+      }, 16);
+      
+      startButton.addEventListener('click', startGame);
+      restartButton.addEventListener('click', restartGame);
+    }
+    
+    function startGame() {
+      gameState = 'playing';
+      score = 0;
+      speed = 1;
+      targetSpeed = 50;
+      carPosition = 0;
+      obstacleSpeed = 0.02;
+      
+      obstacles.forEach(obs => scene.remove(obs));
+      obstacles = [];
+      
+      document.getElementById('start-screen').classList.add('hidden');
+      document.getElementById('hud').classList.remove('hidden');
+      document.getElementById('touch-controls').classList.remove('hidden');
+      
+      updateHUD();
+    }
+    
+    function restartGame() {
+      document.getElementById('game-over-screen').style.display = 'none';
+      startGame();
+    }
+    
+    function gameOver() {
+      gameState = 'gameover';
+      document.getElementById('hud').classList.add('hidden');
+      document.getElementById('touch-controls').classList.add('hidden');
+      document.getElementById('game-over-screen').style.display = 'flex';
+      document.getElementById('final-score-value').textContent = score;
+    }
+    
+    function updateHUD() {
+      document.getElementById('speed-value').textContent = Math.floor(speed);
+      document.getElementById('score-value').textContent = score;
+    }
+    
+    function checkCollision() {
+      const playerBox = new THREE.Box3().setFromObject(playerCar);
+      
+      for (let i = obstacles.length - 1; i >= 0; i--) {
+        const obstacle = obstacles[i];
+        const obstacleBox = new THREE.Box3().setFromObject(obstacle);
+        
+        if (playerBox.intersectsBox(obstacleBox)) {
+          gameOver();
+          return;
+        }
+      }
+    }
+    
+    function animate() {
+      requestAnimationFrame(animate);
+      
+      if (gameState === 'playing') {
+        speed += (targetSpeed - speed) * 0.02;
+        
+        playerCar.position.x += (carPosition - playerCar.position.x) * 0.1;
+        
+        obstacles.forEach((obstacle, index) => {
+          obstacle.position.z += obstacleSpeed * speed;
+          
+          if (obstacle.position.z > 10) {
+            scene.remove(obstacle);
+            obstacles.splice(index, 1);
+            score += 10;
+            
+            if (score % 100 === 0) {
+              obstacleSpeed += 0.01;
+              targetSpeed += 10;
+            }
+          }
+        });
+        
+        if (Math.random() < 0.02) {
+          createObstacle();
+        }
+        
+        checkCollision();
+        updateHUD();
+      }
+      
+      renderer.render(scene, camera);
+    }
+    
+    function onWindowResize() {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+    
+    init();
+    animate();
+  </script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9a731e40a16972e4',t:'MTc2NDU5NzcwMy4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
