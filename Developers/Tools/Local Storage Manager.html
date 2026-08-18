@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Storage Explorer</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: { extend: { fontFamily: { sans: ['DM Sans','sans-serif'], mono: ['JetBrains Mono','monospace'] } } }
+        }
+    </script>
+    <style>
+        :root {
+            --bg: #08080a; --surface: #111114; --card: #18181c; --card-h: #1f1f25;
+            --border: #27272d; --accent: #f59e0b; --accent-dim: rgba(245,158,11,.12);
+            --accent-h: #d97706; --danger: #ef4444; --danger-dim: rgba(239,68,68,.12);
+            --success: #22c55e; --txt: #f4f4f5; --txt2: #a1a1aa; --txt3: #55555e;
+        }
+        *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+        body{background:var(--bg);color:var(--txt);font-family:'DM Sans',sans-serif;margin:0;height:100dvh;overflow:hidden;position:relative}
+        body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse at 30% -10%,rgba(245,158,11,.07),transparent 55%),radial-gradient(ellipse at 70% 110%,rgba(245,158,11,.04),transparent 50%);pointer-events:none;z-index:0}
+        .sb::-webkit-scrollbar{display:none}.sb{-ms-overflow-style:none;scrollbar-width:none}
+
+        .bnav{position:fixed;bottom:0;left:0;right:0;background:rgba(10,10,12,.88);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-top:1px solid var(--border);display:flex;z-index:100;padding-bottom:env(safe-area-inset-bottom)}
+        .ni{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:7px 2px 9px;gap:1px;cursor:pointer;color:var(--txt3);transition:.2s;position:relative;user-select:none;-webkit-user-select:none}
+        .ni.act{color:var(--accent)}
+        .ni.act::before{content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);width:22px;height:2.5px;background:var(--accent);border-radius:0 0 3px 3px}
+        .ni .material-icons-round{font-size:21px}.ni span:last-child{font-size:9.5px;font-weight:600;letter-spacing:.3px}
+
+        .ecard{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:13px 44px 13px 15px;cursor:pointer;transition:.15s;position:relative;overflow:hidden}
+        .ecard:active{background:var(--card-h);transform:scale(.98)}
+        .ecard .k{font-weight:600;font-size:13.5px;color:var(--txt);margin-bottom:3px;word-break:break-all;line-height:1.3}
+        .ecard .v{font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--txt2);line-height:1.45;word-break:break-all;max-height:38px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+        .ecard .m{display:flex;gap:6px;margin-top:7px;font-size:10.5px;color:var(--txt3);align-items:center}
+        .del-b{position:absolute;right:10px;top:50%;transform:translateY(-50%);width:30px;height:30px;border-radius:8px;background:var(--danger-dim);color:var(--danger);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;opacity:0;transition:.15s}
+        .ecard:hover .del-b,.ecard:active .del-b{opacity:1}@media(hover:none){.del-b{opacity:.55}}
+        .del-b:active{transform:translateY(-50%) scale(.88)}.del-b .material-icons-round{font-size:17px}
+
+        .bdg{display:inline-flex;align-items:center;padding:1.5px 7px;border-radius:5px;font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+        .bdg-a{background:var(--accent-dim);color:var(--accent)}.bdg-g{background:rgba(34,197,94,.12);color:#22c55e}
+        .bdg-b{background:rgba(59,130,246,.12);color:#3b82f6}.bdg-r{background:var(--danger-dim);color:var(--danger)}
+        .bdg-p{background:rgba(168,85,247,.12);color:#a855f7}
+
+        .mo{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:200;opacity:0;pointer-events:none;transition:.25s}
+        .mo.open{opacity:1;pointer-events:all}
+        .ms{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-radius:20px 20px 0 0;z-index:201;transform:translateY(100%);transition:transform .32s cubic-bezier(.32,.72,0,1);max-height:88dvh;display:flex;flex-direction:column;padding-bottom:env(safe-area-inset-bottom)}
+        .ms.open{transform:translateY(0)}
+        .mh{width:34px;height:4px;background:var(--border);border-radius:2px;margin:10px auto 0;flex-shrink:0}
+        .mhd{display:flex;align-items:center;justify-content:space-between;padding:14px 18px 10px;flex-shrink:0}
+        .mbd{padding:0 18px 18px;overflow-y:auto;flex:1}
+
+        .btn{display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:9px 16px;border-radius:10px;font-size:13.5px;font-weight:600;border:none;cursor:pointer;transition:.15s;font-family:inherit}
+        .btn:active{transform:scale(.96)}.btn-a{background:var(--accent);color:#000}.btn-a:hover{background:var(--accent-h)}
+        .btn-g{background:transparent;color:var(--txt2);border:1px solid var(--border)}.btn-g:hover{background:var(--card)}
+        .btn-d{background:var(--danger-dim);color:var(--danger)}.btn-d:hover{background:rgba(239,68,68,.22)}
+        .btn-i{width:38px;height:38px;padding:0;border-radius:10px;background:var(--card);border:1px solid var(--border);color:var(--txt2);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:.15s}
+        .btn-i:active{transform:scale(.9);background:var(--card-h)}.btn-i .material-icons-round{font-size:19px}
+
+        .sbar{display:flex;align-items:center;background:var(--card);border:1px solid var(--border);border-radius:11px;padding:0 12px;gap:8px;transition:.2s}
+        .sbar:focus-within{border-color:var(--accent)}
+        .sbar input{flex:1;background:none;border:none;outline:none;color:var(--txt);font-size:13.5px;font-family:inherit;padding:10px 0}
+        .sbar input::placeholder{color:var(--txt3)}.sbar .material-icons-round{font-size:19px;color:var(--txt3)}
+
+        .cblk{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:12px;font-family:'JetBrains Mono',monospace;font-size:11.5px;line-height:1.6;color:var(--txt2);white-space:pre-wrap;word-break:break-all;max-height:280px;overflow-y:auto}
+
+        .fin{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:11px 13px;color:var(--txt);font-size:13.5px;font-family:inherit;outline:none;transition:.2s}
+        .fin:focus{border-color:var(--accent)}.fin::placeholder{color:var(--txt3)}
+        textarea.fin{font-family:'JetBrains Mono',monospace;font-size:12.5px;min-height:110px;resize:vertical}
+        .flbl{display:block;font-size:11px;font-weight:700;color:var(--txt2);margin-bottom:5px;text-transform:uppercase;letter-spacing:.6px}
+
+        .toast{position:fixed;bottom:76px;left:50%;transform:translateX(-50%) translateY(16px);background:var(--card);border:1px solid var(--border);color:var(--txt);padding:9px 18px;border-radius:11px;font-size:12.5px;font-weight:500;z-index:300;opacity:0;pointer-events:none;transition:.3s;display:flex;align-items:center;gap:7px;box-shadow:0 8px 28px rgba(0,0,0,.45);white-space:nowrap}
+        .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+        .co{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:300;display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;pointer-events:none;transition:.2s}
+        .co.open{opacity:1;pointer-events:all}
+        .cb{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:22px;max-width:300px;width:100%;text-align:center}
+        .cb h3{font-size:15px;font-weight:700;margin-bottom:6px}.cb p{font-size:12.5px;color:var(--txt2);margin-bottom:18px;line-height:1.5}
+
+        .fab{position:fixed;bottom:68px;right:14px;width:50px;height:50px;border-radius:15px;background:var(--accent);color:#000;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:50;box-shadow:0 4px 18px rgba(245,158,11,.28);transition:.2s;padding-bottom:env(safe-area-inset-bottom)}
+        .fab:active{transform:scale(.88)}.fab .material-icons-round{font-size:25px}
+
+        .bc{display:flex;align-items:center;gap:4px;padding:0 16px;margin-bottom:6px;font-size:12.5px;flex-wrap:wrap}
+        .bci{cursor:pointer;color:var(--txt2);transition:.15s}.bci:hover{color:var(--accent)}.bci.cur{color:var(--accent);font-weight:600;cursor:default}
+        .bcs{color:var(--txt3);font-size:10px}
+
+        .empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:50px 20px;text-align:center}
+        .empty .material-icons-round{font-size:44px;color:var(--txt3);margin-bottom:14px;opacity:.45}
+        .empty p{color:var(--txt3);font-size:13px;line-height:1.5}
+
+        .stbar{display:flex;gap:8px;padding:0 16px;margin-bottom:10px}
+        .stch{display:flex;align-items:center;gap:5px;padding:5px 10px;background:var(--card);border:1px solid var(--border);border-radius:7px;font-size:11px;color:var(--txt2)}
+        .stch strong{color:var(--txt);font-weight:600}
+
+        .top-line{height:2.5px;background:linear-gradient(90deg,var(--accent),#f97316,var(--accent));background-size:200% 100%;animation:shift 4s ease-in-out infinite}
+        @keyframes shift{0%,100%{background-position:0 0}50%{background-position:100% 0}}
+        @key fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+        .anim{animation:fadeUp .28s ease forwards}
+        @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+    </style>
+</head>
+<body>
+    <div class="top-line"></div>
+    <div id="app" class="flex flex-col" style="height:calc(100dvh - 2.5px)">
+        <header class="flex items-center justify-between px-4 pt-3 pb-2 flex-shrink-0">
+            <div>
+                <h1 class="text-lg font-extrabold tracking-tight" style="color:var(--txt)">Storage Explorer</h1>
+            </div>
+            <div class="flex gap-2">
+                <button class="btn-i" onclick="loadData()" aria-label="Refresh"><span class="material-icons-round">refresh</span></button>
+                <button class="btn-i" onclick="handleClearAll()" aria-label="Clear all"><span class="material-icons-round">delete_sweep</span></button>
+            </div>
+        </header>
+        <div class="px-4 pb-2 flex-shrink-0">
+            <div class="sbar">
+                <span class="material-icons-round">search</span>
+                <input id="searchInput" type="text" placeholder="Search keys & values..." oninput="handleSearch(this.value)" autocomplete="off">
+            </div>
+        </div>
+        <div id="statsBar" class="stbar flex-shrink-0"></div>
+        <div id="breadcrumb" class="bc flex-shrink-0"></div>
+        <main id="content" class="flex-1 overflow-y-auto sb px-4 pb-24"></main>
+    </div>
+    <button id="fab" class="fab" onclick="handleAdd()" aria-label="Add entry"><span class="material-icons-round">add</span></button>
+    <nav class="bnav" role="tablist">
+        <div class="ni act" data-tab="local" onclick="switchTab('local')" role="tab" aria-selected="true">
+            <span class="material-icons-round">storage</span><span>Local</span>
+        </div>
+        <div class="ni" data-tab="session" onclick="switchTab('session')" role="tab">
+            <span class="material-icons-round">hourglass_empty</span><span>Session</span>
+        </div>
+        <div class="ni" data-tab="indexed" onclick="switchTab('indexed')" role="tab">
+            <span class="material-icons-round">dns</span><span>IndexedDB</span>
+        </div>
+        <div class="ni" data-tab="cache" onclick="switchTab('cache')" role="tab">
+            <span class="material-icons-round">cached</span><span>Cache</span>
+        </div>
+        <div class="ni" data-tab="cookies" onclick="switchTab('cookies')" role="tab">
+            <span class="material-icons-round">cookie</span><span>Cookies</span>
+        </div>
+    </nav>
+    <div id="modalOverlay" class="mo" onclick="closeModal()"></div>
+    <div id="modalSheet" class="ms">
+        <div class="mh"></div>
+        <div id="modalHeader" class="mhd"></div>
+        <div id="modalBody" class="mbd sb"></div>
+        <div id="modalActions" class="flex gap-2 px-5 py-3 flex-shrink-0" style="border-top:1px solid var(--border)"></div>
+    </div>
+    <div id="confirmOverlay" class="co">
+        <div class="cb">
+            <h3 id="confirmTitle"></h3>
+            <p id="confirmMsg"></p>
+            <div class="flex gap-2">
+                <button class="btn btn-g flex-1" onclick="closeConfirm()">Cancel</button>
+                <button id="confirmBtn" class="btn btn-d flex-1">Delete</button>
+            </div>
+        </div>
+    </div>
+    <div id="toast" class="toast"><span id="toastIcon" class="material-icons-round" style="font-size:17px"></span><span id="toastMsg"></span></div>
+
+<script>
+/* ===== State ===== */
+const S = {
+    tab: 'local',
+    query: '',
+    data: [],
+    idbPath: [],   // [{type:'db',name,version},{type:'store',name,keyPath,autoIncrement}]
+    cachePath: [], // [{type:'cache',name}]
+    modalMode: null, // 'view' | 'add' | 'edit'
+    modalData: null,
+};
+
+/* ===== Utilities ===== */
+function bsize(s) { try { return new Blob([s]).size } catch { return s.length } }
+function fmtB(b) { if (b < 1024) return b + ' B'; if (b < 1048576) return (b/1024).toFixed(1) + ' KB'; return (b/1048576).toFixed(1) + ' MB'; }
+function trunc(s, n=80) { return s && s.length > n ? s.slice(0, n) + '...' : s || ''; }
+function detectType(v) {
+    if (v === 'true' || v === 'false') return 'boolean';
+    if (v !== '' && !isNaN(v)) return 'number';
+    try { const o = JSON.parse(v); if (o && typeof o === 'object') return 'json'; } catch {}
+    return 'string';
+}
+function tryJSON(v) { try { const o = JSON.parse(v); if (o && typeof o === 'object') return JSON.stringify(o, null, 2); } catch {} return v; }
+function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function synHi(json) {
+    let h = escHtml(json);
+    return h.replace(/("(\\u[\da-fA-F]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+-]?\d+)?)/g, m => {
+        let c = '#a855f7';
+        if (/^"/.test(m)) c = /:$/.test(m) ? '#f59e0b' : '#22c55e';
+        else if (/true|false/.test(m)) c = '#3b82f6';
+        else if (/null/.test(m)) c = '#ef4444';
+        return `<span style="color:${c}">${m}</span>`;
+    });
+}
+function typeBadge(t) {
+    const m = { string:['str','a'], json:['json','p'], number:['num','b'], boolean:['bool','b'] };
+    const [l, c] = m[t] || ['?','a'];
+    return `<span class="bdg bdg-${c}">${l}</span>`;
+}
+function parseCookies() {
+    return document.cookie.split(';').map(c => {
+        const [n, ...v] = c.trim().split('=');
+        return n ? { name: n, value: v.join('=') } : null;
+    }).filter(Boolean);
+}
+
+/* ===== Toast ===== */
+let _tt;
+function toast(msg, icon='check_circle') {
+    const t = document.getElementById('toast');
+    document.getElementById('toastMsg').textContent = msg;
+    document.getElementById('toastIcon').textContent = icon;
+    t.classList.add('show');
+    clearTimeout(_tt);
+    _tt = setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+/* ===== Confirm ===== */
+let _cfCb;
+function showConfirm(title, msg, label, cb) {
+    document.getElementById('confirmTitle').textContent = title;
+    document.getElementById('confirmMsg').textContent = msg;
+    document.getElementById('confirmBtn').textContent = label;
+    _cfCb = cb;
+    document.getElementById('confirmBtn').onclick = () => { closeConfirm(); _cfCb && _cfCb(); };
+    document.getElementById('confirmOverlay').classList.add('open');
+}
+function closeConfirm() { document.getElementById('confirmOverlay').classList.remove('open'); }
+
+/* ===== Tab Switching ===== */
+function switchTab(tab) {
+    S.tab = tab; S.query = ''; S.idbPath = []; S.cachePath = [];
+    document.getElementById('searchInput').value = '';
+    document.querySelectorAll('.ni').forEach(n => {
+        n.classList.toggle('act', n.dataset.tab === tab);
+        n.setAttribute('aria-selected', n.dataset.tab === tab);
+    });
+    const fab = document.getElementById('fab');
+    fab.style.display = (tab === 'cache') ? 'none' : 'flex';
+    loadData();
+}
+
+/* ===== Search ===== */
+function handleSearch(q) { S.query = q.toLowerCase(); renderContent(); }
+
+/* ===== Load Data ===== */
+async function loadData() {
+    const c = document.getElementById('content');
+    c.innerHTML = '<div class="empty"><span class="material-icons-round">hourglass_top</span><p>Loading...</p></div>';
+    try {
+        switch(S.tab) {
+            case 'local': S.data = loadWebStorage(localStorage); break;
+            case 'session': S.data = loadWebStorage(sessionStorage); break;
+            case 'indexed': await loadIndexedDB(); break;
+            case 'cache': await loadCacheAPI(); break;
+            case 'cookies': S.data = loadCookies(); break;
+        }
+    } catch(e) { S.data = []; console.error(e); }
+    renderStats();
+    renderBreadcrumb();
+    renderContent();
+}
+
+function loadWebStorage(store) {
+    const items = [];
+    for (let i = 0; i < store.length; i++) {
+        const k = store.key(i), v = store.getItem(k);
+        items.push({ key: k, value: v, type: detectType(v), size: bsize(v) });
+    }
+    return items;
+}
+
+function loadCookies() {
+    return parseCookies().map(c => ({
+        key: c.name, value: c.value, type: detectType(c.value), size: bsize(c.value)
+    }));
+}
+
+/* ===== IndexedDB ===== */
+async function loadIndexedDB() {
+    if (S.idbPath.length === 0) {
+        // List databases
+        if (!indexedDB.databases) {
+            S.data = [{ key: '(databases() not supported)', value: 'Your browser does not support indexedDB.databases(). Try tapping to open a DB by name.', type: 'string', size: 0, special: true }];
+            return;
+        }
+        const dbs = await indexedDB.databases();
+        S.data = dbs.map(d => ({ key: d.name || '(unnamed)', value: `Version ${d.version}`, type: 'db', size: 0, version: d.version }));
+    } else if (S.idbPath.length === 1) {
+        // List stores
+        const dbInfo = S.idbPath[0];
+        const stores = await getIDBStores(dbInfo.name, dbInfo.version);
+        S.data = stores.map(s => ({ key: s.name, value: `Key: ${s.keyPath || 'auto'}${s.autoIncrement?' +auto':''}`, type: 'store', size: 0 }));
+    } else {
+        // List entries
+        const dbInfo = S.idbPath[0], storeInfo = S.idbPath[1];
+        const entries = await getIDBEntries(dbInfo.name, dbInfo.version, storeInfo.name);
+        S.data = entries.map(e => ({
+            key: String(e.key), value: typeof e.value === 'object' ? JSON.stringify(e.value) : String(e.value),
+            type: typeof e.value === 'object' ? 'json' : detectType(String(e.value)),
+            size: bsize(typeof e.value === 'object' ? JSON.stringify(e.value) : String(e.value)),
+            rawValue: e.value
+        }));
+    }
+}
+
+function idbOpen(name, version) {
+    return new Promise((res, rej) => {
+        const r = indexedDB.open(name, version);
+        r.onsuccess = () => res(r.result);
+        r.onerror = () => rej(r.error);
+    });
+}
+
+function getIDBStores(name, version) {
+    return idbOpen(name, version).then(db => {
+        const names = Array.from(db.objectStoreNames);
+        db.close();
+        return names.map(n => ({ name: n }));
+    });
+}
+
+function getIDBEntries(name, version, storeName) {
+    return idbOpen(name, version).then(db => {
+        return new Promise((res, rej) => {
+            const tx = db.transaction(storeName, 'readonly');
+            const store = tx.objectStore(storeName);
+            const kp = store.keyPath;
+            const ai = store.autoIncrement;
+            const req = store.openCursor();
+            const items = [];
+            req.onsuccess = () => {
+                const cur = req.result;
+                if (cur) {
+                    items.push({ key: cur.key, value: cur.value });
+                    cur.continue();
+                } else {
+                    db.close();
+                    res(items);
+                }
+            };
+            req.onerror = () => { db.close(); rej(req.error); };
+        });
+    });
+}
+
+function idbDeleteEntry(name, version, storeName, key) {
+    return idbOpen(name, version).then(db => {
+        return new Promise((res, rej) => {
+            const tx = db.transaction(storeName, 'readwrite');
+            const store = tx.objectStore(storeName);
+            const req = store.delete(key);
+            req.onsuccess = () => { db.close(); res(); };
+            req.onerror = () => { db.close(); rej(req.error); };
+        });
+    });
+}
+
+function idbAddEntry(name, version, storeName, value) {
+    return idbOpen(name, version).then(db => {
+        return new Promise((res, rej) => {
+            const tx = db.transaction(storeName, 'readwrite');
+            const store = tx.objectStore(storeName);
+            const req = store.add(value);
+            req.onsuccess = () => { db.close(); res(); };
+            req.onerror = () => { db.close(); rej(req.error); };
+        });
+    });
+}
+
+/* ===== Cache API ===== */
+async function loadCacheAPI() {
+    if (!('caches' in window)) {
+        S.data = [{ key: '(not available)', value: 'Cache API is not available in this context. Requires HTTPS.', type: 'string', size: 0, special: true }];
+        return;
+    }
+    if (S.cachePath.length === 0) {
+        const names = await caches.keys();
+        S.data = [];
+        for (const n of names) {
+            const c = await caches.open(n);
+            const keys = await c.keys();
+            S.data.push({ key: n, value: `${keys.length} entries`, type: 'cache', size: 0 });
+        }
+    } else {
+        const cn = S.cachePath[0].name;
+        const c = await caches.open(cn);
+        const keys = await c.keys();
+        S.data = [];
+        for (const req of keys) {
+            const res = await c.match(req);
+            const hdr = res ? res.headers.get('content-type') : '?';
+            const status = res ? res.status : '?';
+            S.data.push({
+                key: req.url, value: `${status} · ${hdr || 'unknown'}`,
+                type: 'cache-entry', size: 0, status, contentType: hdr, url: req.url, method: req.method
+            });
+        }
+    }
+}
+
+/* ===== Render ===== */
+function renderStats() {
+    const sb = document.getElementById('statsBar');
+    const count = S.data.length;
+    const totalSize = S.data.reduce((a, d) => a + (d.size || 0), 0);
+    sb.innerHTML = count > 0
+        ? `<div class="stch"><strong>${count}</strong> entries</div>${totalSize > 0 ? `<div class="stch"><strong>${fmtB(totalSize)}</strong> total</div>` : ''}`
+        : '';
+}
+
+function renderBreadcrumb() {
+    const bc = document.getElementById('breadcrumb');
+    const path = S.tab === 'indexed' ? S.idbPath : S.cachePath;
+    if (path.length === 0) { bc.innerHTML = ''; return; }
+
+    const root = S.tab === 'indexed' ? 'IndexedDB' : 'Cache API';
+    let html = `<span class="bci" onclick="crumbClick(-1)">${root}</span>`;
+    path.forEach((p, i) => {
+        const name = p.name;
+        html += `<span class="bcs">›</span><span class="bci${i===path.length-1?' cur':''}" onclick="crumbClick(${i})">${escHtml(name)}</span>`;
+    });
+    bc.innerHTML = html;
+}
+
+function crumbClick(idx) {
+    if (S.tab === 'indexed') {
+        if (idx < 0) S.idbPath = [];
+        else S.idbPath = S.idbPath.slice(0, idx + 1);
+    } else {
+        if (idx < 0) S.cachePath = [];
+        else S.cachePath = S.cachePath.slice(0, idx + 1);
+    }
+    loadData();
+}
+
+function renderContent() {
+    const c = document.getElementById('content');
+    let items = S.data;
+    if (S.query) {
+        items = items.filter(d => d.key.toLowerCase().includes(S.query) || (d.value && d.value.toLowerCase().includes(S.query)));
+    }
+    if (items.length === 0) {
+        const icons = { local:'storage', session:'hourglass_empty', indexed:'dns', cache:'cached', cookies:'cookie' };
+        const msgs = {
+            local:'No items in Local Storage. Tap + to add one.',
+            session:'No items in Session Storage. Tap + to add one.',
+            indexed: S.idbPath.length === 0 ? 'No IndexedDB databases found.' : 'No entries found.',
+            cache: S.cachePath.length === 0 ? 'No Cache Storage found.' : 'No entries found.',
+            cookies:'No cookies found for this origin.'
+        };
+        c.innerHTML = `<div class="empty"><span class="material-icons-round">${icons[S.tab]}</span><p>${msgs[S.tab]}</p></div>`;
+        return;
+    }
+    c.innerHTML = '<div class="flex flex-col gap-2.5">' + items.map((d, i) => {
+        const isNav = d.type === 'db' || d.type === 'store' || d.type === 'cache';
+        const badge = d.type === 'db' ? '<span class="bdg bdg-p">db</span>'
+            : d.type === 'store' ? '<span class="bdg bdg-b">store</span>'
+            : d.type === 'cache' ? '<span class="bdg bdg-g">cache</span>'
+            : d.type === 'cache-entry' ? `<span class="bdg bdg-a">${d.status||''}</span>`
+            : typeBadge(d.type);
+        const sizeStr = d.size > 0 ? fmtB(d.size) : '';
+        const showDel = !d.special && !isNav;
+        return `<div class="ecard anim" style="animation-delay:${Math.min(i*30,300)}ms" onclick="handleTap(${i})" data-idx="${i}">
+            <div class="k">${escHtml(d.key)}</div>
+            <div class="v">${escHtml(trunc(d.value || '', 120))}</div>
+            <div class="m">${badge}${sizeStr ? `<span>· ${sizeStr}</span>` : ''}</div>
+            ${showDel ? `<button class="del-b" onclick="event.stopPropagation();handleDelete(${i})" aria-label="Delete"><span class="material-icons-round">close</span></button>` : ''}
+        </div>`;
+    }).join('') + '</div>';
+}
+
+/* ===== Tap Handler ===== */
+function handleTap(idx) {
+    const d = S.data[idx];
+    if (!d) return;
+    if (d.special) return;
+
+    if (d.type === 'db') {
+        S.idbPath = [{ type: 'db', name: d.key, version: d.version }];
+        loadData();
+        return;
+    }
+    if (d.type === 'store') {
+        S.idbPath = [...S.idbPath, { type: 'store', name: d.key }];
+        loadData();
+        return;
+    }
+    if (d.type === 'cache') {
+        S.cachePath = [{ type: 'cache', name: d.key }];
+        loadData();
+        return;
+    }
+
+    // Show detail modal
+    showDetailModal(d, idx);
+}
+
+/* ===== Detail Modal ===== */
+function showDetailModal(d, idx) {
+    S.modalMode = 'view'; S.modalData = d;
+    const overlay = document.getElementById('modalOverlay');
+    const sheet = document.getElementById('modalSheet');
+    const header = document.getElementById('modalHeader');
+    const body = document.getElementById('modalBody');
+    const actions = document.getElementById('modalActions');
+
+    header.innerHTML = `<h2 style="font-size:15px;font-weight:700;color:var(--txt)">Entry Detail</h2>
+        <button class="btn-i" onclick="closeModal()" aria-label="Close"><span class="material-icons-round">close</span></button>`;
+
+    const isJson = d.type === 'json';
+    const displayVal = isJson ? tryJSON(d.value) : d.value;
+    const highlighted = isJson ? synHi(displayVal) : escHtml(displayVal);
+    const sizeStr = d.size > 0 ? fmtB(d.size) : '';
+
+    let extraInfo = '';
+    if (d.type === 'cache-entry') {
+        extraInfo = `
+        <div style="margin-bottom:12px"><label class="flbl">URL</label><div class="cblk" style="max-height:80px;font-size:10.5px">${escHtml(d.url)}</div></div>
+        <div style="margin-bottom:12px"><label class="flbl">Method</label><div style="font-size:13px;color:var(--txt)">${d.method || 'GET'}</div></div>
+        <div style="margin-bottom:12px"><label class="flbl">Content-Type</label><div style="font-size:13px;color:var(--txt)">${d.contentType || 'unknown'}</div></div>`;
+    }
+
+    body.innerHTML = `
+        <div style="margin-bottom:12px"><label class="flbl">Key</label>
+            <div style="display:flex;gap:6px;align-items:center">
+                <div class="cblk" style="flex:1;max-height:60px">${escHtml(d.key)}</div>
+                <button class="btn-i" onclick="copyText('${escHtml(d.key).replace(/'/g,"\\'")}')" aria-label="Copy key"><span class="material-icons-round">content_copy</span></button>
+            </div>
+        </div>
+        ${sizeStr ? `<div style="margin-bottom:12px"><label class="flbl">Size</label><div style="font-size:13px;color:var(--txt)">${sizeStr}</div></div>` : ''}
+        ${extraInfo}
+        <div><label class="flbl">Value</label>
+            <div style="display:flex;gap:6px;align-items:flex-start">
+                <div class="cblk" style="flex:1">${highlighted}</div>
+                <button class="btn-i" onclick="copyText(\`${escHtml(displayVal).replace(/`/g,'\\`')}\`)" aria-label="Copy value"><span class="material-icons-round">content_copy</span></button>
+            </div>
+        </div>`;
+
+    const canEdit = S.tab === 'local' || S.tab === 'session' || (S.tab === 'indexed' && S.idbPath.length === 2);
+    actions.innerHTML = `
+        ${canEdit ? `<button class="btn btn-g flex-1" onclick="editEntry(${idx})"><span class="material-icons-round" style="font-size:17px">edit</span> Edit</button>` : ''}
+        <button class="btn btn-d flex-1" onclick="handleDelete(${idx})"><span class="material-icons-round" style="font-size:17px">delete</span> Delete</button>
+        <button class="btn btn-a flex-1" onclick="copyText(\`${escHtml(displayVal).replace(/`/g,'\\`')}\`)"><span class="material-icons-round" style="font-size:17px">content_copy</span> Copy</button>`;
+
+    overlay.classList.add('open');
+    sheet.classList.add('open');
+}
+
+function closeModal() {
+    document.getElementById('modalOverlay').classList.remove('open');
+    document.getElementById('modalSheet').classList.remove('open');
+}
+
+/* ===== Edit ===== */
+function editEntry(idx) {
+    const d = S.data[idx];
+    S.modalMode = 'edit';
+    const body = document.getElementById('modalBody');
+    const actions = document.getElementById('modalActions');
+    document.getElementById('modalHeader').querySelector('h2').textContent = 'Edit Entry';
+
+    const isJson = d.type === 'json';
+    const rawVal = isJson ? tryJSON(d.value) : d.value;
+
+    body.innerHTML = `
+        <div style="margin-bottom:12px"><label class="flbl">Key</label>
+            <input class="fin" id="editKey" value="${escHtml(d.key)}" readonly style="opacity:.6">
+        </div>
+        <div><label class="flbl">Value</label>
+            <textarea class="fin" id="editValue" rows="8">${escHtml(rawVal)}</textarea>
+        </div>`;
+
+    actions.innerHTML = `
+        <button class="btn btn-g flex-1" onclick="showDetailModal(S.data[${idx}],${idx})">Cancel</button>
+        <button class="btn btn-a flex-1" onclick="saveEdit(${idx})"><span class="material-icons-round" style="font-size:17px">save</span> Save</button>`;
+}
+
+async function saveEdit(idx) {
+    const d = S.data[idx];
+    const val = document.getElementById('editValue').value;
+    try {
+        if (S.tab === 'local') { localStorage.setItem(d.key, val); }
+        else if (S.tab === 'session') { sessionStorage.setItem(d.key, val); }
+        else if (S.tab === 'indexed' && S.idbPath.length === 2) {
+            let parsed = val;
+            try { parsed = JSON.parse(val); } catch {}
+            await idbDeleteEntry(S.idbPath[0].name, S.idbPath[0].version, S.idbPath[1].name, d.key);
+            await idbAddEntry(S.idbPath[0].name, S.idbPath[0].version, S.idbPath[1].name, parsed);
+        }
+        closeModal();
+        toast('Entry updated', 'check_circle');
+        loadData();
+    } catch(e) { toast('Failed: ' + e.message, 'error'); }
+}
+
+/* ===== Add ===== */
+function handleAdd() {
+    if (S.tab === 'indexed') {
+        if (S.idbPath.length !== 2) { toast('Open a store first', 'info'); return; }
+    }
+    S.modalMode = 'add';
+    const overlay = document.getElementById('modalOverlay');
+    const sheet = document.getElementById('modalSheet');
+    const header = document.getElementById('modalHeader');
+    const body = document.getElementById('modalBody');
+    const actions = document.getElementById('modalActions');
+
+    header.innerHTML = `<h2 style="font-size:15px;font-weight:700;color:var(--txt)">New Entry</h2>
+        <button class="btn-i" onclick="closeModal()" aria-label="Close"><span class="material-icons-round">close</span></button>`;
+
+    const showKey = S.tab !== 'indexed';
+    body.innerHTML = `
+        ${showKey ? `<div style="margin-bottom:12px"><label class="flbl">Key</label><input class="fin" id="addKey" placeholder="Enter key..."></div>` : ''}
+        <div><label class="flbl">Value</label><textarea class="fin" id="addValue" rows="6" placeholder="Enter value..."></textarea></div>`;
+
+    actions.innerHTML = `<button class="btn btn-g flex-1" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-a flex-1" onclick="saveAdd()"><span class="material-icons-round" style="font-size:17px">add</span> Create</button>`;
+
+    overlay.classList.add('open');
+    sheet.classList.add('open');
+    if (showKey) document.getElementById('addKey').focus();
+    else document.getElementById('addValue').focus();
+}
+
+async function saveAdd() {
+    const keyEl = document.getElementById('addKey');
+    const valEl = document.getElementById('addValue');
+    const val = valEl.value;
+
+    try {
+        if (S.tab === 'local') {
+            const k = keyEl.value.trim();
+            if (!k) { toast('Key is required', 'warning'); return; }
+            localStorage.setItem(k, val);
+        } else if (S.tab === 'session') {
+            const k = keyEl.value.trim();
+            if (!k) { toast('Key is required', 'warning'); return; }
+            sessionStorage.setItem(k, val);
+        } else if (S.tab === 'indexed') {
+            let parsed = val;
+            try { parsed = JSON.parse(val); } catch {}
+            await idbAddEntry(S.idbPath[0].name, S.idbPath[0].version, S.idbPath[1].name, parsed);
+        } else if (S.tab === 'cookies') {
+            const k = keyEl.value.trim();
+            if (!k) { toast('Key is required', 'warning'); return; }
+            document.cookie = `${k}=${val};path=/;max-age=31536000`;
+        }
+        closeModal();
+        toast('Entry created', 'check_circle');
+        loadData();
+    } catch(e) { toast('Failed: ' + e.message, 'error'); }
+}
+
+/* ===== Delete ===== */
+function handleDelete(idx) {
+    const d = S.data[idx];
+    if (!d || d.special) return;
+    showConfirm('Delete Entry', `Delete "${trunc(d.key, 40)}"? This cannot be undone.`, 'Delete', async () => {
+        try {
+            if (S.tab === 'local') localStorage.removeItem(d.key);
+            else if (S.tab === 'session') sessionStorage.removeItem(d.key);
+            else if (S.tab === 'cookies') {
+                document.cookie = `${d.key}=;path=/;max-age=0`;
+            } else if (S.tab === 'indexed') {
+                if (S.idbPath.length === 2) {
+                    await idbDeleteEntry(S.idbPath[0].name, S.idbPath[0].version, S.idbPath[1].name, d.key);
+                } else if (S.idbPath.length === 1) {
+                    // Delete store - not directly possible, skip
+                    toast('Cannot delete store directly', 'info'); return;
+                } else {
+                    indexedDB.deleteDatabase(d.key);
+                }
+            } else if (S.tab === 'cache') {
+                if (S.cachePath.length === 1) {
+                    const c = await caches.open(S.cachePath[0].name);
+                    await c.delete(d.url || d.key);
+                } else {
+                    await caches.delete(d.key);
+                }
+            }
+            closeModal();
+            toast('Deleted', 'delete');
+            loadData();
+        } catch(e) { toast('Failed: ' + e.message, 'error'); }
+    });
+}
+
+/* ===== Clear All ===== */
+function handleClearAll() {
+    const names = { local:'Local Storage', session:'Session Storage', indexed:'IndexedDB', cache:'Cache API', cookies:'Cookies' };
+    showConfirm('Clear All', `Clear all data in ${names[S.tab]}? This cannot be undone.`, 'Clear All', async () => {
+        try {
+            if (S.tab === 'local') localStorage.clear();
+            else if (S.tab === 'session') sessionStorage.clear();
+            else if (S.tab === 'cookies') {
+                parseCookies().forEach(c => { document.cookie = `${c.name}=;path=/;max-age=0`; });
+            } else if (S.tab === 'indexed') {
+                if (!indexedDB.databases) { toast('Not supported', 'error'); return; }
+                const dbs = await indexedDB.databases();
+                dbs.forEach(d => { if(d.name) indexedDB.deleteDatabase(d.name); });
+            } else if (S.tab === 'cache') {
+                const keys = await caches.keys();
+                for (const k of keys) await caches.delete(k);
+            }
+            S.idbPath = []; S.cachePath = [];
+            toast('Cleared', 'delete_sweep');
+            loadData();
+        } catch(e) { toast('Failed: ' + e.message, 'error'); }
+    });
+}
+
+/* ===== Copy ===== */
+function copyText(text) {
+  // Modern API - works on https + localhost
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(text)
+      .then(() => toast('Copied to clipboard', 'check_circle'))
+      .catch(() => fallbackCopy(text));
+    return;
+  }
+
+  // Fallback for http / non-secure
+  fallbackCopy(text);
+}
+
+function fallbackCopy(text) {
+  const textarea = document.createElement('textarea');
+  textarea.value = text;
+  
+  // Keep it off-screen
+  textarea.style.position = 'fixed';
+  textarea.style.left = '-9999px';
+  textarea.style.top = '0';
+  
+  document.body.appendChild(textarea);
+  textarea.focus();
+  textarea.select();
+
+  try {
+    const success = document.execCommand('copy');
+    toast(success ? 'Copied to clipboard' : 'Copy failed', 
+          success ? 'check_circle' : 'error');
+  } catch (err) {
+    toast('Copy failed', 'error');
+  }
+
+  document.body.removeChild(textarea);
+}
+
+/* ===== Init ===== */
+document.addEventListener('DOMContentLoaded', () => loadData());
+</script>
+</body>
+</html>
