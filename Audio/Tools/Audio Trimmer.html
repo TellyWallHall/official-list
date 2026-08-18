@@ -1,0 +1,713 @@
+<!doctype html>
+<!-- by ImPot8o https://github.com/ImPot8o pot8o.dev -->
+<html lang="en" class="h-full">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Audio Trimmer</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      box-sizing: border-box;
+    }
+    
+    .waveform-container {
+      position: relative;
+      width: 100%;
+      height: 120px;
+      background: #1a1a2e;
+      border-radius: 8px;
+      overflow: hidden;
+      touch-action: none;
+    }
+    
+    .waveform-canvas {
+      width: 100%;
+      height: 100%;
+    }
+    
+    .trim-handle {
+      position: absolute;
+      top: 0;
+      width: 4px;
+      height: 100%;
+      background: #00ff88;
+      cursor: ew-resize;
+      touch-action: none;
+      z-index: 10;
+    }
+    
+    .trim-handle::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 32px;
+      height: 32px;
+      background: #00ff88;
+      border-radius: 50%;
+      opacity: 0.8;
+    }
+    
+    .trim-region {
+      position: absolute;
+      top: 0;
+      height: 100%;
+      background: rgba(0, 255, 136, 0.2);
+      pointer-events: none;
+    }
+    
+    .playhead {
+      position: absolute;
+      top: 0;
+      width: 2px;
+      height: 100%;
+      background: #ff0055;
+      pointer-events: none;
+      z-index: 5;
+      display: none;
+    }
+    
+    .playhead::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0;
+      height: 0;
+      border-left: 6px solid transparent;
+      border-right: 6px solid transparent;
+      border-top: 8px solid #ff0055;
+    }
+    
+    .time-display {
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+      color: #00ff88;
+    }
+    
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #1a1a2e;
+      color: white;
+      padding: 12px 24px;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      z-index: 1000;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    
+    .toast.show {
+      opacity: 1;
+    }
+  </style>
+  <style>@view-transition { navigation: auto; }</style>
+ </head>
+ <body class="h-full bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+  <div class="h-full w-full overflow-auto">
+   <div class="min-h-full px-4 py-6 max-w-2xl mx-auto">
+    <header class="text-center mb-8">
+     <h1 id="app-title" class="text-4xl font-bold text-white mb-2">🎵 Audio Trimmer</h1>
+     <p class="text-purple-200">Upload, trim, and save your audio clips</p>
+    </header>
+    <main class="space-y-6"><!-- Upload Section -->
+     <div class="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20"><input type="file" id="audio-input" accept="audio/*" class="hidden"> <button id="upload-btn" class="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold py-4 px-6 rounded-xl transition-all transform hover:scale-105 active:scale-95"> 📁 Upload Audio File </button>
+      <p class="text-purple-200 text-sm text-center mt-3">Supports MP3, WAV, OGG, M4A</p>
+     </div><!-- Audio Player Section -->
+     <div id="player-section" class="hidden bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20 space-y-4">
+      <div class="flex items-center justify-between"><span id="file-name" class="text-white font-medium truncate flex-1"></span> <button id="reset-btn" class="text-purple-300 hover:text-purple-100 text-sm ml-2 px-3 py-1 bg-white/10 rounded-lg transition-colors"> 🔄 Reset </button>
+      </div>
+      <audio id="audio-player" class="w-full" controls></audio><!-- Waveform and Trim Controls -->
+      <div class="space-y-2">
+       <div class="flex items-center justify-between"><label class="text-purple-200 text-sm font-medium">Select trim region:</label>
+        <div class="flex gap-2"><button id="zoom-in-btn" class="text-purple-300 hover:text-purple-100 text-xs px-2 py-1 bg-white/10 rounded transition-colors"> 🔍+ </button> <button id="zoom-out-btn" class="text-purple-300 hover:text-purple-100 text-xs px-2 py-1 bg-white/10 rounded transition-colors"> 🔍- </button>
+        </div>
+       </div>
+       <div class="waveform-container">
+        <canvas id="waveform" class="waveform-canvas"></canvas>
+        <div id="trim-region" class="trim-region"></div>
+        <div id="playhead" class="playhead"></div>
+        <div id="start-handle" class="trim-handle" style="left: 0;"></div>
+        <div id="end-handle" class="trim-handle" style="left: 100%;"></div>
+       </div>
+       <div class="flex justify-between items-center text-sm"><span class="time-display">Start: <span id="start-time">0:00</span></span> <span class="time-display text-xs">Duration: <span id="selection-duration">0:00</span></span> <span class="time-display">End: <span id="end-time">0:00</span></span>
+       </div>
+      </div><!-- Quick Presets -->
+      <div class="space-y-2"><label class="text-purple-200 text-sm font-medium">Quick trim presets:</label>
+       <div class="grid grid-cols-3 gap-2"><button class="preset-btn bg-white/10 hover:bg-white/20 text-purple-200 text-xs py-2 px-3 rounded-lg transition-colors" data-preset="first-30"> First 30s </button> <button class="preset-btn bg-white/10 hover:bg-white/20 text-purple-200 text-xs py-2 px-3 rounded-lg transition-colors" data-preset="middle"> Middle Half </button> <button class="preset-btn bg-white/10 hover:bg-white/20 text-purple-200 text-xs py-2 px-3 rounded-lg transition-colors" data-preset="last-30"> Last 30s </button>
+       </div>
+      </div><!-- Fade Options -->
+      <div class="space-y-2"><label class="text-purple-200 text-sm font-medium">Fade effects:</label>
+       <div class="grid grid-cols-2 gap-3"><label class="flex items-center space-x-2 cursor-pointer"> <input type="checkbox" id="fade-in-check" class="w-4 h-4 rounded border-purple-400 text-purple-600 focus:ring-purple-500"> <span class="text-purple-200 text-sm">Fade in (0.5s)</span> </label> <label class="flex items-center space-x-2 cursor-pointer"> <input type="checkbox" id="fade-out-check" class="w-4 h-4 rounded border-purple-400 text-purple-600 focus:ring-purple-500"> <span class="text-purple-200 text-sm">Fade out (0.5s)</span> </label>
+       </div>
+      </div><!-- Format Selection -->
+      <div class="space-y-2"><label class="text-purple-200 text-sm font-medium">Output format:</label>
+       <div class="flex gap-2"><button class="format-btn bg-purple-600 text-white text-sm py-2 px-4 rounded-lg transition-colors" data-format="wav"> WAV </button> <button class="format-btn bg-white/10 hover:bg-white/20 text-purple-200 text-sm py-2 px-4 rounded-lg transition-colors" data-format="mp3"> MP3 </button>
+       </div>
+      </div><!-- Action Buttons -->
+      <div class="grid grid-cols-2 gap-3"><button id="trim-btn" class="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-semibold py-3 px-4 rounded-xl transition-all transform hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"> ✂️ Trim Audio </button> <button id="download-btn" class="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white font-semibold py-3 px-4 rounded-xl transition-all transform hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none" disabled> 💾 Download </button>
+      </div><!-- Preview Trimmed Section --> <button id="preview-btn" class="w-full bg-white/10 hover:bg-white/20 text-purple-200 font-medium py-2 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"> ▶️ Preview Selection </button>
+     </div>
+    </main>
+   </div>
+  </div><!-- Toast Notification -->
+  <div id="toast" class="toast"></div>
+  <script>
+localStorage.setItem('pot8o watermark', `${localStorage.getItem('pot8o watermark') || ''} audio-trim`);
+    const defaultConfig = {
+      app_title: "🎵 Audio Trimmer",
+      upload_button_text: "📁 Upload Audio File",
+      trim_button_text: "✂️ Trim Audio",
+      download_button_text: "💾 Download"
+    };
+
+    let audioContext;
+    let audioBuffer;
+    let startTime = 0;
+    let endTime = 0;
+    let trimmedBlob = null;
+    let fileName = 'audio.mp3';
+    let isDragging = false;
+    let currentHandle = null;
+    let zoomLevel = 1;
+    let selectedFormat = 'wav';
+    let playheadInterval = null;
+
+    const elements = {
+      audioInput: document.getElementById('audio-input'),
+      uploadBtn: document.getElementById('upload-btn'),
+      playerSection: document.getElementById('player-section'),
+      audioPlayer: document.getElementById('audio-player'),
+      fileNameDisplay: document.getElementById('file-name'),
+      durationDisplay: document.getElementById('duration'),
+      waveformCanvas: document.getElementById('waveform'),
+      trimRegion: document.getElementById('trim-region'),
+      startHandle: document.getElementById('start-handle'),
+      endHandle: document.getElementById('end-handle'),
+      startTimeDisplay: document.getElementById('start-time'),
+      endTimeDisplay: document.getElementById('end-time'),
+      selectionDuration: document.getElementById('selection-duration'),
+      trimBtn: document.getElementById('trim-btn'),
+      downloadBtn: document.getElementById('download-btn'),
+      toast: document.getElementById('toast'),
+      resetBtn: document.getElementById('reset-btn'),
+      zoomInBtn: document.getElementById('zoom-in-btn'),
+      zoomOutBtn: document.getElementById('zoom-out-btn'),
+      fadeInCheck: document.getElementById('fade-in-check'),
+      fadeOutCheck: document.getElementById('fade-out-check'),
+      previewBtn: document.getElementById('preview-btn'),
+      playhead: document.getElementById('playhead')
+    };
+
+    async function onConfigChange(config) {
+      document.getElementById('app-title').textContent = config.app_title || defaultConfig.app_title;
+      elements.uploadBtn.textContent = config.upload_button_text || defaultConfig.upload_button_text;
+      elements.trimBtn.textContent = config.trim_button_text || defaultConfig.trim_button_text;
+      elements.downloadBtn.textContent = config.download_button_text || defaultConfig.download_button_text;
+    }
+
+    function showToast(message) {
+      elements.toast.textContent = message;
+      elements.toast.classList.add('show');
+      setTimeout(() => {
+        elements.toast.classList.remove('show');
+      }, 3000);
+    }
+
+    function formatTime(seconds) {
+      const mins = Math.floor(seconds / 60);
+      const secs = Math.floor(seconds % 60);
+      return `${mins}:${secs.toString().padStart(2, '0')}`;
+    }
+
+    function drawWaveform(buffer) {
+      const canvas = elements.waveformCanvas;
+      const ctx = canvas.getContext('2d');
+      const width = canvas.offsetWidth;
+      const height = canvas.offsetHeight;
+      
+      canvas.width = width;
+      canvas.height = height;
+
+      const data = buffer.getChannelData(0);
+      const step = Math.ceil(data.length / (width * zoomLevel));
+      const amp = height / 2;
+
+      ctx.fillStyle = '#1a1a2e';
+      ctx.fillRect(0, 0, width, height);
+      
+      // Draw center line
+      ctx.strokeStyle = 'rgba(124, 58, 237, 0.3)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(0, height / 2);
+      ctx.lineTo(width, height / 2);
+      ctx.stroke();
+      
+      // Draw waveform with gradient
+      const gradient = ctx.createLinearGradient(0, 0, 0, height);
+      gradient.addColorStop(0, '#a78bfa');
+      gradient.addColorStop(0.5, '#7c3aed');
+      gradient.addColorStop(1, '#a78bfa');
+      
+      ctx.strokeStyle = gradient;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+
+      for (let i = 0; i < width; i++) {
+        let min = 1.0;
+        let max = -1.0;
+        
+        for (let j = 0; j < step; j++) {
+          const datum = data[(i * step) + j];
+          if (datum < min) min = datum;
+          if (datum > max) max = datum;
+        }
+        
+        ctx.moveTo(i, (1 + min) * amp);
+        ctx.lineTo(i, (1 + max) * amp);
+      }
+      
+      ctx.stroke();
+    }
+
+    function updateTrimRegion() {
+      const duration = audioBuffer.duration;
+      const startPercent = (startTime / duration) * 100;
+      const endPercent = (endTime / duration) * 100;
+      
+      elements.startHandle.style.left = `${startPercent}%`;
+      elements.endHandle.style.left = `${endPercent}%`;
+      elements.trimRegion.style.left = `${startPercent}%`;
+      elements.trimRegion.style.width = `${endPercent - startPercent}%`;
+      
+      elements.startTimeDisplay.textContent = formatTime(startTime);
+      elements.endTimeDisplay.textContent = formatTime(endTime);
+      elements.selectionDuration.textContent = formatTime(endTime - startTime);
+    }
+    
+    function updatePlayhead() {
+      if (elements.audioPlayer.paused) {
+        elements.playhead.style.display = 'none';
+        return;
+      }
+      
+      const currentTime = elements.audioPlayer.currentTime;
+      const duration = audioBuffer.duration;
+      const percent = (currentTime / duration) * 100;
+      
+      elements.playhead.style.display = 'block';
+      elements.playhead.style.left = `${percent}%`;
+    }
+
+    function getPositionFromEvent(e) {
+      const rect = elements.waveformCanvas.getBoundingClientRect();
+      const clientX = e.type.startsWith('touch') ? e.touches[0].clientX : e.clientX;
+      const x = clientX - rect.left;
+      const percent = Math.max(0, Math.min(1, x / rect.width));
+      return percent * audioBuffer.duration;
+    }
+
+    elements.uploadBtn.addEventListener('click', () => {
+      elements.audioInput.click();
+    });
+
+    elements.audioInput.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      // Check if file is an audio file
+      if (!file.type.startsWith('audio/')) {
+        showToast('Please select a valid audio file');
+        elements.audioInput.value = '';
+        return;
+      }
+
+      fileName = file.name;
+      elements.fileNameDisplay.textContent = fileName;
+      showToast('Loading audio...');
+      
+      try {
+        // Create audio context if it doesn't exist
+        if (!audioContext) {
+          audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        
+        // Resume audio context if suspended (browser autoplay policy)
+        if (audioContext.state === 'suspended') {
+          await audioContext.resume();
+        }
+        
+        // Load audio into player first
+        const url = URL.createObjectURL(file);
+        elements.audioPlayer.src = url;
+        
+        // Wait for audio to load metadata
+        await new Promise((resolve, reject) => {
+          elements.audioPlayer.onloadedmetadata = resolve;
+          elements.audioPlayer.onerror = () => reject(new Error('Failed to load audio'));
+          setTimeout(() => reject(new Error('Timeout loading audio')), 10000);
+        });
+        
+        // Now decode for waveform
+        const arrayBuffer = await file.arrayBuffer();
+        audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+        
+        endTime = audioBuffer.duration;
+        startTime = 0;
+        
+        drawWaveform(audioBuffer);
+        updateTrimRegion();
+        
+        elements.playerSection.classList.remove('hidden');
+        elements.downloadBtn.disabled = true;
+        trimmedBlob = null;
+        elements.fadeInCheck.checked = false;
+        elements.fadeOutCheck.checked = false;
+        
+        showToast('✅ Audio loaded successfully!');
+      } catch (error) {
+        console.error('Upload error:', error);
+        showToast('❌ Error loading audio file. Try a different format.');
+        elements.audioInput.value = '';
+        elements.playerSection.classList.add('hidden');
+      }
+    });
+
+    // Handle dragging for trim handles
+    function handleDragStart(e, handle) {
+      isDragging = true;
+      currentHandle = handle;
+      e.preventDefault();
+    }
+
+    function handleDragMove(e) {
+      if (!isDragging || !audioBuffer) return;
+      
+      const newTime = getPositionFromEvent(e);
+      
+      if (currentHandle === 'start') {
+        startTime = Math.max(0, Math.min(newTime, endTime - 0.1));
+      } else {
+        endTime = Math.max(startTime + 0.1, Math.min(newTime, audioBuffer.duration));
+      }
+      
+      updateTrimRegion();
+    }
+
+    function handleDragEnd() {
+      isDragging = false;
+      currentHandle = null;
+    }
+
+    elements.startHandle.addEventListener('mousedown', (e) => handleDragStart(e, 'start'));
+    elements.startHandle.addEventListener('touchstart', (e) => handleDragStart(e, 'start'));
+    elements.endHandle.addEventListener('mousedown', (e) => handleDragStart(e, 'end'));
+    elements.endHandle.addEventListener('touchstart', (e) => handleDragStart(e, 'end'));
+
+    document.addEventListener('mousemove', handleDragMove);
+    document.addEventListener('touchmove', handleDragMove);
+    document.addEventListener('mouseup', handleDragEnd);
+    document.addEventListener('touchend', handleDragEnd);
+
+    elements.trimBtn.addEventListener('click', async () => {
+      if (!audioBuffer) return;
+      
+      elements.trimBtn.disabled = true;
+      showToast('Trimming audio...');
+      
+      try {
+        const sampleRate = audioBuffer.sampleRate;
+        const startSample = Math.floor(startTime * sampleRate);
+        const endSample = Math.floor(endTime * sampleRate);
+        const trimmedLength = endSample - startSample;
+        
+        const trimmedBuffer = audioContext.createBuffer(
+          audioBuffer.numberOfChannels,
+          trimmedLength,
+          sampleRate
+        );
+        
+        for (let channel = 0; channel < audioBuffer.numberOfChannels; channel++) {
+          const sourceData = audioBuffer.getChannelData(channel);
+          const trimmedData = trimmedBuffer.getChannelData(channel);
+          
+          for (let i = 0; i < trimmedLength; i++) {
+            trimmedData[i] = sourceData[startSample + i];
+          }
+          
+          // Apply fade in
+          if (elements.fadeInCheck.checked) {
+            const fadeSamples = Math.floor(0.5 * sampleRate); // 0.5 second fade
+            for (let i = 0; i < Math.min(fadeSamples, trimmedLength); i++) {
+              const gain = i / fadeSamples;
+              trimmedData[i] *= gain;
+            }
+          }
+          
+          // Apply fade out
+          if (elements.fadeOutCheck.checked) {
+            const fadeSamples = Math.floor(0.5 * sampleRate); // 0.5 second fade
+            const fadeStart = trimmedLength - fadeSamples;
+            for (let i = Math.max(0, fadeStart); i < trimmedLength; i++) {
+              const gain = (trimmedLength - i) / fadeSamples;
+              trimmedData[i] *= gain;
+            }
+          }
+        }
+        
+        // Convert to selected format
+        if (selectedFormat === 'wav') {
+          const wavData = audioBufferToWav(trimmedBuffer);
+          trimmedBlob = new Blob([wavData], { type: 'audio/wav' });
+        } else {
+          // For MP3, we'll use WAV with a note (actual MP3 encoding requires additional libraries)
+          const wavData = audioBufferToWav(trimmedBuffer);
+          trimmedBlob = new Blob([wavData], { type: 'audio/wav' });
+          showToast('Note: Saving as WAV (MP3 encoding requires server-side processing)');
+        }
+        
+        elements.downloadBtn.disabled = false;
+        showToast('Audio trimmed successfully!');
+      } catch (error) {
+        showToast('Error trimming audio');
+      } finally {
+        elements.trimBtn.disabled = false;
+      }
+    });
+
+    elements.downloadBtn.addEventListener('click', async () => {
+      if (!trimmedBlob) return;
+      
+      try {
+        const extension = selectedFormat === 'wav' ? '.wav' : '.mp3';
+        const mimeType = selectedFormat === 'wav' ? 'audio/wav' : 'audio/mpeg';
+        
+        // Check if File System Access API is supported
+        if ('showSaveFilePicker' in window) {
+          const handle = await window.showSaveFilePicker({
+            suggestedName: fileName.replace(/\.[^/.]+$/, '') + '_trimmed' + extension,
+            types: [{
+              description: 'Audio Files',
+              accept: { [mimeType]: [extension] }
+            }]
+          });
+          
+          const writable = await handle.createWritable();
+          await writable.write(trimmedBlob);
+          await writable.close();
+          
+          showToast('Audio saved successfully!');
+        } else {
+          // Fallback for browsers that don't support File System Access API
+          const url = URL.createObjectURL(trimmedBlob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = fileName.replace(/\.[^/.]+$/, '') + '_trimmed' + extension;
+          a.click();
+          URL.revokeObjectURL(url);
+          
+          showToast('Download started!');
+        }
+      } catch (error) {
+        if (error.name !== 'AbortError') {
+          showToast('Error saving file');
+        }
+      }
+    });
+    
+    // Reset button
+    elements.resetBtn.addEventListener('click', () => {
+      elements.audioInput.value = '';
+      elements.playerSection.classList.add('hidden');
+      audioBuffer = null;
+      trimmedBlob = null;
+      startTime = 0;
+      endTime = 0;
+      zoomLevel = 1;
+      elements.fadeInCheck.checked = false;
+      elements.fadeOutCheck.checked = false;
+      elements.downloadBtn.disabled = true;
+      showToast('Reset complete');
+    });
+    
+    // Zoom controls
+    elements.zoomInBtn.addEventListener('click', () => {
+      if (zoomLevel < 4) {
+        zoomLevel += 0.5;
+        drawWaveform(audioBuffer);
+        showToast(`Zoom: ${zoomLevel}x`);
+      }
+    });
+    
+    elements.zoomOutBtn.addEventListener('click', () => {
+      if (zoomLevel > 1) {
+        zoomLevel -= 0.5;
+        drawWaveform(audioBuffer);
+        showToast(`Zoom: ${zoomLevel}x`);
+      }
+    });
+    
+    // Format selection
+    document.querySelectorAll('.format-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        document.querySelectorAll('.format-btn').forEach(b => {
+          b.classList.remove('bg-purple-600', 'text-white');
+          b.classList.add('bg-white/10', 'text-purple-200');
+        });
+        btn.classList.remove('bg-white/10', 'text-purple-200');
+        btn.classList.add('bg-purple-600', 'text-white');
+        selectedFormat = btn.dataset.format;
+        showToast(`Format: ${selectedFormat.toUpperCase()}`);
+      });
+    });
+    
+    // Preset buttons
+    document.querySelectorAll('.preset-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (!audioBuffer) return;
+        
+        const preset = btn.dataset.preset;
+        const duration = audioBuffer.duration;
+        
+        if (preset === 'first-30') {
+          startTime = 0;
+          endTime = Math.min(30, duration);
+        } else if (preset === 'middle') {
+          const quarter = duration / 4;
+          startTime = quarter;
+          endTime = duration - quarter;
+        } else if (preset === 'last-30') {
+          startTime = Math.max(0, duration - 30);
+          endTime = duration;
+        }
+        
+        updateTrimRegion();
+        showToast(`Applied ${btn.textContent.trim()} preset`);
+      });
+    });
+    
+    // Preview button
+    elements.previewBtn.addEventListener('click', () => {
+      if (!audioBuffer) return;
+      
+      elements.audioPlayer.currentTime = startTime;
+      elements.audioPlayer.play();
+      
+      // Stop at end time
+      const checkTime = setInterval(() => {
+        if (elements.audioPlayer.currentTime >= endTime) {
+          elements.audioPlayer.pause();
+          clearInterval(checkTime);
+        }
+      }, 50);
+      
+      showToast('Playing selection...');
+    });
+    
+    // Playhead animation
+    elements.audioPlayer.addEventListener('play', () => {
+      playheadInterval = setInterval(updatePlayhead, 50);
+    });
+    
+    elements.audioPlayer.addEventListener('pause', () => {
+      if (playheadInterval) {
+        clearInterval(playheadInterval);
+        playheadInterval = null;
+      }
+      elements.playhead.style.display = 'none';
+    });
+    
+    elements.audioPlayer.addEventListener('ended', () => {
+      if (playheadInterval) {
+        clearInterval(playheadInterval);
+        playheadInterval = null;
+      }
+      elements.playhead.style.display = 'none';
+    });
+
+    // Convert AudioBuffer to WAV format
+    function audioBufferToWav(buffer) {
+      const length = buffer.length * buffer.numberOfChannels * 2 + 44;
+      const arrayBuffer = new ArrayBuffer(length);
+      const view = new DataView(arrayBuffer);
+      const channels = [];
+      let offset = 0;
+      let pos = 0;
+
+      // Write WAV header
+      setUint32(0x46464952); // "RIFF"
+      setUint32(length - 8); // file length - 8
+      setUint32(0x45564157); // "WAVE"
+      
+      setUint32(0x20746d66); // "fmt " chunk
+      setUint32(16); // length = 16
+      setUint16(1); // PCM (uncompressed)
+      setUint16(buffer.numberOfChannels);
+      setUint32(buffer.sampleRate);
+      setUint32(buffer.sampleRate * 2 * buffer.numberOfChannels); // avg. bytes/sec
+      setUint16(buffer.numberOfChannels * 2); // block-align
+      setUint16(16); // 16-bit
+      
+      setUint32(0x61746164); // "data" - chunk
+      setUint32(length - pos - 4); // chunk length
+
+      // Write interleaved data
+      for (let i = 0; i < buffer.numberOfChannels; i++) {
+        channels.push(buffer.getChannelData(i));
+      }
+
+      while (pos < length) {
+        for (let i = 0; i < buffer.numberOfChannels; i++) {
+          let sample = Math.max(-1, Math.min(1, channels[i][offset]));
+          sample = sample < 0 ? sample * 0x8000 : sample * 0x7FFF;
+          view.setInt16(pos, sample, true);
+          pos += 2;
+        }
+        offset++;
+      }
+
+      return arrayBuffer;
+
+      function setUint16(data) {
+        view.setUint16(pos, data, true);
+        pos += 2;
+      }
+
+      function setUint32(data) {
+        view.setUint32(pos, data, true);
+        pos += 4;
+      }
+    }
+
+    // Initialize SDK
+    if (window.elementSdk) {
+      window.elementSdk.init({
+        defaultConfig,
+        onConfigChange,
+        mapToCapabilities: (config) => ({
+          recolorables: [],
+          borderables: [],
+          fontEditable: undefined,
+          fontSizeable: undefined
+        }),
+        mapToEditPanelValues: (config) => new Map([
+          ["app_title", config.app_title || defaultConfig.app_title],
+          ["upload_button_text", config.upload_button_text || defaultConfig.upload_button_text],
+          ["trim_button_text", config.trim_button_text || defaultConfig.trim_button_text],
+          ["download_button_text", config.download_button_text || defaultConfig.download_button_text]
+        ])
+      });
+    }
+
+    // Initial render
+    onConfigChange(window.elementSdk?.config || defaultConfig);
+  </script>
+  </body>
+</html>
