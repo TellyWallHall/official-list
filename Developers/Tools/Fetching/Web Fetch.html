@@ -1,0 +1,582 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mobile Curl App</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        
+        .loading-spinner {
+            border: 3px solid #f3f4f6;
+            border-top: 3px solid #3b82f6;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.3s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
+    <div class="container mx-auto px-4 py-8 max-w-md">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <div class="bg-blue-600 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"></path>
+                </svg>
+            </div>
+            <h1 class="text-3xl font-bold text-gray-800 mb-2">Mobile Curl</h1>
+            <p class="text-gray-600">Download files from any URL</p>
+        </div>
+
+        <!-- Main Form -->
+        <div class="bg-white rounded-2xl shadow-xl p-6 mb-6">
+            <form id="curlForm" class="space-y-4">
+                <div>
+                    <label for="urlInput" class="block text-sm font-medium text-gray-700 mb-2">
+                        Enter URL
+                    </label>
+                    <input 
+                        type="url" 
+                        id="urlInput" 
+                        placeholder="https://example.com/file.txt"
+                        class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-base"
+                        required
+                    >
+                </div>
+                
+                <div>
+                    <label for="filenameInput" class="block text-sm font-medium text-gray-700 mb-2">
+                        Filename (optional)
+                    </label>
+                    <input 
+                        type="text" 
+                        id="filenameInput" 
+                        placeholder="Auto-detected from URL"
+                        class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-base"
+                    >
+                </div>
+
+                <div id="buttonContainer" class="space-y-3">
+                    <button 
+                        type="submit" 
+                        id="downloadBtn"
+                        class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-200 flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        <span id="btnText">Download File</span>
+                        <div id="loadingSpinner" class="loading-spinner hidden"></div>
+                    </button>
+                    
+                    <button 
+                        type="button" 
+                        id="cloneBtn"
+                        class="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-200 flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed hidden"
+                    >
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                        </svg>
+                        <span id="cloneBtnText">Clone Repository</span>
+                        <div id="cloneLoadingSpinner" class="loading-spinner hidden"></div>
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Status Messages -->
+        <div id="statusContainer" class="space-y-3"></div>
+
+        <!-- Recent Downloads -->
+        <div id="recentDownloads" class="bg-white rounded-2xl shadow-xl p-6 hidden">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">Recent Downloads</h3>
+            <div id="downloadHistory" class="space-y-2"></div>
+        </div>
+    </div>
+
+    <script>
+        const state = {
+            isDownloading: false,
+            downloadHistory: JSON.parse(localStorage.getItem('curlHistory') || '[]')
+        };
+
+        // File type detection helper
+        function getFileTypeFromExtension(filename) {
+            const ext = filename.split('.').pop().toLowerCase();
+            const mimeTypes = {
+                'html': 'text/html',
+                'htm': 'text/html',
+                'txt': 'text/plain',
+                'json': 'application/json',
+                'js': 'text/javascript',
+                'css': 'text/css',
+                'xml': 'text/xml',
+                'csv': 'text/csv',
+                'pdf': 'application/pdf',
+                'zip': 'application/zip',
+                'jpg': 'image/jpeg',
+                'jpeg': 'image/jpeg',
+                'png': 'image/png',
+                'gif': 'image/gif',
+                'svg': 'image/svg+xml',
+                'mp3': 'audio/mpeg',
+                'mp4': 'video/mp4',
+                'webm': 'video/webm'
+            };
+            return mimeTypes[ext] || 'application/octet-stream';
+        }
+
+        function getFileAcceptTypes(filename) {
+            const ext = filename.split('.').pop().toLowerCase();
+            const mimeType = getFileTypeFromExtension(filename);
+            return [{ accept: {[mimeType]: [`.${ext}`]} }];
+        }
+
+        // Save function matching your exact implementation
+        async function saveFile(content, filename) {
+            try {
+                if (window.showSaveFilePicker) {
+                    const handle = await window.showSaveFilePicker({
+                        suggestedName: filename,
+                        types: getFileAcceptTypes(filename)
+                    });
+                    const writable = await handle.createWritable();
+                    await writable.write(content);
+                    await writable.close();
+                } else {
+                    fallbackSave(content, filename);
+                }
+            } catch (err) {
+                fallbackSave(content, filename);
+            }
+        }
+
+        function fallbackSave(content, filename) {
+            const mimeType = getFileTypeFromExtension(filename);
+            const blob = new Blob([content], {type: mimeType});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function getFilenameFromUrl(url) {
+            try {
+                const urlObj = new URL(url);
+                const pathname = urlObj.pathname;
+                const filename = pathname.split('/').pop();
+                return filename || 'downloaded-file';
+            } catch {
+                return 'downloaded-file';
+            }
+        }
+
+        function showStatus(message, type = 'info') {
+            const container = document.getElementById('statusContainer');
+            const statusDiv = document.createElement('div');
+            
+            const bgColor = type === 'success' ? 'bg-green-100 border-green-400 text-green-700' :
+                           type === 'error' ? 'bg-red-100 border-red-400 text-red-700' :
+                           'bg-blue-100 border-blue-400 text-blue-700';
+            
+            statusDiv.className = `${bgColor} border-l-4 p-4 rounded-r-lg fade-in`;
+            statusDiv.innerHTML = `
+                <div class="flex items-center">
+                    <span class="text-sm font-medium">${message}</span>
+                    <button onclick="this.parentElement.parentElement.remove()" class="ml-auto text-current opacity-50 hover:opacity-100">
+                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                        </svg>
+                    </button>
+                </div>
+            `;
+            
+            container.appendChild(statusDiv);
+            
+            // Auto-remove after 5 seconds
+            setTimeout(() => {
+                if (statusDiv.parentNode) {
+                    statusDiv.remove();
+                }
+            }, 5000);
+        }
+
+        function addToHistory(url, filename) {
+            const entry = {
+                url,
+                filename,
+                timestamp: new Date().toISOString(),
+                date: new Date().toLocaleDateString()
+            };
+            
+            state.downloadHistory.unshift(entry);
+            state.downloadHistory = state.downloadHistory.slice(0, 10); // Keep only last 10
+            localStorage.setItem('curlHistory', JSON.stringify(state.downloadHistory));
+            updateHistoryDisplay();
+        }
+
+        function updateHistoryDisplay() {
+            const container = document.getElementById('recentDownloads');
+            const historyDiv = document.getElementById('downloadHistory');
+            
+            if (state.downloadHistory.length === 0) {
+                container.classList.add('hidden');
+                return;
+            }
+            
+            container.classList.remove('hidden');
+            historyDiv.innerHTML = state.downloadHistory.map(entry => `
+                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-medium text-gray-900 truncate">${entry.filename}</p>
+                        <p class="text-xs text-gray-500 truncate">${entry.url}</p>
+                        <p class="text-xs text-gray-400">${entry.date}</p>
+                    </div>
+                    <button onclick="downloadAgain('${entry.url}', '${entry.filename}')" 
+                            class="ml-2 text-blue-600 hover:text-blue-800 text-sm font-medium">
+                        Download Again
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        async function downloadAgain(url, filename) {
+            document.getElementById('urlInput').value = url;
+            document.getElementById('filenameInput').value = filename;
+            await performDownload();
+        }
+
+        function setLoading(loading) {
+            const btn = document.getElementById('downloadBtn');
+            const btnText = document.getElementById('btnText');
+            const spinner = document.getElementById('loadingSpinner');
+            
+            state.isDownloading = loading;
+            btn.disabled = loading;
+            
+            if (loading) {
+                btnText.textContent = 'Downloading...';
+                spinner.classList.remove('hidden');
+            } else {
+                btnText.textContent = 'Download File';
+                spinner.classList.add('hidden');
+            }
+        }
+
+        // Helper to detect if file is binary based on extension
+        function isBinaryFile(filename) {
+            const ext = filename.split('.').pop().toLowerCase();
+            const binaryExtensions = ['pdf', 'zip', 'jpg', 'jpeg', 'png', 'gif', 'mp3', 'mp4', 'webm', 'exe', 'dmg', 'app'];
+            return binaryExtensions.includes(ext);
+        }
+
+        async function performDownload() {
+            const urlInput = document.getElementById('urlInput');
+            const filenameInput = document.getElementById('filenameInput');
+            
+            const url = urlInput.value.trim();
+            if (!url) return;
+            
+            setLoading(true);
+            
+            try {
+                showStatus('Fetching file...', 'info');
+                
+                // Use a CORS proxy for cross-origin requests
+                const proxyUrl = `https://cloudflare-cors-anywhere.imnotfamous01.workers.dev/?${url}`;
+                
+                const response = await fetch(proxyUrl);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const filename = filenameInput.value.trim() || getFilenameFromUrl(url);
+                
+                // Handle binary vs text files differently
+                let content;
+                if (isBinaryFile(filename)) {
+                    content = await response.arrayBuffer();
+                } else {
+                    content = await response.text();
+                }
+                
+                await saveFile(content, filename);
+                
+                showStatus(`Successfully downloaded: ${filename}`, 'success');
+                addToHistory(url, filename);
+                
+                // Clear form
+                urlInput.value = '';
+                filenameInput.value = '';
+                
+            } catch (error) {
+                console.error('Download error:', error);
+                showStatus(`Download failed: ${error.message}`, 'error');
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        // Event listeners
+        document.getElementById('curlForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!state.isDownloading) {
+                await performDownload();
+            }
+        });
+
+        // Helper to detect if URL is a git repository
+        function isGitRepository(url) {
+            try {
+                const urlObj = new URL(url);
+                const hostname = urlObj.hostname.toLowerCase();
+                const pathname = urlObj.pathname.toLowerCase();
+                
+                // Check for common git hosting services
+                const gitHosts = ['github.com', 'gitlab.com', 'bitbucket.org', 'codeberg.org'];
+                const isGitHost = gitHosts.includes(hostname);
+                
+                // Check for .git extension or git-related paths
+                const hasGitExtension = pathname.endsWith('.git');
+                const hasGitPath = pathname.includes('/git/') || pathname.includes('/_git/');
+                
+                return isGitHost || hasGitExtension || hasGitPath;
+            } catch {
+                return false;
+            }
+        }
+
+        // Auto-detect filename when URL changes and show/hide clone button
+        document.getElementById('urlInput').addEventListener('input', (e) => {
+            const filenameInput = document.getElementById('filenameInput');
+            const cloneBtn = document.getElementById('cloneBtn');
+            const url = e.target.value.trim();
+            
+            if (!filenameInput.value && url) {
+                filenameInput.placeholder = getFilenameFromUrl(url);
+            }
+            
+            // Show/hide clone button based on URL
+            if (url && isGitRepository(url)) {
+                cloneBtn.classList.remove('hidden');
+            } else {
+                cloneBtn.classList.add('hidden');
+            }
+        });
+
+        // Git clone functionality
+        async function cloneRepository() {
+            const urlInput = document.getElementById('urlInput');
+            const url = urlInput.value.trim();
+            
+            if (!url || !isGitRepository(url)) {
+                showStatus('Please enter a valid Git repository URL', 'error');
+                return;
+            }
+            
+            setCloneLoading(true);
+            
+            try {
+                showStatus('Detecting repository info...', 'info');
+                
+                // First, get repository information to find the default branch
+                const repoInfo = await getRepositoryInfo(url);
+                if (!repoInfo) {
+                    throw new Error('Could not access repository information');
+                }
+                
+                showStatus(`Downloading ${repoInfo.name} (${repoInfo.defaultBranch})...`, 'info');
+                
+                // Download the ZIP file using the correct branch
+                const zipUrl = buildZipUrl(url, repoInfo.defaultBranch);
+                const proxyUrl = `https://cloudflare-cors-anywhere.imnotfamous01.workers.dev/?${zipUrl}`;
+                const response = await fetch(proxyUrl);
+                
+                if (!response.ok) {
+                    // Try alternative branch names if main fails
+                    const altBranches = ['master', 'develop', 'dev'];
+                    let success = false;
+                    
+                    for (const branch of altBranches) {
+                        if (branch === repoInfo.defaultBranch) continue;
+                        
+                        try {
+                            showStatus(`Trying branch: ${branch}...`, 'info');
+                            const altZipUrl = buildZipUrl(url, branch);
+                            const altProxyUrl = `https://cloudflare-cors-anywhere.imnotfamous01.workers.dev/?${altZipUrl}`;
+                            const altResponse = await fetch(altProxyUrl);
+                            
+                            if (altResponse.ok) {
+                                const zipContent = await altResponse.arrayBuffer();
+                                const filename = `${repoInfo.name}-${branch}.zip`;
+                                
+                                await saveFile(zipContent, filename);
+                                showStatus(`Successfully cloned: ${repoInfo.name} (${branch})`, 'success');
+                                addToHistory(url, filename);
+                                success = true;
+                                break;
+                            }
+                        } catch (e) {
+                            continue;
+                        }
+                    }
+                    
+                    if (!success) {
+                        throw new Error(`Repository not accessible. Status: ${response.status}`);
+                    }
+                } else {
+                    const zipContent = await response.arrayBuffer();
+                    const filename = `${repoInfo.name}-${repoInfo.defaultBranch}.zip`;
+                    
+                    await saveFile(zipContent, filename);
+                    showStatus(`Successfully cloned: ${repoInfo.name}`, 'success');
+                    addToHistory(url, filename);
+                }
+                
+                // Clear form
+                urlInput.value = '';
+                document.getElementById('filenameInput').value = '';
+                document.getElementById('cloneBtn').classList.add('hidden');
+                
+            } catch (error) {
+                console.error('Clone error:', error);
+                showStatus(`Clone failed: ${error.message}`, 'error');
+            } finally {
+                setCloneLoading(false);
+            }
+        }
+
+        function setCloneLoading(loading) {
+            const btn = document.getElementById('cloneBtn');
+            const btnText = document.getElementById('cloneBtnText');
+            const spinner = document.getElementById('cloneLoadingSpinner');
+            
+            btn.disabled = loading;
+            
+            if (loading) {
+                btnText.textContent = 'Cloning...';
+                spinner.classList.remove('hidden');
+            } else {
+                btnText.textContent = 'Clone Repository';
+                spinner.classList.add('hidden');
+            }
+        }
+
+        async function getRepositoryInfo(url) {
+            try {
+                const urlObj = new URL(url);
+                const hostname = urlObj.hostname.toLowerCase();
+                const pathname = urlObj.pathname.replace(/\.git$/, '');
+                
+                if (hostname === 'github.com') {
+                    // Get GitHub repository info
+                    const apiUrl = `https://api.github.com/repos${pathname}`;
+                    const proxyUrl = `https://cloudflare-cors-anywhere.imnotfamous01.workers.dev/?${apiUrl}`;
+                    const response = await fetch(proxyUrl);
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        return {
+                            name: data.name,
+                            defaultBranch: data.default_branch || 'main'
+                        };
+                    }
+                } else if (hostname === 'gitlab.com') {
+                    // Get GitLab repository info
+                    const projectPath = pathname.substring(1).replace(/\//g, '%2F');
+                    const apiUrl = `https://gitlab.com/api/v4/projects/${projectPath}`;
+                    const proxyUrl = `https://cloudflare-cors-anywhere.imnotfamous01.workers.dev/?${apiUrl}`;
+                    const response = await fetch(proxyUrl);
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        return {
+                            name: data.name,
+                            defaultBranch: data.default_branch || 'main'
+                        };
+                    }
+                } else if (hostname === 'bitbucket.org') {
+                    // For Bitbucket, assume main branch (API requires auth)
+                    const parts = pathname.split('/').filter(p => p);
+                    return {
+                        name: parts[parts.length - 1] || 'repository',
+                        defaultBranch: 'main'
+                    };
+                }
+                
+                // Fallback for unknown hosts
+                const parts = pathname.split('/').filter(p => p);
+                return {
+                    name: parts[parts.length - 1] || 'repository',
+                    defaultBranch: 'main'
+                };
+            } catch {
+                return null;
+            }
+        }
+
+        function buildZipUrl(url, branch) {
+            try {
+                const urlObj = new URL(url);
+                const hostname = urlObj.hostname.toLowerCase();
+                const pathname = urlObj.pathname.replace(/\.git$/, '');
+                
+                if (hostname === 'github.com') {
+                    return `https://github.com${pathname}/archive/refs/heads/${branch}.zip`;
+                } else if (hostname === 'gitlab.com') {
+                    const projectName = pathname.split('/').pop();
+                    return `https://gitlab.com${pathname}/-/archive/${branch}/${projectName}-${branch}.zip`;
+                } else if (hostname === 'bitbucket.org') {
+                    return `https://bitbucket.org${pathname}/get/${branch}.zip`;
+                }
+                
+                return null;
+            } catch {
+                return null;
+            }
+        }
+
+        function getRepositoryName(url) {
+            try {
+                const urlObj = new URL(url);
+                const pathname = urlObj.pathname.replace(/\.git$/, '');
+                const parts = pathname.split('/').filter(p => p);
+                return parts[parts.length - 1] || 'repository';
+            } catch {
+                return 'repository';
+            }
+        }
+
+
+
+        // Add clone button event listener
+        document.getElementById('cloneBtn').addEventListener('click', cloneRepository);
+
+        // Initialize
+        updateHistoryDisplay();
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9655225f475645f5',t:'MTc1MzU0NTg4MS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
+
+
