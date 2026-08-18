@@ -1,0 +1,2828 @@
+<!doctype html>
+<!-- by ImPot8o https://github.com/ImPot8o pot8o.dev -->
+<html lang="en">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JavaScript Mastery Course</title>
+  <style>
+    body {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #1a202c;
+      min-height: 100%;
+      width: 100%;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 100%;
+      margin: 0 auto;
+      padding: 16px;
+      min-height: 100%;
+    }
+
+    .header {
+      background: white;
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .header h1 {
+      margin: 0 0 8px 0;
+      font-size: 28px;
+      font-weight: 700;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .header p {
+      margin: 0;
+      color: #718096;
+      font-size: 14px;
+    }
+
+    .progress-bar {
+      background: #e2e8f0;
+      border-radius: 12px;
+      height: 8px;
+      margin-top: 16px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+      height: 100%;
+      transition: width 0.3s ease;
+      border-radius: 12px;
+    }
+
+    .nav-tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      padding-bottom: 8px;
+    }
+
+    .nav-tabs::-webkit-scrollbar {
+      height: 4px;
+    }
+
+    .nav-tabs::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.3);
+      border-radius: 4px;
+    }
+
+    .tab-btn {
+      background: rgba(255, 255, 255, 0.2);
+      border: none;
+      padding: 12px 20px;
+      border-radius: 12px;
+      color: white;
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s;
+      flex-shrink: 0;
+    }
+
+    .tab-btn:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+
+    .tab-btn.active {
+      background: white;
+      color: #667eea;
+    }
+
+    .content-area {
+      background: white;
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      margin-bottom: 20px;
+    }
+
+    .module-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .module-card {
+      background: #f7fafc;
+      border: 2px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 16px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .module-card:hover {
+      border-color: #667eea;
+      transform: translateY(-2px);
+    }
+
+    .module-card.completed {
+      border-color: #48bb78;
+      background: #f0fff4;
+    }
+
+    .module-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .module-title {
+      font-weight: 600;
+      font-size: 16px;
+      color: #2d3748;
+    }
+
+    .module-status {
+      font-size: 20px;
+    }
+
+    .module-desc {
+      color: #718096;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .lesson-content {
+      display: none;
+    }
+
+    .lesson-content.active {
+      display: block;
+    }
+
+    .lesson-header {
+      margin-bottom: 24px;
+    }
+
+    .lesson-header h2 {
+      margin: 0 0 8px 0;
+      color: #2d3748;
+      font-size: 24px;
+    }
+
+    .lesson-header p {
+      margin: 0;
+      color: #718096;
+      font-size: 14px;
+    }
+
+    .lesson-section {
+      margin-bottom: 32px;
+    }
+
+    .lesson-section h3 {
+      color: #2d3748;
+      font-size: 18px;
+      margin: 0 0 12px 0;
+      font-weight: 600;
+    }
+
+    .lesson-text {
+      color: #4a5568;
+      line-height: 1.7;
+      margin-bottom: 16px;
+      font-size: 15px;
+    }
+
+    .code-block {
+      background: #2d3748;
+      color: #e2e8f0;
+      padding: 16px;
+      border-radius: 8px;
+      overflow-x: auto;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      line-height: 1.6;
+      margin-bottom: 16px;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+
+    .code-inline {
+      background: #edf2f7;
+      color: #d53f8c;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+    }
+
+    .try-it-box {
+      background: #ebf8ff;
+      border-left: 4px solid #4299e1;
+      padding: 16px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+    }
+
+    .try-it-box h4 {
+      margin: 0 0 12px 0;
+      color: #2c5282;
+      font-size: 16px;
+    }
+
+    .code-editor {
+      width: 100%;
+      min-height: 120px;
+      padding: 12px;
+      border: 2px solid #cbd5e0;
+      border-radius: 8px;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      resize: vertical;
+      margin-bottom: 12px;
+    }
+
+    .btn {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.2s;
+      width: 100%;
+      margin-bottom: 8px;
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .btn-secondary {
+      background: #e2e8f0;
+      color: #2d3748;
+    }
+
+    .btn-secondary:hover {
+      background: #cbd5e0;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .output-box {
+      background: #f7fafc;
+      border: 2px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 16px;
+      min-height: 60px;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      color: #2d3748;
+      white-space: pre-wrap;
+      margin-top: 12px;
+    }
+
+    .quiz-question {
+      background: #fef5e7;
+      border-left: 4px solid #f59e0b;
+      padding: 16px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+    }
+
+    .quiz-question h4 {
+      margin: 0 0 12px 0;
+      color: #92400e;
+      font-size: 16px;
+    }
+
+    .quiz-options {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .quiz-option {
+      background: white;
+      border: 2px solid #e2e8f0;
+      padding: 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .quiz-option:hover {
+      border-color: #667eea;
+    }
+
+    .quiz-option.selected {
+      border-color: #667eea;
+      background: #ebf4ff;
+    }
+
+    .quiz-option.correct {
+      border-color: #48bb78;
+      background: #f0fff4;
+    }
+
+    .quiz-option.incorrect {
+      border-color: #f56565;
+      background: #fff5f5;
+    }
+
+    .navigation-buttons {
+      display: flex;
+      gap: 12px;
+      margin-top: 32px;
+    }
+
+    .navigation-buttons button {
+      flex: 1;
+    }
+
+    .back-button {
+      background: #e2e8f0;
+      color: #2d3748;
+      border: none;
+      padding: 12px;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-bottom: 20px;
+    }
+
+    .back-button:hover {
+      background: #cbd5e0;
+    }
+
+    .note-area {
+      margin-top: 24px;
+      padding-top: 24px;
+      border-top: 2px solid #e2e8f0;
+    }
+
+    .note-area h4 {
+      margin: 0 0 12px 0;
+      color: #2d3748;
+      font-size: 16px;
+    }
+
+    .note-textarea {
+      width: 100%;
+      min-height: 80px;
+      padding: 12px;
+      border: 2px solid #cbd5e0;
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 14px;
+      resize: vertical;
+      margin-bottom: 12px;
+    }
+
+    .achievement-badge {
+      display: inline-block;
+      background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+      color: #744210;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-weight: 600;
+      font-size: 12px;
+      margin-top: 12px;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: #718096;
+    }
+
+    @media (min-width: 768px) {
+      .container {
+        max-width: 900px;
+        padding: 24px;
+      }
+
+      .header h1 {
+        font-size: 36px;
+      }
+
+      .navigation-buttons {
+        justify-content: space-between;
+      }
+
+      .navigation-buttons button {
+        flex: 0 1 200px;
+      }
+    }
+  </style>
+  <style>@view-transition { navigation: auto; }</style>
+  <script src="https://cdn.tailwindcss.com" type="text/javascript"></script>
+ </head>
+ <body>
+  <div class="container">
+   <div class="header">
+    <h1 id="course-title">JavaScript Mastery Course</h1>
+    <p id="welcome-message">Welcome to your coding journey!</p>
+    <div class="progress-bar">
+     <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
+    </div>
+   </div>
+   <div class="nav-tabs" id="nav-tabs"><button class="tab-btn active" data-tab="modules">📚 Modules</button> <button class="tab-btn" data-tab="progress">📊 Progress</button> <button class="tab-btn" data-tab="reference">📖 Quick Reference</button>
+   </div>
+   <div class="content-area">
+    <div id="modules-view" class="tab-content active">
+     <div id="module-list" class="module-list"></div>
+     <div id="lesson-view" class="lesson-content"></div>
+    </div>
+    <div id="progress-view" class="tab-content" style="display: none;">
+     <h2 style="margin-top: 0;">Your Learning Progress</h2>
+     <div id="progress-stats"></div>
+    </div>
+    <div id="reference-view" class="tab-content" style="display: none;">
+     <h2 style="margin-top: 0;">Quick Reference Guide</h2>
+     <div id="reference-content"></div>
+    </div>
+   </div>
+  </div>
+  <script>
+localStorage.setItem('pot8o watermark', `${localStorage.getItem('pot8o watermark') || ''} js-master-course`);
+    const defaultConfig = {
+      course_title: "JavaScript Mastery Course",
+      welcome_message: "Welcome to your coding journey!",
+      primary_color: "#667eea",
+      secondary_color: "#764ba2",
+      background_color: "#f7fafc",
+      text_color: "#2d3748",
+      accent_color: "#48bb78"
+    };
+
+    let currentLesson = null;
+    let progressData = [];
+
+    // Local Storage Functions
+    function loadProgress() {
+      const saved = localStorage.getItem('courseProgress');
+      return saved ? JSON.parse(saved) : [];
+    }
+
+    function saveProgress() {
+      localStorage.setItem('courseProgress', JSON.stringify(progressData));
+    }
+
+    function updateLessonProgress(lessonId, updates) {
+      let progress = progressData.find(p => p.lesson_id === lessonId);
+      
+      if (!progress) {
+        progress = {
+          lesson_id: lessonId,
+          completed: false,
+          score: 0,
+          last_accessed: new Date().toISOString(),
+          notes: ""
+        };
+        progressData.push(progress);
+      }
+      
+      Object.assign(progress, updates);
+      saveProgress();
+      updateProgressBar();
+    }
+
+    const curriculum = [
+      {
+        id: "html-basics",
+        title: "HTML Fundamentals",
+        description: "Learn the building blocks of web pages with HTML structure and elements.",
+        lessons: [
+          {
+            id: "html-intro",
+            title: "Introduction to HTML",
+            content: `
+              <h3>What is HTML?</h3>
+              <p class="lesson-text">HTML (HyperText Markup Language) is the foundation of every website. It's not a programming language - it's a markup language that defines the structure and content of web pages using elements called tags.</p>
+              
+              <h3>Basic Structure</h3>
+              <p class="lesson-text">Every HTML document follows this basic structure:</p>
+              <div class="code-block">&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+  &lt;head&gt;
+    &lt;title&gt;My First Page&lt;/title&gt;
+  &lt;/head&gt;
+  &lt;body&gt;
+    &lt;h1&gt;Hello World!&lt;/h1&gt;
+    &lt;p&gt;This is my first web page.&lt;/p&gt;
+  &lt;/body&gt;
+&lt;/html&gt;</div>
+              
+              <div class="try-it-box">
+                <h4>💡 Try It: View the Output</h4>
+                <p class="lesson-text">Click below to see how HTML renders in a browser:</p>
+                <button class="btn" onclick="demoHTML()">Show HTML Output</button>
+                <div id="html-demo-output" class="output-box" style="display: none;"></div>
+              </div>
+
+              <h3>Common HTML Tags</h3>
+              <p class="lesson-text">Here are essential tags you'll use constantly:</p>
+              <ul style="color: #4a5568; line-height: 1.8;">
+                <li><span class="code-inline">&lt;h1&gt;</span> to <span class="code-inline">&lt;h6&gt;</span> - Headings (h1 is largest)</li>
+                <li><span class="code-inline">&lt;p&gt;</span> - Paragraphs</li>
+                <li><span class="code-inline">&lt;a&gt;</span> - Links</li>
+                <li><span class="code-inline">&lt;img&gt;</span> - Images</li>
+                <li><span class="code-inline">&lt;div&gt;</span> - Container for grouping elements</li>
+                <li><span class="code-inline">&lt;button&gt;</span> - Clickable buttons</li>
+              </ul>
+
+              <div class="quiz-question">
+                <h4>📝 Quick Check</h4>
+                <p style="margin-bottom: 12px;">What does HTML stand for?</p>
+                <div class="quiz-options" id="quiz-html-1">
+                  <div class="quiz-option" data-correct="false">Hyper Text Markup Link</div>
+                  <div class="quiz-option" data-correct="true">HyperText Markup Language</div>
+                  <div class="quiz-option" data-correct="false">Home Tool Markup Language</div>
+                </div>
+              </div>
+            `
+          },
+          {
+            id: "html-elements",
+            title: "Working with Elements",
+            content: `
+              <h3>Understanding Elements</h3>
+              <p class="lesson-text">HTML elements consist of an opening tag, content, and a closing tag. Some elements are self-closing.</p>
+              
+              <div class="code-block">&lt;!-- Element with content --&gt;
+&lt;p&gt;This is a paragraph&lt;/p&gt;
+
+&lt;!-- Self-closing element --&gt;
+&lt;img src="image.jpg" alt="Description"&gt;</div>
+
+              <h3>Attributes</h3>
+              <p class="lesson-text">Attributes provide additional information about elements. They go inside the opening tag:</p>
+              
+              <div class="code-block">&lt;a href="https://example.com" target="_blank"&gt;
+  Click me!
+&lt;/a&gt;
+
+&lt;img src="photo.jpg" alt="A photo" width="300"&gt;</div>
+
+              <div class="try-it-box">
+                <h4>💡 Try It: Create Your First Element</h4>
+                <p class="lesson-text">Type HTML code to create a heading and paragraph:</p>
+                <textarea class="code-editor" id="html-practice-1" placeholder="<h1>My Title</h1>
+<p>My paragraph text</p>"></textarea>
+                <button class="btn" onclick="runHTMLCode('html-practice-1', 'html-output-1')">Run Code</button>
+                <div id="html-output-1" class="output-box"></div>
+              </div>
+
+              <h3>Lists</h3>
+              <p class="lesson-text">Create ordered (numbered) or unordered (bullet) lists:</p>
+              
+              <div class="code-block">&lt;!-- Unordered list --&gt;
+&lt;ul&gt;
+  &lt;li&gt;First item&lt;/li&gt;
+  &lt;li&gt;Second item&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;!-- Ordered list --&gt;
+&lt;ol&gt;
+  &lt;li&gt;Step one&lt;/li&gt;
+  &lt;li&gt;Step two&lt;/li&gt;
+&lt;/ol&gt;</div>
+
+              <div class="quiz-question">
+                <h4>📝 Quick Check</h4>
+                <p style="margin-bottom: 12px;">Which tag creates a clickable link?</p>
+                <div class="quiz-options" id="quiz-html-2">
+                  <div class="quiz-option" data-correct="false">&lt;link&gt;</div>
+                  <div class="quiz-option" data-correct="true">&lt;a&gt;</div>
+                  <div class="quiz-option" data-correct="false">&lt;href&gt;</div>
+                </div>
+              </div>
+            `
+          }
+        ]
+      },
+      {
+        id: "css-basics",
+        title: "CSS Styling",
+        description: "Make your pages beautiful with colors, fonts, layouts, and animations.",
+        lessons: [
+          {
+            id: "css-intro",
+            title: "Introduction to CSS",
+            content: `
+              <h3>What is CSS?</h3>
+              <p class="lesson-text">CSS (Cascading Style Sheets) controls the visual appearance of HTML elements. It handles colors, fonts, spacing, layouts, and animations.</p>
+              
+              <h3>Three Ways to Add CSS</h3>
+              <div class="code-block">&lt;!-- 1. Inline CSS --&gt;
+&lt;p style="color: blue; font-size: 20px;"&gt;Blue text&lt;/p&gt;
+
+&lt;!-- 2. Internal CSS (in head section) --&gt;
+&lt;style&gt;
+  p { color: blue; }
+&lt;/style&gt;
+
+&lt;!-- 3. External CSS (separate file) --&gt;
+&lt;link rel="stylesheet" href="styles.css"&gt;</div>
+
+              <h3>CSS Syntax</h3>
+              <p class="lesson-text">CSS rules consist of a selector and declarations:</p>
+              
+              <div class="code-block">selector {
+  property: value;
+  another-property: value;
+}
+
+/* Example */
+h1 {
+  color: purple;
+  font-size: 32px;
+  text-align: center;
+}</div>
+
+              <div class="try-it-box">
+                <h4>💡 Try It: Style Some Text</h4>
+                <textarea class="code-editor" id="css-practice-1"><h1 style="color: red; font-size: 36px;">Hello CSS!</h1>
+<p style="color: blue;">This is styled text.</p></textarea>
+                <button class="btn" onclick="runHTMLCode('css-practice-1', 'css-output-1')">Run Code</button>
+                <div id="css-output-1" class="output-box"></div>
+              </div>
+
+              <h3>Common CSS Properties</h3>
+              <ul style="color: #4a5568; line-height: 1.8;">
+                <li><span class="code-inline">color</span> - Text color</li>
+                <li><span class="code-inline">background-color</span> - Background color</li>
+                <li><span class="code-inline">font-size</span> - Size of text</li>
+                <li><span class="code-inline">font-weight</span> - Bold or normal text</li>
+                <li><span class="code-inline">padding</span> - Space inside element</li>
+                <li><span class="code-inline">margin</span> - Space outside element</li>
+                <li><span class="code-inline">border</span> - Border around element</li>
+              </ul>
+
+              <div class="quiz-question">
+                <h4>📝 Quick Check</h4>
+                <p style="margin-bottom: 12px;">What does CSS stand for?</p>
+                <div class="quiz-options" id="quiz-css-1">
+                  <div class="quiz-option" data-correct="false">Computer Style Sheets</div>
+                  <div class="quiz-option" data-correct="true">Cascading Style Sheets</div>
+                  <div class="quiz-option" data-correct="false">Creative Style System</div>
+                </div>
+              </div>
+            `
+          },
+          {
+            id: "css-layout",
+            title: "Layout and Positioning",
+            content: `
+              <h3>The Box Model</h3>
+              <p class="lesson-text">Every HTML element is a box with content, padding, border, and margin:</p>
+              
+              <div class="code-block">.box {
+  width: 200px;
+  height: 100px;
+  padding: 20px;      /* Space inside */
+  border: 2px solid black;
+  margin: 10px;       /* Space outside */
+  background-color: lightblue;
+}</div>
+
+              <div class="try-it-box">
+                <h4>💡 Try It: Experiment with the Box Model</h4>
+                <textarea class="code-editor" id="css-practice-2"><div style="width: 150px; padding: 20px; border: 3px solid purple; margin: 10px; background: lightpink;">
+  I'm a box!
+</div></textarea>
+                <button class="btn" onclick="runHTMLCode('css-practice-2', 'css-output-2')">Run Code</button>
+                <div id="css-output-2" class="output-box"></div>
+              </div>
+
+              <h3>Flexbox Layout</h3>
+              <p class="lesson-text">Flexbox makes it easy to align and distribute elements:</p>
+              
+              <div class="code-block">.container {
+  display: flex;
+  justify-content: center;  /* Horizontal alignment */
+  align-items: center;      /* Vertical alignment */
+  gap: 10px;               /* Space between items */
+}
+
+&lt;div class="container"&gt;
+  &lt;div&gt;Item 1&lt;/div&gt;
+  &lt;div&gt;Item 2&lt;/div&gt;
+  &lt;div&gt;Item 3&lt;/div&gt;
+&lt;/div&gt;</div>
+
+              <h3>Responsive Design</h3>
+              <p class="lesson-text">Make your layout adapt to different screen sizes:</p>
+              
+              <div class="code-block">/* Mobile-first approach */
+.container {
+  width: 100%;
+}
+
+/* Larger screens */
+@media (min-width: 768px) {
+  .container {
+    width: 80%;
+    max-width: 1200px;
+  }
+}</div>
+
+              <div class="quiz-question">
+                <h4>📝 Quick Check</h4>
+                <p style="margin-bottom: 12px;">Which CSS property adds space INSIDE an element?</p>
+                <div class="quiz-options" id="quiz-css-2">
+                  <div class="quiz-option" data-correct="false">margin</div>
+                  <div class="quiz-option" data-correct="true">padding</div>
+                  <div class="quiz-option" data-correct="false">border</div>
+                </div>
+              </div>
+            `
+          }
+        ]
+      },
+      {
+        id: "js-basics",
+        title: "JavaScript Fundamentals",
+        description: "Start coding with variables, data types, and basic operations.",
+        lessons: [
+          {
+            id: "js-intro",
+            title: "Introduction to JavaScript",
+            content: `
+              <h3>What is JavaScript?</h3>
+              <p class="lesson-text">JavaScript is a programming language that makes websites interactive. It can respond to user actions, manipulate content, and perform calculations.</p>
+              
+              <h3>Your First JavaScript</h3>
+              <p class="lesson-text">JavaScript can run directly in the browser. Here's how to display messages:</p>
+              
+              <div class="code-block">// This is a comment - it's ignored by the computer
+
+// Display an alert
+alert("Hello, World!");
+
+// Log to the console (for debugging)
+console.log("This appears in the browser console");
+
+// Change page content
+document.body.innerHTML = "&lt;h1&gt;Hello from JavaScript!&lt;/h1&gt;";</div>
+
+              <div class="try-it-box">
+                <h4>💡 Try It: Run Your First JavaScript</h4>
+                <textarea class="code-editor" id="js-practice-1">// Try changing the message!
+document.write("<h2>Hello from JavaScript!</h2>");
+document.write("<p>I'm learning to code!</p>");</textarea>
+                <button class="btn" onclick="runJSCode('js-practice-1', 'js-output-1')">Run Code</button>
+                <div id="js-output-1" class="output-box"></div>
+              </div>
+
+              <h3>Variables: Storing Data</h3>
+              <p class="lesson-text">Variables are containers for storing data values:</p>
+              
+              <div class="code-block">// Declare a variable with let
+let name = "Sarah";
+let age = 25;
+let isStudent = true;
+
+// Change the value later
+age = 26;
+
+// Use const for values that won't change
+const PI = 3.14159;
+const birthYear = 1998;</div>
+
+              <div class="quiz-question">
+                <h4>📝 Quick Check</h4>
+                <p style="margin-bottom: 12px;">Which keyword declares a variable that can be changed later?</p>
+                <div class="quiz-options" id="quiz-js-1">
+                  <div class="quiz-option" data-correct="false">const</div>
+                  <div class="quiz-option" data-correct="true">let</div>
+                  <div class="quiz-option" data-correct="false">var</div>
+                </div>
+              </div>
+            `
+          },
+          {
+            id: "js-datatypes",
+            title: "Data Types and Operations",
+            content: `
+              <h3>JavaScript Data Types</h3>
+              <p class="lesson-text">JavaScript has several types of data you can work with:</p>
+              
+              <div class="code-block">// Numbers
+let count = 42;
+let price = 19.99;
+
+// Strings (text)
+let firstName = "John";
+let message = 'Hello there!';
+
+// Booleans (true/false)
+let isActive = true;
+let hasAccount = false;
+
+// Arrays (lists)
+let colors = ["red", "green", "blue"];
+let numbers = [1, 2, 3, 4, 5];
+
+// Objects (collections of properties)
+let person = {
+  name: "Alice",
+  age: 30,
+  city: "New York"
+};</div>
+
+              <h3>Math Operations</h3>
+              <p class="lesson-text">Perform calculations with numbers:</p>
+              
+              <div class="code-block">let a = 10;
+let b = 3;
+
+let sum = a + b;          // 13
+let difference = a - b;   // 7
+let product = a * b;      // 30
+let quotient = a / b;     // 3.333...
+let remainder = a % b;    // 1 (modulo)
+
+// Shorthand operators
+a += 5;   // Same as: a = a + 5
+a++;      // Increment by 1
+a--;      // Decrement by 1</div>
+
+              <div class="try-it-box">
+                <h4>💡 Try It: Create a Calculator</h4>
+                <textarea class="code-editor" id="js-practice-2">let num1 = 15;
+let num2 = 4;
+
+document.write("<p>Sum: " + (num1 + num2) + "</p>");
+document.write("<p>Product: " + (num1 * num2) + "</p>");
+document.write("<p>Difference: " + (num1 - num2) + "</p>");</textarea>
+                <button class="btn" onclick="runJSCode('js-practice-2', 'js-output-2')">Run Code</button>
+                <div id="js-output-2" class="output-box"></div>
+              </div>
+
+              <h3>String Operations</h3>
+              <p class="lesson-text">Work with text using string methods:</p>
+              
+              <div class="code-block">let text = "JavaScript";
+
+// Combine strings
+let greeting = "Hello " + "World!";
+let message = \`Welcome, \${name}!\`;  // Template literal
+
+// String properties and methods
+text.length;              // 10
+text.toUpperCase();       // "JAVASCRIPT"
+text.toLowerCase();       // "javascript"
+text.includes("Script");  // true
+text.slice(0, 4);        // "Java"</div>
+
+              <div class="quiz-question">
+                <h4>📝 Quick Check</h4>
+                <p style="margin-bottom: 12px;">What does "Hello" + " " + "World" result in?</p>
+                <div class="quiz-options" id="quiz-js-2">
+                  <div class="quiz-option" data-correct="false">HelloWorld</div>
+                  <div class="quiz-option" data-correct="true">Hello World</div>
+                  <div class="quiz-option" data-correct="false">Error</div>
+                </div>
+              </div>
+            `
+          }
+        ]
+      },
+      {
+        id: "js-control",
+        title: "Control Flow",
+        description: "Make decisions with if statements and repeat tasks with loops.",
+        lessons: [
+          {
+            id: "js-conditions",
+            title: "Conditional Statements",
+            content: `
+              <h3>Making Decisions with If</h3>
+              <p class="lesson-text">Control what code runs based on conditions:</p>
+              
+              <div class="code-block">let age = 18;
+
+if (age >= 18) {
+  console.log("You can vote!");
+} else {
+  console.log("Too young to vote");
+}
+
+// Multiple conditions
+let score = 85;
+
+if (score >= 90) {
+  console.log("Grade: A");
+} else if (score >= 80) {
+  console.log("Grade: B");
+} else if (score >= 70) {
+  console.log("Grade: C");
+} else {
+  console.log("Grade: F");
+}</div>
+
+              <h3>Comparison Operators</h3>
+              <p class="lesson-text">Compare values to create conditions:</p>
+              
+              <div class="code-block">// Equality
+5 === 5      // true (strict equal)
+5 !== 3      // true (not equal)
+
+// Comparison
+10 > 5       // true (greater than)
+3 < 7        // true (less than)
+5 >= 5       // true (greater or equal)
+4 <= 10      // true (less or equal)
+
+// Logical operators
+(age > 18) && (hasLicense === true)  // AND
+(isWeekend) || (isHoliday)          // OR
+!(isClosed)                         // NOT</div>
+
+              <div class="try-it-box">
+                <h4>💡 Try It: Age Checker</h4>
+                <textarea class="code-editor" id="js-practice-3">let userAge = 16;
+
+if (userAge >= 18) {
+  document.write("<p style='color: green;'>✓ You can vote!</p>");
+} else {
+  let yearsLeft = 18 - userAge;
+  document.write("<p style='color: orange;'>Wait " + yearsLeft + " more years</p>");
+}</textarea>
+                <button class="btn" onclick="runJSCode('js-practice-3', 'js-output-3')">Run Code</button>
+                <div id="js-output-3" class="output-box"></div>
+              </div>
+
+              <h3>Switch Statements</h3>
+              <p class="lesson-text">Handle multiple specific cases:</p>
+              
+              <div class="code-block">let day = "Monday";
+
+switch (day) {
+  case "Monday":
+    console.log("Start of work week");
+    break;
+  case "Friday":
+    console.log("Almost weekend!");
+    break;
+  case "Saturday":
+  case "Sunday":
+    console.log("Weekend!");
+    break;
+  default:
+    console.log("Midweek");
+}</div>
+
+              <div class="quiz-question">
+                <h4>📝 Quick Check</h4>
+                <p style="margin-bottom: 12px;">What does (5 > 3) && (10 < 20) evaluate to?</p>
+                <div class="quiz-options" id="quiz-js-3">
+                  <div class="quiz-option" data-correct="false">false</div>
+                  <div class="quiz-option" data-correct="true">true</div>
+                  <div class="quiz-option" data-correct="false">Error</div>
+                </div>
+              </div>
+            `
+          },
+          {
+            id: "js-loops",
+            title: "Loops and Iteration",
+            content: `
+              <h3>For Loops</h3>
+              <p class="lesson-text">Repeat code a specific number of times:</p>
+              
+              <div class="code-block">// Basic for loop
+for (let i = 0; i < 5; i++) {
+  console.log("Count: " + i);
+}
+// Output: 0, 1, 2, 3, 4
+
+// Loop through an array
+let fruits = ["apple", "banana", "orange"];
+
+for (let i = 0; i < fruits.length; i++) {
+  console.log(fruits[i]);
+}
+
+// Modern for...of loop
+for (let fruit of fruits) {
+  console.log(fruit);
+}</div>
+
+              <div class="try-it-box">
+                <h4>💡 Try It: Multiplication Table</h4>
+                <textarea class="code-editor" id="js-practice-4">let number = 7;
+
+document.write("<h3>Multiplication Table for " + number + "</h3>");
+
+for (let i = 1; i <= 10; i++) {
+  let result = number * i;
+  document.write("<p>" + number + " × " + i + " = " + result + "</p>");
+}</textarea>
+                <button class="btn" onclick="runJSCode('js-practice-4', 'js-output-4')">Run Code</button>
+                <div id="js-output-4" class="output-box"></div>
+              </div>
+
+              <h3>While Loops</h3>
+              <p class="lesson-text">Repeat while a condition is true:</p>
+              
+              <div class="code-block">let count = 0;
+
+while (count < 5) {
+  console.log("Count is: " + count);
+  count++;
+}
+
+// Do-while (runs at least once)
+let input;
+do {
+  input = prompt("Enter 'quit' to stop");
+} while (input !== "quit");</div>
+
+              <h3>Loop Control</h3>
+              <p class="lesson-text">Control loop execution with break and continue:</p>
+              
+              <div class="code-block">// Break - exit the loop
+for (let i = 0; i < 10; i++) {
+  if (i === 5) break;
+  console.log(i);  // Prints 0-4
+}
+
+// Continue - skip to next iteration
+for (let i = 0; i < 5; i++) {
+  if (i === 2) continue;
+  console.log(i);  // Prints 0, 1, 3, 4 (skips 2)
+}</div>
+
+              <div class="quiz-question">
+                <h4>📝 Quick Check</h4>
+                <p style="margin-bottom: 12px;">How many times will this loop run: for (let i = 0; i < 3; i++)?</p>
+                <div class="quiz-options" id="quiz-js-4">
+                  <div class="quiz-option" data-correct="false">2 times</div>
+                  <div class="quiz-option" data-correct="true">3 times</div>
+                  <div class="quiz-option" data-correct="false">4 times</div>
+                </div>
+              </div>
+            `
+          }
+        ]
+      },
+      {
+        id: "js-functions",
+        title: "Functions",
+        description: "Create reusable code blocks and organize your programs better.",
+        lessons: [
+          {
+            id: "js-function-basics",
+            title: "Function Basics",
+            content: `
+              <h3>What Are Functions?</h3>
+              <p class="lesson-text">Functions are reusable blocks of code that perform specific tasks. They help organize code and avoid repetition.</p>
+              
+              <div class="code-block">// Function declaration
+function greet() {
+  console.log("Hello!");
+}
+
+// Call the function
+greet();  // Output: Hello!
+
+// Function with parameters
+function greetPerson(name) {
+  console.log("Hello, " + name + "!");
+}
+
+greetPerson("Alice");  // Hello, Alice!
+greetPerson("Bob");    // Hello, Bob!</div>
+
+              <h3>Return Values</h3>
+              <p class="lesson-text">Functions can return values back to the caller:</p>
+              
+              <div class="code-block">function add(a, b) {
+  return a + b;
+}
+
+let sum = add(5, 3);    // sum = 8
+let total = add(10, 20); // total = 30
+
+// Function with multiple parameters
+function calculateArea(width, height) {
+  let area = width * height;
+  return area;
+}
+
+let roomArea = calculateArea(10, 15);  // 150</div>
+
+              <div class="try-it-box">
+                <h4>💡 Try It: Temperature Converter</h4>
+                <textarea class="code-editor" id="js-practice-5">function celsiusToFahrenheit(celsius) {
+  let fahrenheit = (celsius * 9/5) + 32;
+  return fahrenheit;
+}
+
+let temp1 = celsiusToFahrenheit(0);
+let temp2 = celsiusToFahrenheit(25);
+
+document.write("<p>0°C = " + temp1 + "°F</p>");
+document.write("<p>25°C = " + temp2 + "°F</p>");</textarea>
+                <button class="btn" onclick="runJSCode('js-practice-5', 'js-output-5')">Run Code</button>
+                <div id="js-output-5" class="output-box"></div>
+              </div>
+
+              <h3>Arrow Functions</h3>
+              <p class="lesson-text">Modern shorter syntax for functions:</p>
+              
+              <div class="code-block">// Traditional function
+function square(x) {
+  return x * x;
+}
+
+// Arrow function
+const square = (x) => {
+  return x * x;
+};
+
+// Shorter arrow function (implicit return)
+const square = x => x * x;
+
+// Multiple parameters
+const add = (a, b) => a + b;</div>
+
+              <div class="quiz-question">
+                <h4>📝 Quick Check</h4>
+                <p style="margin-bottom: 12px;">What keyword makes a function give back a value?</p>
+                <div class="quiz-options" id="quiz-js-5">
+                  <div class="quiz-option" data-correct="false">give</div>
+                  <div class="quiz-option" data-correct="true">return</div>
+                  <div class="quiz-option" data-correct="false">output</div>
+                </div>
+              </div>
+            `
+          },
+          {
+            id: "js-scope",
+            title: "Scope and Advanced Functions",
+            content: `
+              <h3>Variable Scope</h3>
+              <p class="lesson-text">Scope determines where variables can be accessed:</p>
+              
+              <div class="code-block">// Global scope - accessible everywhere
+let globalVar = "I'm global";
+
+function myFunction() {
+  // Local scope - only accessible inside function
+  let localVar = "I'm local";
+  console.log(globalVar);  // ✓ Can access
+  console.log(localVar);   // ✓ Can access
+}
+
+console.log(globalVar);  // ✓ Can access
+console.log(localVar);   // ✗ Error! Not accessible
+
+// Block scope with let and const
+if (true) {
+  let blockVar = "I'm in a block";
+  console.log(blockVar);  // ✓ Works
+}
+console.log(blockVar);  // ✗ Error!</div>
+
+              <h3>Default Parameters</h3>
+              <p class="lesson-text">Provide default values for function parameters:</p>
+              
+              <div class="code-block">function greet(name = "Guest", greeting = "Hello") {
+  return greeting + ", " + name + "!";
+}
+
+console.log(greet());                    // "Hello, Guest!"
+console.log(greet("Alice"));             // "Hello, Alice!"
+console.log(greet("Bob", "Hi"));         // "Hi, Bob!"</div>
+
+              <div class="try-it-box">
+                <h4>💡 Try It: Create a Flexible Calculator</h4>
+                <textarea class="code-editor" id="js-practice-6">function calculate(num1, num2, operation = "add") {
+  if (operation === "add") return num1 + num2;
+  if (operation === "subtract") return num1 - num2;
+  if (operation === "multiply") return num1 * num2;
+  if (operation === "divide") return num1 / num2;
+  return "Unknown operation";
+}
+
+document.write("<p>10 + 5 = " + calculate(10, 5) + "</p>");
+document.write("<p>10 - 5 = " + calculate(10, 5, "subtract") + "</p>");
+document.write("<p>10 × 5 = " + calculate(10, 5, "multiply") + "</p>");</textarea>
+                <button class="btn" onclick="runJSCode('js-practice-6', 'js-output-6')">Run Code</button>
+                <div id="js-output-6" class="output-box"></div>
+              </div>
+
+              <h3>Callback Functions</h3>
+              <p class="lesson-text">Pass functions as arguments to other functions:</p>
+              
+              <div class="code-block">// Function that takes another function
+function processNumbers(a, b, operation) {
+  return operation(a, b);
+}
+
+// Pass functions as arguments
+let result1 = processNumbers(5, 3, (x, y) => x + y);   // 8
+let result2 = processNumbers(5, 3, (x, y) => x * y);   // 15
+
+// Array methods use callbacks
+let numbers = [1, 2, 3, 4, 5];
+let doubled = numbers.map(n => n * 2);  // [2, 4, 6, 8, 10]
+let evens = numbers.filter(n => n % 2 === 0);  // [2, 4]</div>
+
+              <div class="quiz-question">
+                <h4>📝 Quick Check</h4>
+                <p style="margin-bottom: 12px;">Can a function be passed as an argument to another function?</p>
+                <div class="quiz-options" id="quiz-js-6">
+                  <div class="quiz-option" data-correct="false">No, never</div>
+                  <div class="quiz-option" data-correct="true">Yes, absolutely</div>
+                  <div class="quiz-option" data-correct="false">Only in special cases</div>
+                </div>
+              </div>
+            `
+          }
+        ]
+      },
+      {
+        id: "js-dom",
+        title: "DOM Manipulation",
+        description: "Control web pages dynamically by selecting and modifying HTML elements.",
+        lessons: [
+          {
+            id: "js-dom-basics",
+            title: "Working with the DOM",
+            content: `
+              <h3>What is the DOM?</h3>
+              <p class="lesson-text">The DOM (Document Object Model) is how JavaScript sees and interacts with HTML. It treats your page as a tree of objects you can manipulate.</p>
+              
+              <h3>Selecting Elements</h3>
+              <div class="code-block">// Select by ID
+let header = document.getElementById("main-header");
+
+// Select by class (returns first match)
+let button = document.querySelector(".btn-primary");
+
+// Select all matches
+let allButtons = document.querySelectorAll(".btn");
+
+// Select by tag name
+let paragraphs = document.querySelectorAll("p");</div>
+
+              <h3>Changing Content</h3>
+              <div class="code-block">// Change text content
+let title = document.getElementById("title");
+title.textContent = "New Title";
+
+// Change HTML content
+let container = document.getElementById("content");
+container.innerHTML = "&lt;p&gt;New paragraph&lt;/p&gt;";
+
+// Change attributes
+let image = document.querySelector("img");
+image.src = "new-image.jpg";
+image.alt = "New description";</div>
+
+              <div class="try-it-box">
+                <h4>💡 Try It: Change Page Content</h4>
+                <textarea class="code-editor" id="js-practice-7">// Create HTML first
+document.write('<div id="demo">Old text</div>');
+document.write('<button onclick="changeText()">Click Me</button>');
+
+// Add script to change text
+document.write('<scr' + 'ipt>');
+document.write('function changeText() {');
+document.write('  document.getElementById("demo").textContent = "Text changed!";');
+document.write('  document.getElementById("demo").style.color = "blue";');
+document.write('}');
+document.write('</scr' + 'ipt>');</textarea>
+                <button class="btn" onclick="runJSCode('js-practice-7', 'js-output-7')">Run Code</button>
+                <div id="js-output-7" class="output-box"></div>
+              </div>
+
+              <h3>Changing Styles</h3>
+              <div class="code-block">let box = document.getElementById("myBox");
+
+// Change individual styles
+box.style.backgroundColor = "blue";
+box.style.width = "200px";
+box.style.padding = "20px";
+
+// Add/remove CSS classes
+box.classList.add("highlight");
+box.classList.remove("hidden");
+box.classList.toggle("active");  // Add if missing, remove if present</div>
+
+              <div class="quiz-question">
+                <h4>📝 Quick Check</h4>
+                <p style="margin-bottom: 12px;">Which method selects an element by its ID?</p>
+                <div class="quiz-options" id="quiz-js-7">
+                  <div class="quiz-option" data-correct="false">document.querySelector()</div>
+                  <div class="quiz-option" data-correct="true">document.getElementById()</div>
+                  <div class="quiz-option" data-correct="false">document.getElement()</div>
+                </div>
+              </div>
+            `
+          },
+          {
+            id: "js-events",
+            title: "Event Handling",
+            content: `
+              <h3>What Are Events?</h3>
+              <p class="lesson-text">Events are things that happen in the browser: clicks, key presses, mouse movements, form submissions, etc.</p>
+              
+              <h3>Adding Event Listeners</h3>
+              <div class="code-block">// Method 1: addEventListener (preferred)
+let button = document.getElementById("myButton");
+button.addEventListener("click", function() {
+  console.log("Button clicked!");
+});
+
+// Method 2: Inline HTML (less preferred)
+// &lt;button onclick="handleClick()"&gt;Click&lt;/button&gt;
+
+// Method 3: Event property
+button.onclick = function() {
+  console.log("Clicked!");
+};</div>
+
+              <h3>Common Events</h3>
+              <div class="code-block">// Click events
+element.addEventListener("click", handleClick);
+
+// Keyboard events
+document.addEventListener("keydown", function(event) {
+  console.log("Key pressed: " + event.key);
+});
+
+// Mouse events
+element.addEventListener("mouseover", showTooltip);
+element.addEventListener("mouseout", hideTooltip);
+
+// Form events
+form.addEventListener("submit", function(event) {
+  event.preventDefault();  // Stop form from submitting
+  // Handle form data here
+});
+
+// Input events
+input.addEventListener("input", function(event) {
+  console.log("Current value: " + event.target.value);
+});</div>
+
+              <div class="try-it-box">
+                <h4>💡 Try It: Interactive Counter</h4>
+                <textarea class="code-editor" id="js-practice-8">document.write('<div style="text-align: center; padding: 20px;">');
+document.write('<h2 id="counter">0</h2>');
+document.write('<button onclick="increment()">Add 1</button> ');
+document.write('<button onclick="decrement()">Subtract 1</button> ');
+document.write('<button onclick="reset()">Reset</button>');
+document.write('</div>');
+
+document.write('<scr' + 'ipt>');
+document.write('let count = 0;');
+document.write('function increment() {');
+document.write('  count++;');
+document.write('  document.getElementById("counter").textContent = count;');
+document.write('}');
+document.write('function decrement() {');
+document.write('  count--;');
+document.write('  document.getElementById("counter").textContent = count;');
+document.write('}');
+document.write('function reset() {');
+document.write('  count = 0;');
+document.write('  document.getElementById("counter").textContent = count;');
+document.write('}');
+document.write('</scr' + 'ipt>');</textarea>
+                <button class="btn" onclick="runJSCode('js-practice-8', 'js-output-8')">Run Code</button>
+                <div id="js-output-8" class="output-box"></div>
+              </div>
+
+              <h3>Event Object</h3>
+              <div class="code-block">button.addEventListener("click", function(event) {
+  // Event object contains useful info
+  console.log(event.type);        // "click"
+  console.log(event.target);      // The element clicked
+  console.log(event.clientX);     // Mouse X position
+  console.log(event.clientY);     // Mouse Y position
+  
+  event.preventDefault();  // Stop default action
+  event.stopPropagation(); // Stop event bubbling
+});</div>
+
+              <div class="quiz-question">
+                <h4>📝 Quick Check</h4>
+                <p style="margin-bottom: 12px;">What method prevents a form from submitting?</p>
+                <div class="quiz-options" id="quiz-js-8">
+                  <div class="quiz-option" data-correct="false">event.stopSubmit()</div>
+                  <div class="quiz-option" data-correct="true">event.preventDefault()</div>
+                  <div class="quiz-option" data-correct="false">event.cancel()</div>
+                </div>
+              </div>
+            `
+          }
+        ]
+      },
+      {
+        id: "js-arrays",
+        title: "Arrays and Objects",
+        description: "Work with collections of data using arrays and objects.",
+        lessons: [
+          {
+            id: "js-array-methods",
+            title: "Array Methods",
+            content: `
+              <h3>Array Basics</h3>
+              <p class="lesson-text">Arrays store lists of values. They're one of the most important data structures in JavaScript.</p>
+              
+              <div class="code-block">// Create arrays
+let numbers = [1, 2, 3, 4, 5];
+let fruits = ["apple", "banana", "orange"];
+let mixed = [1, "hello", true, null];
+
+// Access elements (index starts at 0)
+console.log(fruits[0]);  // "apple"
+console.log(fruits[1]);  // "banana"
+
+// Array properties
+console.log(fruits.length);  // 3
+
+// Modify elements
+fruits[1] = "grape";  // ["apple", "grape", "orange"]</div>
+
+              <h3>Adding and Removing Elements</h3>
+              <div class="code-block">let items = ["a", "b", "c"];
+
+// Add to end
+items.push("d");        // ["a", "b", "c", "d"]
+
+// Remove from end
+let last = items.pop(); // ["a", "b", "c"], last = "d"
+
+// Add to beginning
+items.unshift("z");     // ["z", "a", "b", "c"]
+
+// Remove from beginning
+let first = items.shift(); // ["a", "b", "c"], first = "z"
+
+// Add/remove at any position
+items.splice(1, 1);     // Remove 1 item at index 1
+items.splice(1, 0, "x"); // Insert "x" at index 1</div>
+
+              <div class="try-it-box">
+                <h4>💡 Try It: Todo List</h4>
+                <textarea class="code-editor" id="js-practice-9">let todos = ["Buy groceries", "Walk dog", "Study JavaScript"];
+
+document.write("<h3>My Todo List</h3>");
+document.write("<ul>");
+for (let i = 0; i < todos.length; i++) {
+  document.write("<li>" + todos[i] + "</li>");
+}
+document.write("</ul>");
+
+// Add a new todo
+todos.push("Call mom");
+document.write("<p>Added: " + todos[todos.length - 1] + "</p>");
+document.write("<p>Total tasks: " + todos.length + "</p>");</textarea>
+                <button class="btn" onclick="runJSCode('js-practice-9', 'js-output-9')">Run Code</button>
+                <div id="js-output-9" class="output-box"></div>
+              </div>
+
+              <h3>Powerful Array Methods</h3>
+              <div class="code-block">let numbers = [1, 2, 3, 4, 5];
+
+// map - transform each element
+let doubled = numbers.map(n => n * 2);  // [2, 4, 6, 8, 10]
+
+// filter - keep elements that match condition
+let evens = numbers.filter(n => n % 2 === 0);  // [2, 4]
+
+// find - get first match
+let found = numbers.find(n => n > 3);  // 4
+
+// reduce - combine all elements
+let sum = numbers.reduce((total, n) => total + n, 0);  // 15
+
+// includes - check if value exists
+let hasThree = numbers.includes(3);  // true
+
+// sort - arrange elements
+let names = ["Charlie", "Alice", "Bob"];
+names.sort();  // ["Alice", "Bob", "Charlie"]</div>
+
+              <div class="quiz-question">
+                <h4>📝 Quick Check</h4>
+                <p style="margin-bottom: 12px;">Which method adds an element to the end of an array?</p>
+                <div class="quiz-options" id="quiz-js-9">
+                  <div class="quiz-option" data-correct="false">array.add()</div>
+                  <div class="quiz-option" data-correct="true">array.push()</div>
+                  <div class="quiz-option" data-correct="false">array.append()</div>
+                </div>
+              </div>
+            `
+          },
+          {
+            id: "js-objects",
+            title: "Working with Objects",
+            content: `
+              <h3>Object Basics</h3>
+              <p class="lesson-text">Objects store related data as key-value pairs. They're perfect for representing real-world things.</p>
+              
+              <div class="code-block">// Create an object
+let person = {
+  name: "Alice",
+  age: 30,
+  city: "New York",
+  isStudent: false
+};
+
+// Access properties
+console.log(person.name);      // "Alice"
+console.log(person["age"]);    // 30
+
+// Modify properties
+person.age = 31;
+person.email = "alice@email.com";  // Add new property
+
+// Delete properties
+delete person.isStudent;</div>
+
+              <h3>Objects with Methods</h3>
+              <div class="code-block">let calculator = {
+  value: 0,
+  
+  add: function(num) {
+    this.value += num;
+    return this.value;
+  },
+  
+  subtract: function(num) {
+    this.value -= num;
+    return this.value;
+  },
+  
+  reset: function() {
+    this.value = 0;
+  }
+};
+
+calculator.add(10);      // value = 10
+calculator.subtract(3);  // value = 7
+calculator.reset();      // value = 0</div>
+
+              <div class="try-it-box">
+                <h4>💡 Try It: Product Catalog</h4>
+                <textarea class="code-editor" id="js-practice-10">let products = [
+  { name: "Laptop", price: 999, inStock: true },
+  { name: "Mouse", price: 25, inStock: true },
+  { name: "Keyboard", price: 75, inStock: false }
+];
+
+document.write("<h3>Product Catalog</h3>");
+for (let product of products) {
+  let status = product.inStock ? "✓ In Stock" : "✗ Out of Stock";
+  document.write("<div style='border: 1px solid #ccc; padding: 10px; margin: 10px 0;'>");
+  document.write("<strong>" + product.name + "</strong><br>");
+  document.write("Price: $" + product.price + "<br>");
+  document.write(status);
+  document.write("</div>");
+}</textarea>
+                <button class="btn" onclick="runJSCode('js-practice-10', 'js-output-10')">Run Code</button>
+                <div id="js-output-10" class="output-box"></div>
+              </div>
+
+              <h3>Object Destructuring</h3>
+              <div class="code-block">let user = {
+  name: "Bob",
+  age: 25,
+  email: "bob@email.com"
+};
+
+// Extract properties into variables
+let { name, age, email } = user;
+console.log(name);  // "Bob"
+
+// Array destructuring
+let colors = ["red", "green", "blue"];
+let [first, second] = colors;
+console.log(first);  // "red"</div>
+
+              <h3>JSON - JavaScript Object Notation</h3>
+              <div class="code-block">// Convert object to JSON string
+let data = { name: "Alice", age: 30 };
+let jsonString = JSON.stringify(data);
+// '{"name":"Alice","age":30}'
+
+// Convert JSON string to object
+let jsonData = '{"name":"Bob","age":25}';
+let obj = JSON.parse(jsonData);
+console.log(obj.name);  // "Bob"</div>
+
+              <div class="quiz-question">
+                <h4>📝 Quick Check</h4>
+                <p style="margin-bottom: 12px;">How do you access the "name" property of an object called "user"?</p>
+                <div class="quiz-options" id="quiz-js-10">
+                  <div class="quiz-option" data-correct="false">user->name</div>
+                  <div class="quiz-option" data-correct="true">user.name</div>
+                  <div class="quiz-option" data-correct="false">user[name]</div>
+                </div>
+              </div>
+            `
+          }
+        ]
+      },
+      {
+        id: "projects-beginner",
+        title: "Beginner Projects",
+        description: "Build your first interactive applications with what you've learned.",
+        lessons: [
+          {
+            id: "project-calculator",
+            title: "Build a Calculator",
+            content: `
+              <h3>Project: Interactive Calculator</h3>
+              <p class="lesson-text">Let's build a fully functional calculator using HTML, CSS, and JavaScript!</p>
+              
+              <h3>Features to Implement</h3>
+              <ul style="color: #4a5568; line-height: 1.8;">
+                <li>Basic operations: +, -, ×, ÷</li>
+                <li>Clear button</li>
+                <li>Display screen</li>
+                <li>Number buttons 0-9</li>
+                <li>Equals button to calculate</li>
+              </ul>
+
+              <div class="try-it-box">
+                <h4>💡 Try It: Complete Calculator</h4>
+                <textarea class="code-editor" id="js-practice-11" style="min-height: 200px;"><div style="max-width: 300px; margin: 20px auto; padding: 20px; background: #2d3748; border-radius: 10px;">
+  <input type="text" id="display" readonly style="width: 100%; padding: 15px; font-size: 24px; text-align: right; border: none; border-radius: 5px; margin-bottom: 10px;">
+  
+  <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;">
+    <button onclick="clearDisplay()" style="grid-column: span 2; padding: 15px; font-size: 18px; border: none; border-radius: 5px; background: #f56565; color: white; cursor: pointer;">Clear</button>
+    <button onclick="appendToDisplay('/')" style="padding: 15px; font-size: 18px; border: none; border-radius: 5px; background: #4299e1; color: white; cursor: pointer;">÷</button>
+    <button onclick="appendToDisplay('*')" style="padding: 15px; font-size: 18px; border: none; border-radius: 5px; background: #4299e1; color: white; cursor: pointer;">×</button>
+    
+    <button onclick="appendToDisplay('7')" style="padding: 15px; font-size: 18px; border: none; border-radius: 5px; background: #4a5568; color: white; cursor: pointer;">7</button>
+    <button onclick="appendToDisplay('8')" style="padding: 15px; font-size: 18px; border: none; border-radius: 5px; background: #4a5568; color: white; cursor: pointer;">8</button>
+    <button onclick="appendToDisplay('9')" style="padding: 15px; font-size: 18px; border: none; border-radius: 5px; background: #4a5568; color: white; cursor: pointer;">9</button>
+    <button onclick="appendToDisplay('-')" style="padding: 15px; font-size: 18px; border: none; border-radius: 5px; background: #4299e1; color: white; cursor: pointer;">-</button>
+    
+    <button onclick="appendToDisplay('4')" style="padding: 15px; font-size: 18px; border: none; border-radius: 5px; background: #4a5568; color: white; cursor: pointer;">4</button>
+    <button onclick="appendToDisplay('5')" style="padding: 15px; font-size: 18px; border: none; border-radius: 5px; background: #4a5568; color: white; cursor: pointer;">5</button>
+    <button onclick="appendToDisplay('6')" style="padding: 15px; font-size: 18px; border: none; border-radius: 5px; background: #4a5568; color: white; cursor: pointer;">6</button>
+    <button onclick="appendToDisplay('+')" style="padding: 15px; font-size: 18px; border: none; border-radius: 5px; background: #4299e1; color: white; cursor: pointer;">+</button>
+    
+    <button onclick="appendToDisplay('1')" style="padding: 15px; font-size: 18px; border: none; border-radius: 5px; background: #4a5568; color: white; cursor: pointer;">1</button>
+    <button onclick="appendToDisplay('2')" style="padding: 15px; font-size: 18px; border: none; border-radius: 5px; background: #4a5568; color: white; cursor: pointer;">2</button>
+    <button onclick="appendToDisplay('3')" style="padding: 15px; font-size: 18px; border: none; border-radius: 5px; background: #4a5568; color: white; cursor: pointer;">3</button>
+    <button onclick="calculate()" style="padding: 15px; font-size: 18px; border: none; border-radius: 5px; background: #48bb78; color: white; cursor: pointer; grid-row: span 2;">=</button>
+    
+    <button onclick="appendToDisplay('0')" style="grid-column: span 2; padding: 15px; font-size: 18px; border: none; border-radius: 5px; background: #4a5568; color: white; cursor: pointer;">0</button>
+    <button onclick="appendToDisplay('.')" style="padding: 15px; font-size: 18px; border: none; border-radius: 5px; background: #4a5568; color: white; cursor: pointer;">.</button>
+  </div>
+</div>
+
+<scr' + 'ipt>
+function appendToDisplay(value) {
+  document.getElementById('display').value += value;
+}
+
+function clearDisplay() {
+  document.getElementById('display').value = '';
+}
+
+function calculate() {
+  try {
+    let result = eval(document.getElementById('display').value);
+    document.getElementById('display').value = result;
+  } catch (e) {
+    document.getElementById('display').value = 'Error';
+  }
+}
+</scr' + 'ipt></textarea>
+                <button class="btn" onclick="runJSCode('js-practice-11', 'js-output-11')">Run Calculator</button>
+                <div id="js-output-11" class="output-box"></div>
+              </div>
+
+              <h3>Challenge: Enhance It!</h3>
+              <p class="lesson-text">Try adding these features:</p>
+              <ul style="color: #4a5568; line-height: 1.8;">
+                <li>Backspace button to delete last digit</li>
+                <li>Percentage button</li>
+                <li>Memory functions (M+, M-, MR, MC)</li>
+                <li>Keyboard support</li>
+                <li>Better error handling</li>
+              </ul>
+            `
+          },
+          {
+            id: "project-todo",
+            title: "Build a Todo List",
+            content: `
+              <h3>Project: Todo List App</h3>
+              <p class="lesson-text">Create a task manager where users can add, complete, and delete tasks.</p>
+              
+              <h3>Features to Implement</h3>
+              <ul style="color: #4a5568; line-height: 1.8;">
+                <li>Add new tasks</li>
+                <li>Mark tasks as complete</li>
+                <li>Delete tasks</li>
+                <li>Show task count</li>
+                <li>Filter tasks (all/active/completed)</li>
+              </ul>
+
+              <div class="try-it-box">
+                <h4>💡 Try It: Complete Todo App</h4>
+                <textarea class="code-editor" id="js-practice-12" style="min-height: 250px;"><div style="max-width: 500px; margin: 20px auto; padding: 20px; background: white; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+  <h2 style="text-align: center; color: #2d3748;">My Todo List</h2>
+  
+  <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+    <input type="text" id="taskInput" placeholder="Enter a new task..." style="flex: 1; padding: 10px; border: 2px solid #e2e8f0; border-radius: 5px; font-size: 14px;">
+    <button onclick="addTask()" style="padding: 10px 20px; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: 600;">Add</button>
+  </div>
+  
+  <div id="taskList"></div>
+  
+  <div style="margin-top: 20px; text-align: center; color: #718096;">
+    <span id="taskCount">0 tasks</span>
+  </div>
+</div>
+
+<scr' + 'ipt>
+let tasks = [];
+
+function addTask() {
+  let input = document.getElementById("taskInput");
+  let taskText = input.value.trim();
+  
+  if (taskText === "") return;
+  
+  tasks.push({
+    id: Date.now(),
+    text: taskText,
+    completed: false
+  });
+  
+  input.value = "";
+  renderTasks();
+}
+
+function toggleTask(id) {
+  let task = tasks.find(t => t.id === id);
+  if (task) {
+    task.completed = !task.completed;
+    renderTasks();
+  }
+}
+
+function deleteTask(id) {
+  tasks = tasks.filter(t => t.id !== id);
+  renderTasks();
+}
+
+function renderTasks() {
+  let list = document.getElementById("taskList");
+  list.innerHTML = "";
+  
+  tasks.forEach(task => {
+    let taskDiv = document.createElement("div");
+    taskDiv.style.cssText = "display: flex; align-items: center; padding: 12px; background: #f7fafc; border-radius: 5px; margin-bottom: 8px;";
+    
+    let checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.checked = task.completed;
+    checkbox.onchange = () => toggleTask(task.id);
+    checkbox.style.marginRight = "10px";
+    
+    let text = document.createElement("span");
+    text.textContent = task.text;
+    text.style.flex = "1";
+    text.style.textDecoration = task.completed ? "line-through" : "none";
+    text.style.color = task.completed ? "#a0aec0" : "#2d3748";
+    
+    let deleteBtn = document.createElement("button");
+    deleteBtn.textContent = "Delete";
+    deleteBtn.onclick = () => deleteTask(task.id);
+    deleteBtn.style.cssText = "padding: 5px 10px; background: #f56565; color: white; border: none; border-radius: 3px; cursor: pointer;";
+    
+    taskDiv.appendChild(checkbox);
+    taskDiv.appendChild(text);
+    taskDiv.appendChild(deleteBtn);
+    list.appendChild(taskDiv);
+  });
+  
+  document.getElementById("taskCount").textContent = tasks.length + " task" + (tasks.length !== 1 ? "s" : "");
+}
+</scr' + 'ipt></textarea>
+                <button class="btn" onclick="runJSCode('js-practice-12', 'js-output-12')">Run Todo App</button>
+                <div id="js-output-12" class="output-box"></div>
+              </div>
+
+              <h3>Challenge: Add More Features!</h3>
+              <ul style="color: #4a5568; line-height: 1.8;">
+                <li>Add due dates to tasks</li>
+                <li>Priority levels (high, medium, low)</li>
+                <li>Categories or tags</li>
+                <li>Search/filter tasks</li>
+                <li>Edit existing tasks</li>
+              </ul>
+            `
+          }
+        ]
+      },
+      {
+        id: "advanced",
+        title: "Advanced Concepts",
+        description: "Master async programming, API calls, and modern JavaScript features.",
+        lessons: [
+          {
+            id: "async-basics",
+            title: "Asynchronous JavaScript",
+            content: `
+              <h3>Understanding Async Code</h3>
+              <p class="lesson-text">JavaScript can handle tasks that take time (like loading data) without freezing the page. This is called asynchronous programming.</p>
+              
+              <h3>Callbacks</h3>
+              <div class="code-block">// Traditional callback approach
+function loadData(callback) {
+  setTimeout(() => {
+    let data = "Data loaded!";
+    callback(data);
+  }, 2000);
+}
+
+loadData(function(result) {
+  console.log(result);  // After 2 seconds: "Data loaded!"
+});</div>
+
+              <h3>Promises</h3>
+              <p class="lesson-text">Promises are a cleaner way to handle async operations:</p>
+              <div class="code-block">// Create a promise
+let myPromise = new Promise((resolve, reject) => {
+  let success = true;
+  
+  setTimeout(() => {
+    if (success) {
+      resolve("Operation successful!");
+    } else {
+      reject("Operation failed!");
+    }
+  }, 1000);
+});
+
+// Use the promise
+myPromise
+  .then(result => {
+    console.log(result);  // "Operation successful!"
+  })
+  .catch(error => {
+    console.log(error);   // If rejected
+  });</div>
+
+              <h3>Async/Await</h3>
+              <p class="lesson-text">Modern syntax that makes async code look synchronous:</p>
+              <div class="code-block">// Function that returns a promise
+function fetchUser(id) {
+  return new Promise(resolve => {
+    setTimeout(() => {
+      resolve({ id: id, name: "John Doe" });
+    }, 1000);
+  });
+}
+
+// Using async/await
+async function getUser() {
+  console.log("Fetching user...");
+  let user = await fetchUser(123);
+  console.log("User:", user.name);
+}
+
+getUser();</div>
+
+              <div class="try-it-box">
+                <h4>💡 Try It: Simulate API Call</h4>
+                <textarea class="code-editor" id="js-practice-13">document.write('<div id="status">Click button to load data</div>');
+document.write('<button onclick="loadUserData()">Load User Data</button>');
+document.write('<div id="result"></div>');
+
+document.write('<scr' + 'ipt>');
+document.write('function simulateAPI() {');
+document.write('  return new Promise(resolve => {');
+document.write('    setTimeout(() => {');
+document.write('      resolve({ name: "Alice", email: "alice@example.com", age: 28 });');
+document.write('    }, 2000);');
+document.write('  });');
+document.write('}');
+
+document.write('async function loadUserData() {');
+document.write('  document.getElementById("status").textContent = "Loading...";');
+document.write('  document.getElementById("result").innerHTML = "";');
+document.write('  ');
+document.write('  let user = await simulateAPI();');
+document.write('  ');
+document.write('  document.getElementById("status").textContent = "Data loaded!";');
+document.write('  document.getElementById("result").innerHTML = ');
+document.write('    "<p><strong>Name:</strong> " + user.name + "</p>" +');
+document.write('    "<p><strong>Email:</strong> " + user.email + "</p>" +');
+document.write('    "<p><strong>Age:</strong> " + user.age + "</p>";');
+document.write('}');
+document.write('</scr' + 'ipt>');</textarea>
+                <button class="btn" onclick="runJSCode('js-practice-13', 'js-output-13')">Run Code</button>
+                <div id="js-output-13" class="output-box"></div>
+              </div>
+
+              <div class="quiz-question">
+                <h4>📝 Quick Check</h4>
+                <p style="margin-bottom: 12px;">What keyword makes a function asynchronous?</p>
+                <div class="quiz-options" id="quiz-js-13">
+                  <div class="quiz-option" data-correct="false">await</div>
+                  <div class="quiz-option" data-correct="true">async</div>
+                  <div class="quiz-option" data-correct="false">promise</div>
+                </div>
+              </div>
+            `
+          },
+          {
+            id: "fetch-api",
+            title: "Working with APIs",
+            content: `
+              <h3>What Are APIs?</h3>
+              <p class="lesson-text">APIs (Application Programming Interfaces) let your code communicate with external services to fetch or send data.</p>
+              
+              <h3>Using Fetch</h3>
+              <p class="lesson-text">The fetch() function is the modern way to make HTTP requests:</p>
+              <div class="code-block">// Basic GET request
+fetch('https://api.example.com/users')
+  .then(response => response.json())
+  .then(data => {
+    console.log(data);
+  })
+  .catch(error => {
+    console.error('Error:', error);
+  });
+
+// With async/await
+async function getUsers() {
+  try {
+    let response = await fetch('https://api.example.com/users');
+    let data = await response.json();
+    console.log(data);
+  } catch (error) {
+    console.error('Error:', error);
+  }
+}</div>
+
+              <h3>POST Requests</h3>
+              <p class="lesson-text">Send data to an API:</p>
+              <div class="code-block">async function createUser(userData) {
+  try {
+    let response = await fetch('https://api.example.com/users', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(userData)
+    });
+    
+    let result = await response.json();
+    return result;
+  } catch (error) {
+    console.error('Error:', error);
+  }
+}
+
+// Use it
+let newUser = {
+  name: "John Doe",
+  email: "john@example.com"
+};
+
+createUser(newUser);</div>
+
+              <h3>Error Handling</h3>
+              <div class="code-block">async function fetchData(url) {
+  try {
+    let response = await fetch(url);
+    
+    // Check if request was successful
+    if (!response.ok) {
+      throw new Error(\`HTTP error! status: \${response.status}\`);
+    }
+    
+    let data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Fetch error:', error.message);
+    return null;
+  }
+}</div>
+
+              <div class="try-it-box">
+                <h4>💡 Try It: Random User Generator</h4>
+                <p class="lesson-text">This example uses a real public API to fetch random user data:</p>
+                <textarea class="code-editor" id="js-practice-14">document.write('<div style="text-align: center; padding: 20px;">');
+document.write('<button onclick="loadRandomUser()">Get Random User</button>');
+document.write('<div id="userInfo" style="margin-top: 20px;"></div>');
+document.write('</div>');
+
+document.write('<scr' + 'ipt>');
+document.write('async function loadRandomUser() {');
+document.write('  document.getElementById("userInfo").innerHTML = "Loading...";');
+document.write('  ');
+document.write('  try {');
+document.write('    let response = await fetch("https://randomuser.me/api/");');
+document.write('    let data = await response.json();');
+document.write('    let user = data.results[0];');
+document.write('    ');
+document.write('    document.getElementById("userInfo").innerHTML = ');
+document.write('      "<div style=\'border: 2px solid #e2e8f0; padding: 20px; border-radius: 10px; display: inline-block;\'>" +');
+document.write('      "<h3>" + user.name.first + " " + user.name.last + "</h3>" +');
+document.write('      "<p><strong>Email:</strong> " + user.email + "</p>" +');
+document.write('      "<p><strong>Location:</strong> " + user.location.city + ", " + user.location.country + "</p>" +');
+document.write('      "</div>";');
+document.write('  } catch (error) {');
+document.write('    document.getElementById("userInfo").innerHTML = "Error loading user";');
+document.write('  }');
+document.write('}');
+document.write('</scr' + 'ipt>');</textarea>
+                <button class="btn" onclick="runJSCode('js-practice-14', 'js-output-14')">Run Code</button>
+                <div id="js-output-14" class="output-box"></div>
+              </div>
+
+              <div class="quiz-question">
+                <h4>📝 Quick Check</h4>
+                <p style="margin-bottom: 12px;">Which method converts a Response object to JSON?</p>
+                <div class="quiz-options" id="quiz-js-14">
+                  <div class="quiz-option" data-correct="false">response.toJSON()</div>
+                  <div class="quiz-option" data-correct="true">response.json()</div>
+                  <div class="quiz-option" data-correct="false">response.parse()</div>
+                </div>
+              </div>
+            `
+          }
+        ]
+      },
+      {
+        id: "final-projects",
+        title: "Final Projects",
+        description: "Build complete applications combining everything you've learned.",
+        lessons: [
+          {
+            id: "weather-app",
+            title: "Weather App",
+            content: `
+              <h3>Project: Weather Dashboard</h3>
+              <p class="lesson-text">Build a weather app that fetches real-time weather data based on user location or city search.</p>
+              
+              <h3>Features to Implement</h3>
+              <ul style="color: #4a5568; line-height: 1.8;">
+                <li>Search for weather by city name</li>
+                <li>Display current temperature and conditions</li>
+                <li>Show humidity, wind speed, and other details</li>
+                <li>Display weather icon</li>
+                <li>5-day forecast</li>
+                <li>Temperature unit toggle (°C/°F)</li>
+              </ul>
+
+              <h3>API Resources</h3>
+              <p class="lesson-text">Use free weather APIs like:</p>
+              <ul style="color: #4a5568; line-height: 1.8;">
+                <li>OpenWeatherMap API (requires free API key)</li>
+                <li>WeatherAPI.com</li>
+                <li>Tomorrow.io</li>
+              </ul>
+
+              <div class="try-it-box">
+                <h4>💡 Starter Code Structure</h4>
+                <div class="code-block">async function getWeather(city) {
+  const apiKey = 'YOUR_API_KEY';
+  const url = \`https://api.openweathermap.org/data/2.5/weather?q=\${city}&appid=\${apiKey}&units=metric\`;
+  
+  try {
+    let response = await fetch(url);
+    let data = await response.json();
+    
+    displayWeather(data);
+  } catch (error) {
+    console.error('Error:', error);
+  }
+}
+
+function displayWeather(data) {
+  // Extract data
+  let temp = data.main.temp;
+  let description = data.weather[0].description;
+  let humidity = data.main.humidity;
+  
+  // Update UI
+  // ...implement your display logic
+}</div>
+              </div>
+
+              <h3>Challenges</h3>
+              <ul style="color: #4a5568; line-height: 1.8;">
+                <li>Add geolocation to get user's current weather</li>
+                <li>Save favorite cities</li>
+                <li>Add weather alerts</li>
+                <li>Create beautiful weather animations</li>
+                <li>Add hourly forecast graph</li>
+              </ul>
+            `
+          },
+          {
+            id: "quiz-game",
+            title: "Quiz Game",
+            content: `
+              <h3>Project: Interactive Quiz Game</h3>
+              <p class="lesson-text">Create a fully functional quiz game with scoring, timer, and multiple question types.</p>
+              
+              <h3>Features to Implement</h3>
+              <ul style="color: #4a5568; line-height: 1.8;">
+                <li>Multiple choice questions</li>
+                <li>Score tracking</li>
+                <li>Timer per question or entire quiz</li>
+                <li>Progress indicator</li>
+                <li>Results page with score breakdown</li>
+                <li>Ability to restart quiz</li>
+                <li>Question categories</li>
+              </ul>
+
+              <div class="try-it-box">
+                <h4>💡 Sample Quiz Data Structure</h4>
+                <div class="code-block">const quizData = [
+  {
+    question: "What does HTML stand for?",
+    options: [
+      "Hyper Text Markup Language",
+      "High Tech Modern Language",
+      "Home Tool Markup Language",
+      "Hyperlinks and Text Markup Language"
+    ],
+    correct: 0,
+    category: "HTML"
+  },
+  {
+    question: "Which method adds an element to the end of an array?",
+    options: ["push()", "pop()", "shift()", "unshift()"],
+    correct: 0,
+    category: "JavaScript"
+  },
+  // Add more questions...
+];
+
+// Game state
+let currentQuestion = 0;
+let score = 0;
+let timeLeft = 30;
+
+function startQuiz() {
+  currentQuestion = 0;
+  score = 0;
+  showQuestion();
+}
+
+function showQuestion() {
+  let q = quizData[currentQuestion];
+  // Display question and options
+  // ...
+}
+
+function checkAnswer(selectedIndex) {
+  let q = quizData[currentQuestion];
+  if (selectedIndex === q.correct) {
+    score++;
+  }
+  
+  currentQuestion++;
+  
+  if (currentQuestion < quizData.length) {
+    showQuestion();
+  } else {
+    showResults();
+  }
+}</div>
+              </div>
+
+              <h3>Advanced Features</h3>
+              <ul style="color: #4a5568; line-height: 1.8;">
+                <li>Load questions from external API</li>
+                <li>Different difficulty levels</li>
+                <li>Lifelines (50/50, skip question)</li>
+                <li>Leaderboard</li>
+                <li>Question explanations</li>
+                <li>Share results on social media</li>
+              </ul>
+
+              <h3>Challenge Ideas</h3>
+              <ul style="color: #4a5568; line-height: 1.8;">
+                <li>Add true/false questions</li>
+                <li>Include image-based questions</li>
+                <li>Create fill-in-the-blank questions</li>
+                <li>Add sound effects</li>
+                <li>Implement achievements/badges</li>
+              </ul>
+            `
+          }
+        ]
+      }
+    ];
+
+    const referenceGuide = `
+      <h3>JavaScript Quick Reference</h3>
+      
+      <h4 style="color: #667eea; margin-top: 24px;">Variables</h4>
+      <div class="code-block">let name = "John";        // Can change
+const PI = 3.14;         // Cannot change
+var old = "avoid";       // Old syntax</div>
+
+      <h4 style="color: #667eea; margin-top: 24px;">Data Types</h4>
+      <div class="code-block">let num = 42;            // Number
+let text = "hello";      // String
+let bool = true;         // Boolean
+let arr = [1, 2, 3];     // Array
+let obj = {key: "val"};  // Object
+let nothing = null;      // Null
+let undef;               // Undefined</div>
+
+      <h4 style="color: #667eea; margin-top: 24px;">Operators</h4>
+      <div class="code-block">+    Addition
+-    Subtraction
+*    Multiplication
+/    Division
+%    Modulo (remainder)
+++   Increment
+--   Decrement
+===  Strict equal
+!==  Not equal
+>    Greater than
+<    Less than
+>=   Greater or equal
+<=   Less or equal
+&&   AND
+||   OR
+!    NOT</div>
+
+      <h4 style="color: #667eea; margin-top: 24px;">Control Flow</h4>
+      <div class="code-block">if (condition) {
+  // code
+} else if (otherCondition) {
+  // code
+} else {
+  // code
+}
+
+for (let i = 0; i < 10; i++) {
+  // loop
+}
+
+while (condition) {
+  // loop
+}
+
+switch (value) {
+  case "a":
+    // code
+    break;
+  default:
+    // code
+}</div>
+
+      <h4 style="color: #667eea; margin-top: 24px;">Functions</h4>
+      <div class="code-block">function name(param1, param2) {
+  return param1 + param2;
+}
+
+const arrow = (x) => x * 2;
+
+async function getData() {
+  let data = await fetch(url);
+  return data.json();
+}</div>
+
+      <h4 style="color: #667eea; margin-top: 24px;">Array Methods</h4>
+      <div class="code-block">arr.push(item)           // Add to end
+arr.pop()                // Remove from end
+arr.shift()              // Remove from start
+arr.unshift(item)        // Add to start
+arr.slice(start, end)    // Copy portion
+arr.splice(i, count)     // Remove items
+arr.map(fn)              // Transform items
+arr.filter(fn)           // Keep matching items
+arr.find(fn)             // Find first match
+arr.reduce(fn, init)     // Combine all items
+arr.forEach(fn)          // Loop through items
+arr.includes(item)       // Check if exists
+arr.sort()               // Sort items</div>
+
+      <h4 style="color: #667eea; margin-top: 24px;">Object Methods</h4>
+      <div class="code-block">Object.keys(obj)         // Get all keys
+Object.values(obj)       // Get all values
+Object.entries(obj)      // Get key-value pairs
+obj.hasOwnProperty(key)  // Check if key exists
+Object.assign(t, s)      // Merge objects
+{...obj}                 // Spread operator</div>
+
+      <h4 style="color: #667eea; margin-top: 24px;">DOM Manipulation</h4>
+      <div class="code-block">document.getElementById(id)
+document.querySelector(selector)
+document.querySelectorAll(selector)
+
+element.textContent = "text"
+element.innerHTML = "<p>HTML</p>"
+element.style.color = "red"
+element.classList.add("class")
+element.classList.remove("class")
+element.classList.toggle("class")
+
+element.addEventListener("click", fn)</div>
+
+      <h4 style="color: #667eea; margin-top: 24px;">Common Events</h4>
+      <div class="code-block">click            // Mouse click
+dblclick         // Double click
+mouseenter       // Mouse enters
+mouseleave       // Mouse leaves
+keydown          // Key pressed
+keyup            // Key released
+submit           // Form submitted
+input            // Input value changed
+change           // Value changed and lost focus
+focus            // Element receives focus
+blur             // Element loses focus
+load             // Page/image loaded
+DOMContentLoaded // HTML fully loaded</div>
+    `;
+
+    function demoHTML() {
+      const output = document.getElementById('html-demo-output');
+      output.style.display = 'block';
+      output.innerHTML = '<h1>Hello World!</h1><p>This is my first web page.</p>';
+    }
+
+    function runHTMLCode(inputId, outputId) {
+      const code = document.getElementById(inputId).value;
+      const output = document.getElementById(outputId);
+      output.innerHTML = code;
+    }
+
+    function runJSCode(inputId, outputId) {
+      const code = document.getElementById(inputId).value;
+      const output = document.getElementById(outputId);
+      
+      try {
+        output.innerHTML = '';
+        const scriptTag = document.createElement('script');
+        scriptTag.textContent = code;
+        output.appendChild(scriptTag);
+      } catch (e) {
+        output.textContent = 'Error: ' + e.message;
+      }
+    }
+
+    function renderModuleList() {
+      const container = document.getElementById('module-list');
+      container.innerHTML = '';
+      
+      curriculum.forEach(module => {
+        const totalLessons = module.lessons.length;
+        const completedLessons = progressData.filter(p => 
+          module.lessons.some(l => l.id === p.lesson_id && p.completed)
+        ).length;
+        
+        const isComplete = completedLessons === totalLessons;
+        
+        const card = document.createElement('div');
+        card.className = 'module-card' + (isComplete ? ' completed' : '');
+        card.onclick = () => showModule(module.id);
+        
+        card.innerHTML = `
+          <div class="module-header">
+            <div class="module-title">${module.title}</div>
+            <div class="module-status">${isComplete ? '✅' : '📚'}</div>
+          </div>
+          <div class="module-desc">${module.description}</div>
+          <div class="module-desc" style="margin-top: 8px; font-weight: 600; color: #667eea;">
+            ${completedLessons}/${totalLessons} lessons completed
+          </div>
+        `;
+        
+        container.appendChild(card);
+      });
+    }
+
+    function showModule(moduleId) {
+      const module = curriculum.find(m => m.id === moduleId);
+      if (!module) return;
+      
+      const container = document.getElementById('module-list');
+      container.innerHTML = '';
+      
+      const backBtn = document.createElement('button');
+      backBtn.className = 'back-button';
+      backBtn.textContent = '← Back to Modules';
+      backBtn.onclick = renderModuleList;
+      container.appendChild(backBtn);
+      
+      const title = document.createElement('h2');
+      title.textContent = module.title;
+      title.style.marginTop = '20px';
+      container.appendChild(title);
+      
+      const desc = document.createElement('p');
+      desc.textContent = module.description;
+      desc.style.color = '#718096';
+      desc.style.marginBottom = '20px';
+      container.appendChild(desc);
+      
+      const lessonList = document.createElement('div');
+      lessonList.className = 'module-list';
+      
+      module.lessons.forEach((lesson, index) => {
+        const progress = progressData.find(p => p.lesson_id === lesson.id);
+        const isComplete = progress && progress.completed;
+        
+        const card = document.createElement('div');
+        card.className = 'module-card' + (isComplete ? ' completed' : '');
+        card.onclick = () => showLesson(lesson.id);
+        
+        card.innerHTML = `
+          <div class="module-header">
+            <div class="module-title">${index + 1}. ${lesson.title}</div>
+            <div class="module-status">${isComplete ? '✅' : '📖'}</div>
+          </div>
+        `;
+        
+        lessonList.appendChild(card);
+      });
+      
+      container.appendChild(lessonList);
+    }
+
+    async function showLesson(lessonId) {
+      currentLesson = lessonId;
+      
+      let lesson = null;
+      let module = null;
+      
+      for (let m of curriculum) {
+        const l = m.lessons.find(lesson => lesson.id === lessonId);
+        if (l) {
+          lesson = l;
+          module = m;
+          break;
+        }
+      }
+      
+      if (!lesson) return;
+      
+      const lessonView = document.getElementById('lesson-view');
+      const moduleList = document.getElementById('module-list');
+      
+      moduleList.style.display = 'none';
+      lessonView.style.display = 'block';
+      lessonView.className = 'lesson-content active';
+      
+      lessonView.innerHTML = `
+        <button class="back-button" onclick="backToModule('${module.id}')">← Back to ${module.title}</button>
+        
+        <div class="lesson-header">
+          <h2>${lesson.title}</h2>
+        </div>
+        
+        <div class="lesson-section">
+          ${lesson.content}
+        </div>
+        
+        <div class="navigation-buttons">
+          ${getPrevButton(lesson.id)}
+          ${getNextButton(lesson.id)}
+        </div>
+        
+        <div class="note-area">
+          <h4>📝 Your Notes</h4>
+          <textarea class="note-textarea" id="lesson-notes" placeholder="Write your notes here...">${getLessonNotes(lesson.id)}</textarea>
+          <button class="btn btn-secondary" onclick="saveNotes('${lesson.id}')">Save Notes</button>
+        </div>
+      `;
+      
+      setupQuizListeners();
+      
+      // Track lesson access
+      updateLessonProgress(lesson.id, {
+        last_accessed: new Date().toISOString()
+      });
+    }
+
+    function setupQuizListeners() {
+      const quizOptions = document.querySelectorAll('.quiz-option');
+      quizOptions.forEach(option => {
+        option.onclick = function() {
+          const parent = this.parentElement;
+          const siblings = parent.querySelectorAll('.quiz-option');
+          
+          siblings.forEach(sib => {
+            sib.classList.remove('selected', 'correct', 'incorrect');
+          });
+          
+          this.classList.add('selected');
+          
+          const isCorrect = this.dataset.correct === 'true';
+          if (isCorrect) {
+            this.classList.add('correct');
+          } else {
+            this.classList.add('incorrect');
+            siblings.forEach(sib => {
+              if (sib.dataset.correct === 'true') {
+                sib.classList.add('correct');
+              }
+            });
+          }
+        };
+      });
+    }
+
+    function getLessonNotes(lessonId) {
+      const progress = progressData.find(p => p.lesson_id === lessonId);
+      return progress ? progress.notes : '';
+    }
+
+    function saveNotes(lessonId) {
+      const notes = document.getElementById('lesson-notes').value;
+      
+      updateLessonProgress(lessonId, { notes: notes });
+      
+      const btn = event.target;
+      const originalText = btn.textContent;
+      btn.textContent = '✓ Saved!';
+      btn.style.background = '#48bb78';
+      setTimeout(() => {
+        btn.textContent = originalText;
+        btn.style.background = '';
+      }, 2000);
+    }
+
+    function getPrevButton(currentId) {
+      const prevLesson = findAdjacentLesson(currentId, -1);
+      if (!prevLesson) return '';
+      
+      return `<button class="btn btn-secondary" onclick="showLesson('${prevLesson.id}')">← Previous Lesson</button>`;
+    }
+
+    function getNextButton(currentId) {
+      const nextLesson = findAdjacentLesson(currentId, 1);
+      if (!nextLesson) return '';
+      
+      return `<button class="btn" onclick="completeAndNext('${currentId}', '${nextLesson.id}')">Complete & Continue →</button>`;
+    }
+
+    function findAdjacentLesson(currentId, direction) {
+      let allLessons = [];
+      curriculum.forEach(module => {
+        module.lessons.forEach(lesson => {
+          allLessons.push(lesson);
+        });
+      });
+      
+      const currentIndex = allLessons.findIndex(l => l.id === currentId);
+      const adjacentIndex = currentIndex + direction;
+      
+      if (adjacentIndex >= 0 && adjacentIndex < allLessons.length) {
+        return allLessons[adjacentIndex];
+      }
+      return null;
+    }
+
+    function completeAndNext(currentId, nextId) {
+      const btn = event.target;
+      btn.disabled = true;
+      btn.textContent = 'Saving progress...';
+      
+      updateLessonProgress(currentId, { completed: true });
+      
+      setTimeout(() => {
+        showLesson(nextId);
+      }, 300);
+    }
+
+    function backToModule(moduleId) {
+      const lessonView = document.getElementById('lesson-view');
+      const moduleList = document.getElementById('module-list');
+      
+      lessonView.style.display = 'none';
+      moduleList.style.display = 'block';
+      
+      showModule(moduleId);
+    }
+
+    function renderProgressView() {
+      const container = document.getElementById('progress-stats');
+      
+      const totalLessons = curriculum.reduce((sum, m) => sum + m.lessons.length, 0);
+      const completedLessons = progressData.filter(p => p.completed).length;
+      const progressPercent = totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0;
+      
+      container.innerHTML = `
+        <div style="background: #f7fafc; padding: 24px; border-radius: 12px; margin-bottom: 24px;">
+          <h3 style="margin: 0 0 16px 0; color: #2d3748;">Overall Progress</h3>
+          <div style="font-size: 48px; font-weight: 700; color: #667eea; margin-bottom: 8px;">${progressPercent}%</div>
+          <p style="color: #718096; margin: 0;">${completedLessons} of ${totalLessons} lessons completed</p>
+          
+          ${completedLessons === totalLessons && totalLessons > 0 ? 
+            '<div class="achievement-badge">🎉 Course Completed!</div>' : ''}
+        </div>
+        
+        <h3 style="margin-bottom: 16px;">Progress by Module</h3>
+        <div id="module-progress"></div>
+      `;
+      
+      const moduleProgress = document.getElementById('module-progress');
+      
+      curriculum.forEach(module => {
+        const totalLessons = module.lessons.length;
+        const completedLessons = progressData.filter(p => 
+          module.lessons.some(l => l.id === p.lesson_id && p.completed)
+        ).length;
+        const percent = Math.round((completedLessons / totalLessons) * 100);
+        
+        const card = document.createElement('div');
+        card.style.cssText = 'background: white; border: 2px solid #e2e8f0; border-radius: 12px; padding: 20px; margin-bottom: 16px;';
+        
+        card.innerHTML = `
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <h4 style="margin: 0; color: #2d3748;">${module.title}</h4>
+            <span style="font-weight: 600; color: #667eea;">${completedLessons}/${totalLessons}</span>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill" style="width: ${percent}%"></div>
+          </div>
+        `;
+        
+        moduleProgress.appendChild(card);
+      });
+    }
+
+    function renderReferenceView() {
+      const container = document.getElementById('reference-content');
+      container.innerHTML = referenceGuide;
+    }
+
+    function updateProgressBar() {
+      const totalLessons = curriculum.reduce((sum, m) => sum + m.lessons.length, 0);
+      const completedLessons = progressData.filter(p => p.completed).length;
+      const progressPercent = totalLessons > 0 ? (completedLessons / totalLessons) * 100 : 0;
+      
+      document.getElementById('progress-fill').style.width = progressPercent + '%';
+    }
+
+    document.getElementById('nav-tabs').addEventListener('click', (e) => {
+      if (e.target.classList.contains('tab-btn')) {
+        const tab = e.target.dataset.tab;
+        
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+          btn.classList.remove('active');
+        });
+        e.target.classList.add('active');
+        
+        document.getElementById('modules-view').style.display = 'none';
+        document.getElementById('progress-view').style.display = 'none';
+        document.getElementById('reference-view').style.display = 'none';
+        
+        const lessonView = document.getElementById('lesson-view');
+        const moduleList = document.getElementById('module-list');
+        lessonView.style.display = 'none';
+        moduleList.style.display = 'block';
+        
+        if (tab === 'modules') {
+          document.getElementById('modules-view').style.display = 'block';
+          renderModuleList();
+        } else if (tab === 'progress') {
+          document.getElementById('progress-view').style.display = 'block';
+          renderProgressView();
+        } else if (tab === 'reference') {
+          document.getElementById('reference-view').style.display = 'block';
+          renderReferenceView();
+        }
+      }
+    });
+
+    function initApp() {
+      progressData = loadProgress();
+      renderModuleList();
+      renderReferenceView();
+      updateProgressBar();
+    }
+
+    async function onConfigChange(config) {
+      document.getElementById('course-title').textContent = 
+        config.course_title || defaultConfig.course_title;
+      document.getElementById('welcome-message').textContent = 
+        config.welcome_message || defaultConfig.welcome_message;
+      
+      const primaryColor = config.primary_color || defaultConfig.primary_color;
+      const secondaryColor = config.secondary_color || defaultConfig.secondary_color;
+      
+      const style = document.createElement('style');
+      style.textContent = `
+        .header h1 {
+          background: linear-gradient(135deg, ${primaryColor} 0%, ${secondaryColor} 100%);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+        }
+        body {
+          background: linear-gradient(135deg, ${primaryColor} 0%, ${secondaryColor} 100%);
+        }
+        .progress-fill {
+          background: linear-gradient(90deg, ${primaryColor} 0%, ${secondaryColor} 100%);
+        }
+        .btn {
+          background: linear-gradient(135deg, ${primaryColor} 0%, ${secondaryColor} 100%);
+        }
+        .tab-btn.active {
+          color: ${primaryColor};
+        }
+      `;
+      document.head.appendChild(style);
+    }
+
+    if (window.elementSdk) {
+      window.elementSdk.init({
+        defaultConfig,
+        onConfigChange,
+        mapToCapabilities: (config) => ({
+          recolorables: [
+            {
+              get: () => config.primary_color || defaultConfig.primary_color,
+              set: (value) => {
+                config.primary_color = value;
+                window.elementSdk.setConfig({ primary_color: value });
+              }
+            },
+            {
+              get: () => config.secondary_color || defaultConfig.secondary_color,
+              set: (value) => {
+                config.secondary_color = value;
+                window.elementSdk.setConfig({ secondary_color: value });
+              }
+            },
+            {
+              get: () => config.background_color || defaultConfig.background_color,
+              set: (value) => {
+                config.background_color = value;
+                window.elementSdk.setConfig({ background_color: value });
+              }
+            },
+            {
+              get: () => config.text_color || defaultConfig.text_color,
+              set: (value) => {
+                config.text_color = value;
+                window.elementSdk.setConfig({ text_color: value });
+              }
+            },
+            {
+              get: () => config.accent_color || defaultConfig.accent_color,
+              set: (value) => {
+                config.accent_color = value;
+                window.elementSdk.setConfig({ accent_color: value });
+              }
+            }
+          ],
+          borderables: [],
+          fontEditable: undefined,
+          fontSizeable: undefined
+        }),
+        mapToEditPanelValues: (config) => new Map([
+          ["course_title", config.course_title || defaultConfig.course_title],
+          ["welcome_message", config.welcome_message || defaultConfig.welcome_message]
+        ])
+      });
+    }
+
+    initApp();
+  </script>
+</body>
+</html>
