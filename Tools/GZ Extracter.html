@@ -1,0 +1,804 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GZ File Extractor</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            padding: 40px;
+        }
+
+        .upload-area {
+            border: 3px dashed #ff6b6b;
+            border-radius: 15px;
+            padding: 60px 40px;
+            text-align: center;
+            background: #fff5f5;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            margin-bottom: 30px;
+        }
+
+        .upload-area:hover {
+            border-color: #ee5a24;
+            background: #fff0f0;
+            transform: translateY(-2px);
+        }
+
+        .upload-area.dragover {
+            border-color: #ee5a24;
+            background: #ffe6e6;
+            transform: scale(1.02);
+        }
+
+        .upload-icon {
+            font-size: 4rem;
+            color: #ff6b6b;
+            margin-bottom: 20px;
+        }
+
+        .upload-text {
+            font-size: 1.3rem;
+            color: #333;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .upload-subtext {
+            color: #666;
+            font-size: 1rem;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .progress-container {
+            display: none;
+            margin: 30px 0;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 15px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ff6b6b, #ee5a24);
+            width: 0%;
+            transition: width 0.3s ease;
+            border-radius: 10px;
+        }
+
+        .progress-text {
+            text-align: center;
+            color: #666;
+            font-weight: 500;
+        }
+
+        .results {
+            display: none;
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 30px;
+            margin-top: 30px;
+        }
+
+        .results h3 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+        }
+
+        .file-tree {
+            max-height: 400px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+        }
+
+        .file-item {
+            padding: 12px 15px;
+            margin-bottom: 8px;
+            border-radius: 8px;
+            border-left: 4px solid #ff6b6b;
+            background: #fff;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .file-info {
+            flex: 1;
+        }
+
+        .file-name {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 4px;
+            word-break: break-all;
+        }
+
+        .file-details {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .file-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .download-single {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .download-single:hover {
+            background: #218838;
+            transform: translateY(-1px);
+        }
+
+        .download-all-btn {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+            margin-top: 20px;
+        }
+
+        .download-all-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(255, 107, 107, 0.3);
+        }
+
+        .download-all-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .error {
+            background: #ffe6e6;
+            color: #d63031;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border-left: 4px solid #d63031;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #ff6b6b;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .archive-type {
+            background: #e3f2fd;
+            color: #1976d2;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            display: inline-block;
+            margin-bottom: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                border-radius: 15px;
+            }
+            
+            .header {
+                padding: 30px 20px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .main-content {
+                padding: 30px 20px;
+            }
+            
+            .upload-area {
+                padding: 40px 20px;
+            }
+
+            .file-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+
+            .file-actions {
+                width: 100%;
+                justify-content: flex-end;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🗜️ GZ File Extractor</h1>
+            <p>Extract .gz and .tar.gz files with full directory structure support</p>
+        </div>
+        
+        <div class="main-content">
+            <div class="upload-area" id="uploadArea">
+                <div class="upload-icon">📤</div>
+                <div class="upload-text">Drop your GZ file here</div>
+                <div class="upload-subtext">Supports .gz, .tar.gz, .tgz files up to 500MB</div>
+                <input type="file" id="fileInput" class="file-input" accept=".gz,.tar.gz,.tgz">
+            </div>
+            
+            <div class="progress-container" id="progressContainer">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <div class="progress-text" id="progressText">Processing...</div>
+            </div>
+            
+            <div class="error" id="errorContainer" style="display: none;"></div>
+            
+            <div class="results" id="results">
+                <div class="archive-type" id="archiveType">📦 Archive Type</div>
+                <h3>📊 Extraction Results</h3>
+                <div class="stats">
+                    <div class="stat-card">
+                        <div class="stat-number" id="fileCount">0</div>
+                        <div class="stat-label">Files Extracted</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="totalSize">0 MB</div>
+                        <div class="stat-label">Total Size</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="compressionRatio">0%</div>
+                        <div class="stat-label">Compression Saved</div>
+                    </div>
+                </div>
+                <div class="file-tree" id="fileTree"></div>
+                <button class="download-all-btn" id="downloadAllBtn">📥 Download All Files as ZIP</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class GZExtractor {
+            constructor() {
+                this.uploadArea = document.getElementById('uploadArea');
+                this.fileInput = document.getElementById('fileInput');
+                this.progressContainer = document.getElementById('progressContainer');
+                this.progressFill = document.getElementById('progressFill');
+                this.progressText = document.getElementById('progressText');
+                this.results = document.getElementById('results');
+                this.fileTree = document.getElementById('fileTree');
+                this.downloadAllBtn = document.getElementById('downloadAllBtn');
+                this.errorContainer = document.getElementById('errorContainer');
+                this.fileCount = document.getElementById('fileCount');
+                this.totalSize = document.getElementById('totalSize');
+                this.compressionRatio = document.getElementById('compressionRatio');
+                this.archiveType = document.getElementById('archiveType');
+                
+                this.extractedFiles = [];
+                this.originalSize = 0;
+                this.zip = new JSZip();
+                
+                this.initEventListeners();
+            }
+            
+            initEventListeners() {
+                this.uploadArea.addEventListener('click', () => this.fileInput.click());
+                this.fileInput.addEventListener('change', (e) => this.handleFile(e.target.files[0]));
+                this.downloadAllBtn.addEventListener('click', () => this.downloadAllFiles());
+                
+                // Drag and drop
+                this.uploadArea.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    this.uploadArea.classList.add('dragover');
+                });
+                
+                this.uploadArea.addEventListener('dragleave', () => {
+                    this.uploadArea.classList.remove('dragover');
+                });
+                
+                this.uploadArea.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    this.uploadArea.classList.remove('dragover');
+                    this.handleFile(e.dataTransfer.files[0]);
+                });
+            }
+            
+            async handleFile(file) {
+                if (!file) return;
+                
+                this.hideError();
+                this.showProgress();
+                this.results.style.display = 'none';
+                this.originalSize = file.size;
+                
+                try {
+                    this.updateProgress(10, 'Reading file...');
+                    const arrayBuffer = await this.readFileAsArrayBuffer(file);
+                    
+                    this.updateProgress(30, 'Decompressing...');
+                    await this.sleep(100);
+                    
+                    const fileName = file.name.toLowerCase();
+                    let decompressed;
+                    
+                    if (fileName.endsWith('.tar.gz') || fileName.endsWith('.tgz')) {
+                        this.archiveType.textContent = '📦 TAR.GZ Archive';
+                        decompressed = pako.ungzip(new Uint8Array(arrayBuffer));
+                        this.updateProgress(60, 'Parsing TAR archive...');
+                        await this.parseTarArchive(decompressed);
+                    } else if (fileName.endsWith('.gz')) {
+                        this.archiveType.textContent = '🗜️ GZIP File';
+                        decompressed = pako.ungzip(new Uint8Array(arrayBuffer));
+                        this.updateProgress(60, 'Processing single file...');
+                        await this.processSingleFile(decompressed, fileName);
+                    } else {
+                        throw new Error('Unsupported file format. Please upload a .gz, .tar.gz, or .tgz file.');
+                    }
+                    
+                    this.updateProgress(100, 'Complete!');
+                    await this.sleep(500);
+                    
+                    this.hideProgress();
+                    this.showResults();
+                    
+                } catch (error) {
+                    this.hideProgress();
+                    this.showError(`Extraction failed: ${error.message}`);
+                }
+            }
+            
+            readFileAsArrayBuffer(file) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => resolve(e.target.result);
+                    reader.onerror = () => reject(new Error('Failed to read file'));
+                    reader.readAsArrayBuffer(file);
+                });
+            }
+            
+            async processSingleFile(data, originalFileName) {
+                // Remove .gz extension to get original filename
+                const fileName = originalFileName.replace(/\.gz$/, '');
+                
+                this.extractedFiles = [{
+                    name: fileName,
+                    data: data,
+                    size: data.length,
+                    type: 'file',
+                    path: fileName
+                }];
+                
+                // Add to ZIP for download
+                this.zip = new JSZip();
+                this.zip.file(fileName, data);
+            }
+            
+            async parseTarArchive(tarData) {
+                this.extractedFiles = [];
+                this.zip = new JSZip();
+                
+                let offset = 0;
+                const files = [];
+                
+                while (offset < tarData.length) {
+                    // TAR header is 512 bytes
+                    if (offset + 512 > tarData.length) break;
+                    
+                    const header = tarData.slice(offset, offset + 512);
+                    
+                    // Check if this is a valid header (not all zeros)
+                    if (header.every(byte => byte === 0)) break;
+                    
+                    // Parse header
+                    const name = this.readString(header, 0, 100).replace(/\0.*$/, '');
+                    const sizeOctal = this.readString(header, 124, 12).replace(/\0.*$/, '').trim();
+                    const typeFlag = String.fromCharCode(header[156]);
+                    
+                    if (!name) break;
+                    
+                    const size = parseInt(sizeOctal, 8) || 0;
+                    const isDirectory = typeFlag === '5' || name.endsWith('/');
+                    
+                    offset += 512; // Skip header
+                    
+                    if (!isDirectory && size > 0) {
+                        const fileData = tarData.slice(offset, offset + size);
+                        
+                        files.push({
+                            name: name,
+                            data: fileData,
+                            size: size,
+                            type: 'file',
+                            path: name
+                        });
+                        
+                        // Add to ZIP maintaining directory structure
+                        this.zip.file(name, fileData);
+                    } else if (isDirectory) {
+                        files.push({
+                            name: name,
+                            data: null,
+                            size: 0,
+                            type: 'directory',
+                            path: name
+                        });
+                    }
+                    
+                    // Move to next entry (TAR entries are padded to 512-byte boundaries)
+                    const paddedSize = Math.ceil(size / 512) * 512;
+                    offset += paddedSize;
+                    
+                    // Update progress for large archives
+                    if (files.length % 50 === 0) {
+                        this.updateProgress(60 + (offset / tarData.length) * 30, `Processed ${files.length} entries...`);
+                        await this.sleep(1);
+                    }
+                }
+                
+                this.extractedFiles = files;
+            }
+            
+            readString(buffer, start, length) {
+                let result = '';
+                for (let i = start; i < start + length && i < buffer.length; i++) {
+                    if (buffer[i] === 0) break;
+                    result += String.fromCharCode(buffer[i]);
+                }
+                return result;
+            }
+            
+            showResults() {
+                this.results.style.display = 'block';
+                
+                // Update stats
+                const totalSize = this.extractedFiles.reduce((sum, file) => sum + file.size, 0);
+                const compressionRatio = this.originalSize > 0 ? 
+                    Math.round((1 - this.originalSize / totalSize) * 100) : 0;
+                
+                this.fileCount.textContent = this.extractedFiles.filter(f => f.type === 'file').length;
+                this.totalSize.textContent = this.formatFileSize(totalSize);
+                this.compressionRatio.textContent = compressionRatio + '%';
+                
+                // Display file tree
+                this.fileTree.innerHTML = '';
+                
+                // Sort files: directories first, then files
+                const sortedFiles = [...this.extractedFiles].sort((a, b) => {
+                    if (a.type !== b.type) {
+                        return a.type === 'directory' ? -1 : 1;
+                    }
+                    return a.name.localeCompare(b.name);
+                });
+                
+                sortedFiles.forEach((file, index) => {
+                    const fileItem = document.createElement('div');
+                    fileItem.className = 'file-item';
+                    
+                    const icon = file.type === 'directory' ? '📁' : this.getFileIcon(file.name);
+                    const sizeText = file.type === 'directory' ? 'Directory' : this.formatFileSize(file.size);
+                    
+                    fileItem.innerHTML = `
+                        <div class="file-info">
+                            <div class="file-name">${icon} ${file.name}</div>
+                            <div class="file-details">${sizeText} • ${file.type}</div>
+                        </div>
+                        <div class="file-actions">
+                            ${file.type === 'file' ? `<button class="download-single" onclick="gzExtractor.downloadSingleFile(${index})">📥 Download</button>` : ''}
+                        </div>
+                    `;
+                    
+                    this.fileTree.appendChild(fileItem);
+                });
+            }
+            
+            getFileIcon(fileName) {
+                const ext = fileName.split('.').pop().toLowerCase();
+                const iconMap = {
+                    'txt': '📄', 'md': '📄', 'doc': '📄', 'docx': '📄', 'pdf': '📄',
+                    'jpg': '🖼️', 'jpeg': '🖼️', 'png': '🖼️', 'gif': '🖼️', 'svg': '🖼️',
+                    'mp3': '🎵', 'wav': '🎵', 'ogg': '🎵', 'flac': '🎵',
+                    'mp4': '🎬', 'avi': '🎬', 'mov': '🎬', 'webm': '🎬',
+                    'zip': '📦', 'rar': '📦', '7z': '📦', 'tar': '📦',
+                    'js': '⚡', 'html': '🌐', 'css': '🎨', 'json': '📋',
+                    'py': '🐍', 'java': '☕', 'cpp': '⚙️', 'c': '⚙️',
+                    'exe': '⚙️', 'app': '⚙️', 'deb': '📦', 'rpm': '📦'
+                };
+                return iconMap[ext] || '📄';
+            }
+            
+            async downloadSingleFile(index) {
+                const file = this.extractedFiles[index];
+                if (!file || file.type !== 'file') return;
+                
+                const button = document.querySelector(`button[onclick="gzExtractor.downloadSingleFile(${index})"]`);
+                const originalText = button.textContent;
+                
+                try {
+                    button.disabled = true;
+                    button.textContent = '💾 Saving...';
+                    
+                    const blob = new Blob([file.data]);
+                    
+                    // Try modern File System Access API first
+                    if ('showSaveFilePicker' in window) {
+                        try {
+                            const fileExtension = file.name.includes('.') ? 
+                                '.' + file.name.split('.').pop() : '';
+                            
+                            const fileHandle = await window.showSaveFilePicker({
+                                suggestedName: file.name,
+                                types: [{
+                                    description: `${fileExtension.toUpperCase()} files`,
+                                    accept: { 
+                                        [`*/*`]: [fileExtension || '.*']
+                                    }
+                                }],
+                                excludeAcceptAllOption: false
+                            });
+                            
+                            const writable = await fileHandle.createWritable();
+                            await writable.write(blob);
+                            await writable.close();
+                            
+                            button.textContent = '✅ Saved!';
+                            setTimeout(() => {
+                                button.disabled = false;
+                                button.textContent = originalText;
+                            }, 2000);
+                            
+                        } catch (fsError) {
+                            if (fsError.name === 'AbortError') {
+                                // User cancelled, just reset button
+                                button.disabled = false;
+                                button.textContent = originalText;
+                                return;
+                            }
+                            throw fsError; // Re-throw other errors to fallback
+                        }
+                    } else {
+                        // Fallback to traditional download
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = file.name;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                        
+                        button.textContent = '✅ Downloaded!';
+                        setTimeout(() => {
+                            button.disabled = false;
+                            button.textContent = originalText;
+                        }, 2000);
+                    }
+                    
+                } catch (error) {
+                    button.disabled = false;
+                    button.textContent = originalText;
+                    this.showError(`Failed to download ${file.name}: ${error.message}`);
+                }
+            }
+            
+            async downloadAllFiles() {
+                try {
+                    this.downloadAllBtn.disabled = true;
+                    this.downloadAllBtn.textContent = '📦 Creating ZIP...';
+                    
+                    const zipBlob = await this.zip.generateAsync({
+                        type: 'blob',
+                        compression: 'DEFLATE',
+                        compressionOptions: { level: 6 }
+                    });
+                    
+                    // Try modern File System Access API first
+                    if ('showSaveFilePicker' in window) {
+                        try {
+                            this.downloadAllBtn.textContent = '💾 Choose location...';
+                            
+                            const fileHandle = await window.showSaveFilePicker({
+                                suggestedName: 'extracted_files.zip',
+                                types: [{
+                                    description: 'ZIP Archive',
+                                    accept: { 'application/zip': ['.zip'] }
+                                }],
+                                excludeAcceptAllOption: false
+                            });
+                            
+                            this.downloadAllBtn.textContent = '💾 Saving ZIP...';
+                            
+                            const writable = await fileHandle.createWritable();
+                            await writable.write(zipBlob);
+                            await writable.close();
+                            
+                            this.downloadAllBtn.textContent = '✅ ZIP Saved Successfully!';
+                            
+                        } catch (fsError) {
+                            if (fsError.name === 'AbortError') {
+                                // User cancelled the save dialog
+                                this.downloadAllBtn.disabled = false;
+                                this.downloadAllBtn.textContent = '📥 Download All Files as ZIP';
+                                return;
+                            }
+                            
+                            // If File System Access API fails, fallback to traditional download
+                            console.warn('File System Access API failed, falling back to traditional download:', fsError);
+                            
+                            this.downloadAllBtn.textContent = '📥 Starting download...';
+                            const url = URL.createObjectURL(zipBlob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = 'extracted_files.zip';
+                            document.body.appendChild(a);
+                            a.click();
+                            document.body.removeChild(a);
+                            URL.revokeObjectURL(url);
+                            
+                            this.downloadAllBtn.textContent = '✅ ZIP Download Started!';
+                        }
+                    } else {
+                        // Fallback for browsers without File System Access API
+                        this.downloadAllBtn.textContent = '📥 Starting download...';
+                        const url = URL.createObjectURL(zipBlob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = 'extracted_files.zip';
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                        
+                        this.downloadAllBtn.textContent = '✅ ZIP Download Started!';
+                    }
+                    
+                    // Reset button after 3 seconds
+                    setTimeout(() => {
+                        this.downloadAllBtn.disabled = false;
+                        this.downloadAllBtn.textContent = '📥 Download All Files as ZIP';
+                    }, 3000);
+                    
+                } catch (error) {
+                    this.downloadAllBtn.disabled = false;
+                    this.downloadAllBtn.textContent = '📥 Download All Files as ZIP';
+                    this.showError('Download failed: ' + error.message);
+                }
+            }
+            
+            formatFileSize(bytes) {
+                if (bytes === 0) return '0 B';
+                const k = 1024;
+                const sizes = ['B', 'KB', 'MB', 'GB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+            }
+            
+            updateProgress(percent, text) {
+                this.progressFill.style.width = percent + '%';
+                this.progressText.textContent = text;
+            }
+            
+            showProgress() {
+                this.progressContainer.style.display = 'block';
+            }
+            
+            hideProgress() {
+                this.progressContainer.style.display = 'none';
+            }
+            
+            showError(message) {
+                this.errorContainer.textContent = message;
+                this.errorContainer.style.display = 'block';
+            }
+            
+            hideError() {
+                this.errorContainer.style.display = 'none';
+            }
+            
+            sleep(ms) {
+                return new Promise(resolve => setTimeout(resolve, ms));
+            }
+        }
+        
+        // Initialize the extractor when page loads
+        let gzExtractor;
+        document.addEventListener('DOMContentLoaded', () => {
+            gzExtractor = new GZExtractor();
+        });
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'974afb10a54f45f5',t:'MTc1NjEyMzc2OC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
