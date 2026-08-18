@@ -1,0 +1,197 @@
+<!-- oopsies! don't spoil the magic! :) -->
+<!-- oopsies! don't spoil the magic! :) -->
+<!-- oopsies! don't spoil the magic! :) -->
+<!-- oopsies! don't spoil the magic! :) -->
+<!-- oopsies! don't spoil the magic! :) -->
+
+
+
+
+
+
+<!-- ----\>8----skids-cut-here----8<---- -->
+
+
+
+
+
+<!-- oopsies! don't spoil the magic! :) -->
+<!-- oopsies! don't spoil the magic! :) -->
+<!-- oopsies! don't spoil the magic! :) -->
+<!-- oopsies! don't spoil the magic! :) -->
+<!-- oopsies! don't spoil the magic! :) -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" title="Wobbie'sTextEditor" copyright="© 2023 wobbie">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wobbie'sTextEditor</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #000; /* darken the lights */
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overscroll-behavior: contain; /* prevent Chrome page refresh swipedown gesture */
+        }
+        #title {
+            padding: 1px;
+            color: #ccc;
+            font-size: 10px;
+        }
+        #editor-container {
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1;
+        }
+        #toolbar {
+            display: flex;
+            background-color: #4CAF50;
+            padding: 7px;
+        }
+        #toolbar button {
+            margin: 0 5px;
+            padding: 1px;
+            background-color: #4CAF50;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        #toolbar button:hover {
+            background-color: #3e8e41;
+        }
+        #text-size {
+            margin-left: auto;
+            padding: 5x;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        #custom-text-size {
+            margin-left: 5px;
+            padding: 5px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+        #preview {
+            flex-grow: 1;
+            padding-top: 20px;
+            border: 1px solid #333;
+            background: #000;
+        }
+        #editor {
+            flex-grow: 1;
+            padding: 10px;
+            font-size: 12px;
+            line-height: 1.5;
+            border: none;
+            outline: none;
+            resize: none;
+            font-family: monospace;
+            background: #282c34;
+            color: #ffffff;
+            height: 50px;
+            overflow: auto;
+            white-space: pre; /* Set to pre-wrap for line wrap */
+            word-wrap: keep-all; /* Set to break-word for breaking at words */
+        }
+    </style>
+</head>
+<body>
+    <div id="title">Wobbie'sTextEditor v1.2</div>
+    <div id="editor-container">
+        <div id="toolbar">
+            <button id="open-butt">Open File</button>
+            <button id="save-butt">Save File</button>
+            <input type="text" id="file-name" size="5" placeholder="filename.txt"/>
+            <select id="text-size">
+                <option value="12px" selected>12px</option>
+                <option value="14px">14px</option>
+                <option value="16px">16px</option>
+                <option value="18px">18px</option>
+                <option value="20px">20px</option>
+                <option value="22px">22px</option>
+                <option value="24px">24px</option>
+                <option value="custom">Custom</option>
+            </select>
+            <input type="number" id="custom-text-size" min="1" max="255" step="1" placeholder="1-255" style="display:none;"/>
+            <button id="preview-butt">Preview HTML</button>
+        </div>
+        <pre id="editor" contenteditable="true"></pre>
+        <iframe id="preview" style="display: none;"></iframe>
+    </div>
+
+    <script>
+        // Prevent Chrome page refresh swipedown gesture
+        document.body.addEventListener('touchstart', function(e) {
+            e.preventDefault();
+        });
+
+        const editor = document.getElementById('editor');
+        const openButton = document.getElementById('open-butt');
+        const saveButton = document.getElementById('save-butt');
+        const fileName = document.getElementById('file-name');
+        const textSize = document.getElementById('text-size');
+        const customTextSize = document.getElementById('custom-text-size');
+        const previewButton = document.getElementById('preview-butt');
+        const preview = document.getElementById('preview');
+
+        // Open file
+        openButton.addEventListener('click', () => {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.txt,.js,.html,.css'; // comment out to open other files
+            input.onchange = (e) => {
+                const file = e.target.files[0];
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    editor.textContent = e.target.result;
+                };
+                reader.readAsText(file);
+            };
+            input.click();
+        });
+
+        // Save file
+        saveButton.addEventListener('click', () => {
+            const text = editor.innerText;
+            const blob = new Blob([text], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName.value || 'a-newfile-yay.txt';
+            a.click();
+        });
+
+        // Change text size
+        textSize.addEventListener('change', (e) => {
+            if (e.target.value === 'custom') {
+                customTextSize.style.display = 'inline-block';
+                customTextSize.focus();
+            } else {
+                customTextSize.style.display = 'none';
+                editor.style.fontSize = e.target.value;
+            }
+        });
+
+        customTextSize.addEventListener('input', (e) => {
+            const size = `${e.target.value}px`;
+            editor.style.fontSize = size;
+        });
+
+        // Preview
+        previewButton.addEventListener('click', () => {
+            if (preview.style.display == 'block') {
+               preview.style.display = 'none';
+            } else {
+
+               const html = editor.innerText;
+               preview.srcdoc = html;
+               preview.style.display = 'block';
+            };
+        });
+    </script>
+</body>
+</html>
