@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Website Code Fetcher</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        body {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f7fa;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        #urlInput {
+            flex: 1;
+            padding: 12px 15px;
+            border: 2px solid #3498db;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        button {
+            padding: 12px 20px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .action-buttons button {
+            background-color: #2c3e50;
+        }
+        .action-buttons button:hover {
+            background-color: #1a252f;
+        }
+        .code-container {
+            position: relative;
+            margin-top: 20px;
+        }
+        #codeDisplay {
+            width: 100%;
+            height: 500px;
+            padding: 15px;
+            border: 2px solid #3498db;
+            border-radius: 4px;
+            background-color: #2c3e50;
+            color: #ecf0f1;
+            font-family: monospace;
+            white-space: pre-wrap;
+            overflow: auto;
+            tab-size: 4;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            text-align: center;
+            font-weight: bold;
+        }
+        .loading {
+            background-color: #f39c12;
+            color: white;
+        }
+        .error {
+            background-color: #e74c3c;
+            color: white;
+        }
+        .success {
+            background-color: #2ecc71;
+            color: white;
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Website Code Fetcher</h1>
+        
+        <div class="input-group">
+            <input type="url" id="urlInput" placeholder="Enter website URL (e.g., https://example.com)" required>
+            <button id="fetchBtn">Fetch HTML</button>
+        </div>
+        
+        <div id="status" class="status hidden"></div>
+
+<div class="action-buttons">
+    <button id="copyBtn">Copy Code</button>
+            <button id="downloadBtn">Download HTML</button>
+        </div>
+    </div>
+        
+        <div class="code-container">
+            <pre id="codeDisplay">HTML code will appear here...</pre>
+        </div>
+    <script>
+        const proxyUrl = 'https://cloudflare-cors-anywhere.imnotfamous01.workers.dev/?';
+        const urlInput = document.getElementById('urlInput');
+        const fetchBtn = document.getElementById('fetchBtn');
+        const codeDisplay = document.getElementById('codeDisplay');
+        const copyBtn = document.getElementById('copyBtn');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const statusDiv = document.getElementById('status');
+
+        // Fetch HTML code
+        fetchBtn.addEventListener('click', async () => {
+            const targetUrl = urlInput.value.trim();
+            if (!targetUrl) return;
+            
+            try {
+                showStatus('Loading...', 'loading');
+                const response = await fetch(proxyUrl + encodeURIComponent(targetUrl));
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                
+                const html = await response.text();
+                codeDisplay.textContent = html;
+                showStatus('Code fetched successfully!', 'success');
+                const textArea = document.createElement('textarea');
+            textArea.value = codeDisplay.textContent;
+            document.body.appendChild(textArea);
+            textArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textArea);
+            showStatus('Code copied to clipboard!', 'success');
+            } catch (error) {
+                console.error('Fetch error:', error);
+                codeDisplay.textContent = `Error: ${error.message}`;
+                showStatus(`Failed to fetch: ${error.message}`, 'error');
+            }
+        });
+
+        // Copy to clipboard
+        copyBtn.addEventListener('click', () => {
+            const textArea = document.createElement('textarea');
+            textArea.value = codeDisplay.textContent;
+            document.body.appendChild(textArea);
+            textArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textArea);
+            showStatus('Code copied to clipboard!', 'success');
+        });
+
+        // Download as HTML file
+        downloadBtn.addEventListener('click', () => {
+            const blob = new Blob([codeDisplay.textContent], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = getDomainName(urlInput.value) || 'website_code.html';
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(() => {
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+            }, 100);
+            showStatus('Download started!', 'success');
+        });
+
+        // Helper functions
+        function showStatus(message, type) {
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${type}`;
+            statusDiv.classList.remove('hidden');
+            
+            setTimeout(() => {
+                statusDiv.classList.add('hidden');
+            }, 5000);
+        }
+
+        function getDomainName(url) {
+            try {
+                const domain = new URL(url).hostname;
+                return domain.replace('www.', '') + '.html';
+            } catch {
+                return 'website_code.html';
+            }
+        }
+    </script>
+</body>
+</html>
