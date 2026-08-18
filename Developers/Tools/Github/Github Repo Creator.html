@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GitHub Repo Creator</title>
+<style>
+body { font-family: system-ui, sans-serif; max-width: 500px; margin: 50px auto; padding: 20px; background: #0d1117; color: #c9d1d9; }
+input, button { width: 100%; padding: 10px; margin: 8px 0; border-radius: 6px; border: 1px solid #30363d; background: #161b22; color: #c9d1d9; }
+button { background: #238636; border: none; cursor: pointer; font-weight: 600; }
+button:disabled { background: #484f58; cursor: not-allowed; }
+label { font-size: 14px; color: #8b949e; }
+#result { margin-top: 20px; padding: 12px; border-radius: 6px; display: none; }
+.success { background: #1a3a1f; border: 1px solid #238636; }
+.error { background: #3d1a1a; border: 1px solid #da3633; }
+a { color: #58a6ff; }
+</style>
+</head>
+<body>
+<h2>Create Private GitHub Repo</h2>
+
+<label>PAT - Personal Access Token</label>
+<input type="password" id="token" placeholder="ghp_... or github_pat_...">
+
+<label>Repository Name</label>
+<input type="text" id="repoName" placeholder="my-secret-project">
+
+<label>Description - optional</label>
+<input type="text" id="desc" placeholder="What this repo is for">
+
+<label><input type="checkbox" id="private" checked> Private repository</label>
+<label><input type="checkbox" id="readme"> Add README</label>
+
+<button id="createBtn">Create Repo</button>
+
+<div id="result"></div>
+
+<script>
+document.getElementById('createBtn').onclick = async () => {
+  const token = document.getElementById('token').value.trim();
+  const name = document.getElementById('repoName').value.trim();
+  const desc = document.getElementById('desc').value.trim();
+  const isPrivate = document.getElementById('private').checked;
+  const addReadme = document.getElementById('readme').checked;
+  const btn = document.getElementById('createBtn');
+  const result = document.getElementById('result');
+
+  if (!token || !name) {
+    showResult('Token + Repo name required', 'error');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Creating...';
+  result.style.display = 'none';
+
+  try {
+    const res = await fetch('https://api.github.com/user/repos', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Accept': 'application/vnd.github+json',
+        'X-GitHub-Api-Version': '2022-11-28'
+      },
+      body: JSON.stringify({
+        name: name,
+        description: desc,
+        private: isPrivate,
+        auto_init: addReadme
+      })
+    });
+
+    const data = await res.json();
+
+    if (res.ok) {
+      showResult(`✅ Repo created! <a href="${data.html_url}" target="_blank">${data.html_url}</a>`, 'success');
+    } else {
+      showResult(`❌ Error ${res.status}: ${data.message}`, 'error');
+    }
+  } catch (err) {
+    showResult('Network error: ' + err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Create Repo';
+  }
+};
+
+function showResult(msg, type) {
+  const result = document.getElementById('result');
+  result.innerHTML = msg;
+  result.className = type;
+  result.style.display = 'block';
+}
+</script>
+</body>
+</html>
