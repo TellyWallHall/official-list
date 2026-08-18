@@ -1,0 +1,827 @@
+<!doctype html>
+<!-- by ImPot8o https://github.com/ImPot8o pot8o.dev -->
+<html lang="en">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Minesweeper Extreme</title>
+  <style>
+    body {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Orbitron', 'Courier New', monospace;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      overflow-x: hidden;
+      width: 100%;
+      height: 100%;
+      position: relative;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    .app-container {
+      width: 100%;
+      min-height: 100%;
+      padding: 20px 15px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+    }
+
+    .particle {
+      position: fixed;
+      pointer-events: none;
+      z-index: 9999;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 20px;
+      position: relative;
+      z-index: 10;
+    }
+
+    .title {
+      font-size: 32px;
+      font-weight: 900;
+      color: #fff;
+      text-shadow: 0 0 20px rgba(255,255,255,0.8),
+                   0 0 40px rgba(255,0,255,0.6),
+                   0 0 60px rgba(0,255,255,0.4);
+      letter-spacing: 3px;
+      animation: titlePulse 2s ease-in-out infinite;
+      margin: 0 0 10px 0;
+    }
+
+    @keyframes titlePulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+
+    .stats-container {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .stat-box {
+      background: rgba(255,255,255,0.15);
+      backdrop-filter: blur(10px);
+      border: 2px solid rgba(255,255,255,0.3);
+      border-radius: 15px;
+      padding: 12px 20px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3),
+                  inset 0 0 20px rgba(255,255,255,0.1);
+      animation: statFloat 3s ease-in-out infinite;
+    }
+
+    .stat-box:nth-child(2) {
+      animation-delay: 0.5s;
+    }
+
+    .stat-box:nth-child(3) {
+      animation-delay: 1s;
+    }
+
+    @keyframes statFloat {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-5px); }
+    }
+
+    .stat-label {
+      font-size: 11px;
+      color: rgba(255,255,255,0.7);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 3px;
+    }
+
+    .stat-value {
+      font-size: 24px;
+      font-weight: bold;
+      color: #fff;
+      text-shadow: 0 0 10px rgba(255,255,255,0.8);
+    }
+
+    .game-board {
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      gap: 4px;
+      background: rgba(0,0,0,0.3);
+      padding: 10px;
+      border-radius: 20px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5),
+                  inset 0 0 40px rgba(255,255,255,0.1);
+      border: 3px solid rgba(255,255,255,0.2);
+      max-width: 400px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    .cell {
+      aspect-ratio: 1;
+      background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+      border: none;
+      border-radius: 8px;
+      font-size: 18px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+      box-shadow: 0 4px 15px rgba(0,0,0,0.3),
+                  inset 0 -3px 8px rgba(0,0,0,0.2);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .cell::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+      transition: left 0.5s;
+    }
+
+    .cell:hover::before {
+      left: 100%;
+    }
+
+    .cell:active {
+      transform: scale(0.95);
+    }
+
+    .cell.revealed {
+      background: linear-gradient(135deg, #e0e0e0 0%, #ffffff 100%);
+      box-shadow: inset 0 2px 5px rgba(0,0,0,0.2);
+      cursor: default;
+      animation: revealPop 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    }
+
+    @keyframes revealPop {
+      0% { transform: scale(0); opacity: 0; }
+      50% { transform: scale(1.2); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    .cell.flagged {
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      animation: flagWave 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    }
+
+    @keyframes flagWave {
+      0%, 100% { transform: rotate(0deg); }
+      25% { transform: rotate(-10deg) scale(1.1); }
+      75% { transform: rotate(10deg) scale(1.1); }
+    }
+
+    .cell.mine {
+      background: linear-gradient(135deg, #ff0844 0%, #ffb199 100%);
+      animation: mineExplode 0.8s ease-out;
+    }
+
+    @keyframes mineExplode {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.5); box-shadow: 0 0 50px rgba(255,0,0,0.8); }
+      100% { transform: scale(1); }
+    }
+
+    .cell-content {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 100%;
+      font-size: 20px;
+    }
+
+    .number-1 { color: #0000ff; text-shadow: 0 0 5px rgba(0,0,255,0.5); }
+    .number-2 { color: #008000; text-shadow: 0 0 5px rgba(0,128,0,0.5); }
+    .number-3 { color: #ff0000; text-shadow: 0 0 5px rgba(255,0,0,0.5); }
+    .number-4 { color: #000080; text-shadow: 0 0 5px rgba(0,0,128,0.5); }
+    .number-5 { color: #800000; text-shadow: 0 0 5px rgba(128,0,0,0.5); }
+    .number-6 { color: #008080; text-shadow: 0 0 5px rgba(0,128,128,0.5); }
+    .number-7 { color: #000000; text-shadow: 0 0 5px rgba(0,0,0,0.5); }
+    .number-8 { color: #808080; text-shadow: 0 0 5px rgba(128,128,128,0.5); }
+
+    .controls {
+      margin-top: 25px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      width: 100%;
+      max-width: 400px;
+    }
+
+    .btn {
+      padding: 16px 32px;
+      font-size: 18px;
+      font-weight: bold;
+      border: none;
+      border-radius: 50px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 0;
+      height: 0;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.4);
+      transform: translate(-50%, -50%);
+      transition: width 0.6s, height 0.6s;
+    }
+
+    .btn:active::after {
+      width: 300px;
+      height: 300px;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-3px) scale(1.02);
+      box-shadow: 0 12px 35px rgba(245,87,108,0.5);
+    }
+
+    .btn-secondary {
+      background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+      color: white;
+    }
+
+    .btn-secondary:hover {
+      transform: translateY(-3px) scale(1.02);
+      box-shadow: 0 12px 35px rgba(79,172,254,0.5);
+    }
+
+    .modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.8);
+      backdrop-filter: blur(10px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      animation: modalFadeIn 0.3s ease;
+    }
+
+    @keyframes modalFadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .modal.show {
+      display: flex;
+    }
+
+    .modal-content {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding: 40px 30px;
+      border-radius: 30px;
+      text-align: center;
+      max-width: 90%;
+      box-shadow: 0 30px 80px rgba(0,0,0,0.6),
+                  inset 0 0 50px rgba(255,255,255,0.1);
+      border: 3px solid rgba(255,255,255,0.3);
+      animation: modalBounce 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    }
+
+    @keyframes modalBounce {
+      0% { transform: scale(0); }
+      50% { transform: scale(1.1); }
+      100% { transform: scale(1); }
+    }
+
+    .modal-title {
+      font-size: 36px;
+      font-weight: 900;
+      color: #fff;
+      margin: 0 0 15px 0;
+      text-shadow: 0 0 20px rgba(255,255,255,0.8);
+    }
+
+    .modal-message {
+      font-size: 18px;
+      color: rgba(255,255,255,0.9);
+      margin-bottom: 25px;
+    }
+
+    .difficulty-selector {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .difficulty-btn {
+      padding: 18px;
+      font-size: 16px;
+      font-weight: bold;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-radius: 15px;
+      cursor: pointer;
+      background: rgba(255,255,255,0.1);
+      color: white;
+      transition: all 0.3s ease;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .difficulty-btn:hover {
+      background: rgba(255,255,255,0.2);
+      transform: translateX(5px);
+      border-color: rgba(255,255,255,0.6);
+    }
+
+    .explosion {
+      position: fixed;
+      pointer-events: none;
+      animation: explosionAnim 1s ease-out forwards;
+      z-index: 9999;
+    }
+
+    @keyframes explosionAnim {
+      0% { transform: scale(0); opacity: 1; }
+      100% { transform: scale(3); opacity: 0; }
+    }
+
+    .ripple {
+      position: absolute;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.5);
+      pointer-events: none;
+      animation: rippleAnim 0.6s ease-out;
+    }
+
+    @keyframes rippleAnim {
+      0% { width: 0; height: 0; opacity: 1; }
+      100% { width: 100px; height: 100px; opacity: 0; }
+    }
+  </style>
+  <style>@view-transition { navigation: auto; }</style>
+  <script src="https://cdn.tailwindcss.com" type="text/javascript"></script>
+ </head>
+ <body>
+  <div class="app-container">
+   <header class="header">
+    <h1 class="title" id="gameTitle">MINESWEEPER EXTREME</h1>
+   </header>
+   <div class="stats-container">
+    <div class="stat-box">
+     <div class="stat-label">
+      Mines
+     </div>
+     <div class="stat-value" id="mineCount">
+      10
+     </div>
+    </div>
+    <div class="stat-box">
+     <div class="stat-label">
+      Flags
+     </div>
+     <div class="stat-value" id="flagCount">
+      0
+     </div>
+    </div>
+    <div class="stat-box">
+     <div class="stat-label">
+      Time
+     </div>
+     <div class="stat-value" id="timer">
+      0
+     </div>
+    </div>
+   </div>
+   <div class="game-board" id="gameBoard"></div>
+   <div class="controls"><button class="btn btn-primary" id="newGameBtn">New Game</button> <button class="btn btn-secondary" id="difficultyBtn">Change Difficulty</button>
+   </div>
+  </div>
+  <div class="modal" id="gameModal">
+   <div class="modal-content">
+    <h2 class="modal-title" id="modalTitle">Game Over!</h2>
+    <p class="modal-message" id="modalMessage">Better luck next time!</p><button class="btn btn-primary" id="modalPlayAgainBtn">Play Again</button>
+   </div>
+  </div>
+  <div class="modal" id="difficultyModal">
+   <div class="modal-content">
+    <h2 class="modal-title">Select Difficulty</h2>
+    <div class="difficulty-selector"><button class="difficulty-btn" data-difficulty="easy">Easy (8x8, 10 mines)</button> <button class="difficulty-btn" data-difficulty="medium">Medium (10x10, 20 mines)</button> <button class="difficulty-btn" data-difficulty="hard">Hard (12x12, 35 mines)</button>
+    </div>
+   </div>
+  </div>
+  <script>
+localStorage.setItem('pot8o watermark', `${localStorage.getItem('pot8o watermark') || ''} mine-sweeper`);
+    const defaultConfig = {
+      game_title: "MINESWEEPER EXTREME",
+      win_message: "🎉 VICTORY! You cleared all the mines!",
+      lose_message: "💥 BOOM! You hit a mine!"
+    };
+
+    let config = { ...defaultConfig };
+
+    const difficulties = {
+      easy: { rows: 8, cols: 8, mines: 10 },
+      medium: { rows: 10, cols: 10, mines: 20 },
+      hard: { rows: 12, cols: 12, mines: 35 }
+    };
+
+    let currentDifficulty = 'easy';
+    let board = [];
+    let revealed = [];
+    let flagged = [];
+    let gameOver = false;
+    let timerInterval = null;
+    let startTime = null;
+
+    function initGame() {
+      const diff = difficulties[currentDifficulty];
+      board = createBoard(diff.rows, diff.cols, diff.mines);
+      revealed = Array(diff.rows).fill().map(() => Array(diff.cols).fill(false));
+      flagged = Array(diff.rows).fill().map(() => Array(diff.cols).fill(false));
+      gameOver = false;
+      startTime = null;
+      clearInterval(timerInterval);
+      document.getElementById('timer').textContent = '0';
+      document.getElementById('flagCount').textContent = '0';
+      document.getElementById('mineCount').textContent = diff.mines;
+      renderBoard();
+      createParticles();
+    }
+
+    function createBoard(rows, cols, mineCount) {
+      const board = Array(rows).fill().map(() => Array(cols).fill(0));
+      let minesPlaced = 0;
+
+      while (minesPlaced < mineCount) {
+        const row = Math.floor(Math.random() * rows);
+        const col = Math.floor(Math.random() * cols);
+        if (board[row][col] !== -1) {
+          board[row][col] = -1;
+          minesPlaced++;
+        }
+      }
+
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          if (board[r][c] === -1) continue;
+          let count = 0;
+          for (let dr = -1; dr <= 1; dr++) {
+            for (let dc = -1; dc <= 1; dc++) {
+              const nr = r + dr;
+              const nc = c + dc;
+              if (nr >= 0 && nr < rows && nc >= 0 && nc < cols && board[nr][nc] === -1) {
+                count++;
+              }
+            }
+          }
+          board[r][c] = count;
+        }
+      }
+
+      return board;
+    }
+
+    function renderBoard() {
+      const gameBoard = document.getElementById('gameBoard');
+      const diff = difficulties[currentDifficulty];
+      gameBoard.style.gridTemplateColumns = `repeat(${diff.cols}, 1fr)`;
+      gameBoard.innerHTML = '';
+
+      for (let r = 0; r < diff.rows; r++) {
+        for (let c = 0; c < diff.cols; c++) {
+          const cell = document.createElement('button');
+          cell.className = 'cell';
+          cell.dataset.row = r;
+          cell.dataset.col = c;
+          
+          cell.addEventListener('click', () => handleCellClick(r, c));
+          cell.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            handleCellRightClick(r, c);
+          });
+          cell.addEventListener('touchstart', handleTouchStart);
+          cell.addEventListener('touchend', handleTouchEnd);
+
+          const content = document.createElement('div');
+          content.className = 'cell-content';
+          cell.appendChild(content);
+
+          gameBoard.appendChild(cell);
+        }
+      }
+    }
+
+    let touchTimer = null;
+    let touchTarget = null;
+
+    function handleTouchStart(e) {
+      const cell = e.currentTarget;
+      const row = parseInt(cell.dataset.row);
+      const col = parseInt(cell.dataset.col);
+      
+      touchTarget = { row, col, cell };
+      touchTimer = setTimeout(() => {
+        handleCellRightClick(row, col);
+        touchTimer = null;
+      }, 500);
+    }
+
+    function handleTouchEnd(e) {
+      if (touchTimer) {
+        clearTimeout(touchTimer);
+        const row = touchTarget.row;
+        const col = touchTarget.col;
+        handleCellClick(row, col);
+      }
+      touchTimer = null;
+      touchTarget = null;
+    }
+
+    function handleCellClick(row, col) {
+      if (gameOver || revealed[row][col] || flagged[row][col]) return;
+
+      if (!startTime) {
+        startTime = Date.now();
+        timerInterval = setInterval(updateTimer, 100);
+      }
+
+      createRipple(row, col);
+
+      if (board[row][col] === -1) {
+        revealAllMines();
+        endGame(false);
+        return;
+      }
+
+      revealCell(row, col);
+      checkWin();
+    }
+
+    function handleCellRightClick(row, col) {
+      if (gameOver || revealed[row][col]) return;
+
+      flagged[row][col] = !flagged[row][col];
+      updateCell(row, col);
+      updateFlagCount();
+    }
+
+    function revealCell(row, col) {
+      const diff = difficulties[currentDifficulty];
+      if (row < 0 || row >= diff.rows || col < 0 || col >= diff.cols) return;
+      if (revealed[row][col] || flagged[row][col]) return;
+
+      revealed[row][col] = true;
+      updateCell(row, col);
+
+      if (board[row][col] === 0) {
+        for (let dr = -1; dr <= 1; dr++) {
+          for (let dc = -1; dc <= 1; dc++) {
+            revealCell(row + dr, col + dc);
+          }
+        }
+      }
+    }
+
+    function updateCell(row, col) {
+      const diff = difficulties[currentDifficulty];
+      const index = row * diff.cols + col;
+      const cell = document.getElementById('gameBoard').children[index];
+      const content = cell.querySelector('.cell-content');
+
+      if (revealed[row][col]) {
+        cell.classList.add('revealed');
+        if (board[row][col] === -1) {
+          cell.classList.add('mine');
+          content.textContent = '💣';
+        } else if (board[row][col] > 0) {
+          content.textContent = board[row][col];
+          content.className = `cell-content number-${board[row][col]}`;
+        }
+      } else if (flagged[row][col]) {
+        cell.classList.add('flagged');
+        content.textContent = '🚩';
+      } else {
+        cell.classList.remove('flagged');
+        content.textContent = '';
+      }
+    }
+
+    function revealAllMines() {
+      const diff = difficulties[currentDifficulty];
+      for (let r = 0; r < diff.rows; r++) {
+        for (let c = 0; c < diff.cols; c++) {
+          if (board[r][c] === -1) {
+            revealed[r][c] = true;
+            setTimeout(() => {
+              updateCell(r, c);
+              createExplosion(r, c);
+            }, Math.random() * 500);
+          }
+        }
+      }
+    }
+
+    function checkWin() {
+      const diff = difficulties[currentDifficulty];
+      let unrevealedCount = 0;
+      for (let r = 0; r < diff.rows; r++) {
+        for (let c = 0; c < diff.cols; c++) {
+          if (!revealed[r][c] && board[r][c] !== -1) {
+            unrevealedCount++;
+          }
+        }
+      }
+      if (unrevealedCount === 0) {
+        endGame(true);
+      }
+    }
+
+    function endGame(won) {
+      gameOver = true;
+      clearInterval(timerInterval);
+      
+      const modal = document.getElementById('gameModal');
+      const title = document.getElementById('modalTitle');
+      const message = document.getElementById('modalMessage');
+
+      if (won) {
+        title.textContent = 'VICTORY!';
+        message.textContent = config.win_message || defaultConfig.win_message;
+        createVictoryParticles();
+      } else {
+        title.textContent = 'GAME OVER!';
+        message.textContent = config.lose_message || defaultConfig.lose_message;
+      }
+
+      setTimeout(() => {
+        modal.classList.add('show');
+      }, 1000);
+    }
+
+    function updateTimer() {
+      if (!startTime) return;
+      const elapsed = Math.floor((Date.now() - startTime) / 1000);
+      document.getElementById('timer').textContent = elapsed;
+    }
+
+    function updateFlagCount() {
+      const diff = difficulties[currentDifficulty];
+      let count = 0;
+      for (let r = 0; r < diff.rows; r++) {
+        for (let c = 0; c < diff.cols; c++) {
+          if (flagged[r][c]) count++;
+        }
+      }
+      document.getElementById('flagCount').textContent = count;
+    }
+
+    function createParticles() {
+      for (let i = 0; i < 30; i++) {
+        setTimeout(() => {
+          const particle = document.createElement('div');
+          particle.className = 'particle';
+          particle.textContent = ['✨', '⭐', '💎', '🌟'][Math.floor(Math.random() * 4)];
+          particle.style.left = Math.random() * 100 + '%';
+          particle.style.top = Math.random() * 100 + '%';
+          particle.style.fontSize = (Math.random() * 20 + 10) + 'px';
+          particle.style.animation = `float ${Math.random() * 3 + 2}s ease-in-out infinite`;
+          document.body.appendChild(particle);
+
+          setTimeout(() => particle.remove(), 5000);
+        }, i * 100);
+      }
+    }
+
+    function createExplosion(row, col) {
+      const diff = difficulties[currentDifficulty];
+      const gameBoard = document.getElementById('gameBoard');
+      const index = row * diff.cols + col;
+      const cell = gameBoard.children[index];
+      const rect = cell.getBoundingClientRect();
+
+      const explosion = document.createElement('div');
+      explosion.className = 'explosion';
+      explosion.textContent = '💥';
+      explosion.style.left = rect.left + rect.width / 2 + 'px';
+      explosion.style.top = rect.top + rect.height / 2 + 'px';
+      explosion.style.fontSize = '48px';
+      document.body.appendChild(explosion);
+
+      setTimeout(() => explosion.remove(), 1000);
+    }
+
+    function createRipple(row, col) {
+      const diff = difficulties[currentDifficulty];
+      const gameBoard = document.getElementById('gameBoard');
+      const index = row * diff.cols + col;
+      const cell = gameBoard.children[index];
+
+      const ripple = document.createElement('div');
+      ripple.className = 'ripple';
+      ripple.style.left = '50%';
+      ripple.style.top = '50%';
+      ripple.style.transform = 'translate(-50%, -50%)';
+      cell.appendChild(ripple);
+
+      setTimeout(() => ripple.remove(), 600);
+    }
+
+    function createVictoryParticles() {
+      for (let i = 0; i < 100; i++) {
+        setTimeout(() => {
+          const particle = document.createElement('div');
+          particle.className = 'particle';
+          particle.textContent = ['🎉', '🎊', '✨', '🌟', '⭐'][Math.floor(Math.random() * 5)];
+          particle.style.left = Math.random() * 100 + '%';
+          particle.style.top = '-50px';
+          particle.style.fontSize = (Math.random() * 30 + 20) + 'px';
+          particle.style.animation = 'fall ' + (Math.random() * 2 + 2) + 's ease-in forwards';
+          document.body.appendChild(particle);
+
+          setTimeout(() => particle.remove(), 4000);
+        }, i * 30);
+      }
+    }
+
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes float {
+        0%, 100% { transform: translateY(0) rotate(0deg); opacity: 0.7; }
+        50% { transform: translateY(-20px) rotate(180deg); opacity: 1; }
+      }
+      @keyframes fall {
+        to { transform: translateY(100vh) rotate(360deg); opacity: 0; }
+      }
+    `;
+    document.head.appendChild(style);
+
+    document.getElementById('newGameBtn').addEventListener('click', () => {
+      document.getElementById('gameModal').classList.remove('show');
+      initGame();
+    });
+
+    document.getElementById('modalPlayAgainBtn').addEventListener('click', () => {
+      document.getElementById('gameModal').classList.remove('show');
+      initGame();
+    });
+
+    document.getElementById('difficultyBtn').addEventListener('click', () => {
+      document.getElementById('difficultyModal').classList.add('show');
+    });
+
+    document.querySelectorAll('.difficulty-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        currentDifficulty = btn.dataset.difficulty;
+        document.getElementById('difficultyModal').classList.remove('show');
+        initGame();
+      });
+    });
+
+    async function onConfigChange(newConfig) {
+      config = { ...newConfig };
+      document.getElementById('gameTitle').textContent = config.game_title || defaultConfig.game_title;
+    }
+
+    window.elementSdk.init({
+      defaultConfig,
+      onConfigChange,
+      mapToCapabilities: (config) => ({
+        recolorables: [],
+        borderables: [],
+        fontEditable: undefined,
+        fontSizeable: undefined
+      }),
+      mapToEditPanelValues: (config) => new Map([
+        ['game_title', config.game_title || defaultConfig.game_title],
+        ['win_message', config.win_message || defaultConfig.win_message],
+        ['lose_message', config.lose_message || defaultConfig.lose_message]
+      ])
+    });
+
+    initGame();
+  </script>
+</body>
+</html>
