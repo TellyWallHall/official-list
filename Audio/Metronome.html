@@ -1,0 +1,1009 @@
+<!doctype html>
+<!-- by ImPot8o https://github.com/ImPot8o pot8o.dev -->
+<html lang="en" class="h-full">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Pro Metronome</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      overflow: auto;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+    
+    .beat-flash {
+      animation: flash 0.15s ease-out;
+    }
+    
+    @keyframes flash {
+      0% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.3); opacity: 0.6; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    
+    .pendulum {
+      transform-origin: top center;
+      transition: transform 0.05s cubic-bezier(0.4, 0.0, 0.2, 1);
+      filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.3));
+    }
+    
+    .btn-press {
+      transition: all 0.15s cubic-bezier(0.4, 0.0, 0.2, 1);
+    }
+    
+    .btn-press:active {
+      transform: scale(0.95);
+    }
+    
+    .slider-track {
+      -webkit-appearance: none;
+      appearance: none;
+      height: 8px;
+      border-radius: 9999px;
+      outline: none;
+    }
+    
+    .slider-track::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      cursor: pointer;
+      border: 3px solid white;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    }
+    
+    .slider-track::-moz-range-thumb {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      cursor: pointer;
+      border: 3px solid white;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    }
+
+    .pulse-ring {
+      animation: pulse 0.6s cubic-bezier(0.4, 0, 0.6, 1);
+    }
+
+    @keyframes pulse {
+      0% {
+        transform: scale(0.8);
+        opacity: 1;
+      }
+      100% {
+        transform: scale(2);
+        opacity: 0;
+      }
+    }
+
+    .rotate-disc {
+      animation: rotate 2s linear infinite;
+    }
+
+    @keyframes rotate {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    .wave-bar {
+      animation: wave 0.4s ease-in-out;
+    }
+
+    @keyframes wave {
+      0%, 100% { transform: scaleY(0.3); }
+      50% { transform: scaleY(1); }
+    }
+
+    .glow {
+      box-shadow: 0 0 20px currentColor;
+    }
+
+    .pattern-dots {
+      background-image: radial-gradient(circle, currentColor 1px, transparent 1px);
+      background-size: 20px 20px;
+      opacity: 0.1;
+    }
+
+    input[type="range"] {
+      touch-action: none;
+    }
+  </style>
+  <style>@view-transition { navigation: auto; }</style>
+ </head>
+ <body class="h-full">
+  <div id="app" class="h-full w-full"></div>
+  <script>
+    const defaultConfig = {
+      background_color: "#0a0e27",
+      surface_color: "#1a1f3a",
+      text_color: "#e0e7ff",
+      primary_action_color: "#6366f1",
+      secondary_action_color: "#8b5cf6",
+      font_family: "Inter",
+      font_size: 16,
+      app_title: "Metronome",
+      tap_tempo_label: "Tap Tempo",
+      start_button_text: "Start",
+      stop_button_text: "Stop"
+    };
+
+    let config = { ...defaultConfig };
+    
+    // Core metronome state
+    let isPlaying = false;
+    let bpm = 120;
+    let beatsPerMeasure = 4;
+    let currentBeat = 0;
+    let currentSubBeat = 0;
+    let intervalId = null;
+    let audioContext = null;
+    let nextNoteTime = 0;
+    let scheduleAheadTime = 0.1;
+    let timerID = null;
+    
+    // Advanced features
+    let tapTimes = [];
+    let accentFirstBeat = true;
+    let subdivisions = 1;
+    let visualMode = 'circle';
+    let volume = 0.5;
+    let soundType = 'digital';
+    let showBPMSlider = false;
+    let speedTrainer = { active: false, startBPM: 120, targetBPM: 140, increment: 2, measures: 4, currentMeasure: 0 };
+    let polyrhythm = { active: false, ratio: '3:4' };
+    let totalBeats = 0;
+
+    const presets = [
+      { name: 'Grave', bpm: 40 },
+      { name: 'Largo', bpm: 50 },
+      { name: 'Adagio', bpm: 70 },
+      { name: 'Andante', bpm: 90 },
+      { name: 'Moderato', bpm: 110 },
+      { name: 'Allegro', bpm: 140 },
+      { name: 'Vivace', bpm: 170 },
+      { name: 'Presto', bpm: 190 }
+    ];
+
+    const soundTypes = [
+      { id: 'digital', name: '🔊 Digital', freq1: 1200, freq2: 800 },
+      { id: 'wood', name: '🪵 Wood Block', freq1: 2000, freq2: 1500 },
+      { id: 'cowbell', name: '🔔 Cowbell', freq1: 800, freq2: 540 },
+      { id: 'sine', name: '〜 Sine Wave', freq1: 880, freq2: 440 },
+      { id: 'click', name: '⚡ Click', freq1: 3000, freq2: 2000 }
+    ];
+
+    function initAudio() {
+      if (!audioContext) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      }
+    }
+
+    function playClick(isAccent = false, time = null) {
+      initAudio();
+      
+      const currentSound = soundTypes.find(s => s.id === soundType) || soundTypes[0];
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      const filterNode = audioContext.createBiquadFilter();
+      
+      oscillator.connect(filterNode);
+      filterNode.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      const playTime = time || audioContext.currentTime;
+      const frequency = isAccent ? currentSound.freq1 : currentSound.freq2;
+      
+      oscillator.frequency.setValueAtTime(frequency, playTime);
+      oscillator.type = soundType === 'sine' ? 'sine' : soundType === 'wood' ? 'triangle' : 'square';
+      
+      filterNode.type = 'lowpass';
+      filterNode.frequency.setValueAtTime(3000, playTime);
+      
+      const attackGain = isAccent ? volume * 0.8 : volume * 0.5;
+      gainNode.gain.setValueAtTime(0, playTime);
+      gainNode.gain.linearRampToValueAtTime(attackGain, playTime + 0.005);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, playTime + (soundType === 'click' ? 0.02 : 0.08));
+      
+      oscillator.start(playTime);
+      oscillator.stop(playTime + 0.1);
+    }
+
+    function scheduler() {
+      while (nextNoteTime < audioContext.currentTime + scheduleAheadTime) {
+        scheduleNote(nextNoteTime);
+        nextNote();
+      }
+      timerID = setTimeout(scheduler, 25);
+    }
+
+    function scheduleNote(time) {
+      const isMainBeat = currentSubBeat === 0;
+      const mainBeatNumber = currentBeat % beatsPerMeasure;
+      const isAccent = accentFirstBeat && mainBeatNumber === 0 && isMainBeat;
+      
+      if (isMainBeat || subdivisions > 1) {
+        playClick(isAccent, time);
+      }
+      
+      setTimeout(() => {
+        flashBeat(mainBeatNumber, isMainBeat);
+        if (isMainBeat) {
+          totalBeats++;
+          updateSpeedTrainer();
+        }
+      }, (time - audioContext.currentTime) * 1000);
+    }
+
+    function nextNote() {
+      const secondsPerBeat = 60.0 / bpm;
+      const secondsPerSubdivision = secondsPerBeat / subdivisions;
+      nextNoteTime += secondsPerSubdivision;
+      
+      currentSubBeat++;
+      if (currentSubBeat >= subdivisions) {
+        currentSubBeat = 0;
+        currentBeat++;
+        if (currentBeat >= beatsPerMeasure) {
+          currentBeat = 0;
+        }
+      }
+    }
+
+    function updateSpeedTrainer() {
+      if (!speedTrainer.active) return;
+      
+      speedTrainer.currentMeasure++;
+      if (speedTrainer.currentMeasure >= speedTrainer.measures) {
+        speedTrainer.currentMeasure = 0;
+        if (bpm < speedTrainer.targetBPM) {
+          bpm = Math.min(bpm + speedTrainer.increment, speedTrainer.targetBPM);
+          showToast(`Speed increased to ${bpm} BPM! 🎯`);
+        } else {
+          showToast(`Target reached! ${bpm} BPM 🎉`);
+          speedTrainer.active = false;
+        }
+        render();
+      }
+    }
+
+    function startMetronome() {
+      if (isPlaying) return;
+      
+      initAudio();
+      isPlaying = true;
+      currentBeat = 0;
+      currentSubBeat = 0;
+      totalBeats = 0;
+      nextNoteTime = audioContext.currentTime;
+      
+      scheduler();
+      render();
+    }
+
+    function stopMetronome() {
+      isPlaying = false;
+      if (timerID) {
+        clearTimeout(timerID);
+        timerID = null;
+      }
+      currentBeat = 0;
+      currentSubBeat = 0;
+      render();
+    }
+
+    function flashBeat(beatIndex, isMainBeat) {
+      if (visualMode === 'circle') {
+        const indicators = document.querySelectorAll('.beat-indicator');
+        indicators.forEach((ind, idx) => {
+          if (idx === beatIndex && isMainBeat) {
+            ind.classList.add('beat-flash');
+            setTimeout(() => ind.classList.remove('beat-flash'), 150);
+          }
+        });
+      } else if (visualMode === 'pendulum') {
+        const pendulum = document.getElementById('pendulum');
+        if (pendulum && isMainBeat) {
+          const maxAngle = 40;
+          const angle = ((beatIndex / (beatsPerMeasure - 1)) * 2 - 1) * maxAngle;
+          pendulum.style.transform = `rotate(${angle}deg)`;
+        }
+      } else if (visualMode === 'pulse') {
+        const pulse = document.getElementById('pulse-circle');
+        if (pulse && isMainBeat) {
+          pulse.classList.add('beat-flash');
+          const ring = document.createElement('div');
+          ring.className = 'pulse-ring absolute inset-0 rounded-full border-4';
+          ring.style.borderColor = config.primary_action_color || defaultConfig.primary_action_color;
+          pulse.appendChild(ring);
+          setTimeout(() => {
+            pulse.classList.remove('beat-flash');
+            ring.remove();
+          }, 600);
+        }
+      } else if (visualMode === 'wave') {
+        const bars = document.querySelectorAll('.wave-bar');
+        if (bars[beatIndex] && isMainBeat) {
+          bars[beatIndex].classList.add('wave-bar');
+          bars[beatIndex].style.animation = 'none';
+          setTimeout(() => {
+            bars[beatIndex].style.animation = '';
+          }, 10);
+        }
+      }
+    }
+
+    function handleTapTempo() {
+      const now = Date.now();
+      tapTimes.push(now);
+      
+      if (tapTimes.length > 6) {
+        tapTimes.shift();
+      }
+      
+      if (tapTimes.length >= 2) {
+        const intervals = [];
+        for (let i = 1; i < tapTimes.length; i++) {
+          intervals.push(tapTimes[i] - tapTimes[i - 1]);
+        }
+        const avgInterval = intervals.reduce((a, b) => a + b) / intervals.length;
+        const newBPM = Math.round(60000 / avgInterval);
+        bpm = Math.max(10, Math.min(500, newBPM));
+        
+        const tapBtn = document.getElementById('tap-btn');
+        if (tapBtn) {
+          tapBtn.classList.add('glow');
+          setTimeout(() => tapBtn.classList.remove('glow'), 200);
+        }
+      }
+      
+      setTimeout(() => {
+        if (Date.now() - tapTimes[tapTimes.length - 1] > 3000) {
+          tapTimes = [];
+        }
+      }, 3000);
+      
+      if (isPlaying) {
+        stopMetronome();
+        startMetronome();
+      } else {
+        render();
+      }
+    }
+
+    function changeBPM(delta) {
+      bpm = Math.max(10, Math.min(500, bpm + delta));
+      if (isPlaying) {
+        stopMetronome();
+        startMetronome();
+      } else {
+        render();
+      }
+    }
+
+    function setBPM(value) {
+      bpm = parseInt(value);
+      if (isPlaying) {
+        stopMetronome();
+        startMetronome();
+      } else {
+        render();
+      }
+    }
+
+    function setPreset(presetBpm) {
+      bpm = presetBpm;
+      if (isPlaying) {
+        stopMetronome();
+        startMetronome();
+      } else {
+        render();
+      }
+    }
+
+    function changeTimeSignature(beats) {
+      beatsPerMeasure = beats;
+      if (isPlaying) {
+        stopMetronome();
+        startMetronome();
+      } else {
+        render();
+      }
+    }
+
+    function toggleAccent() {
+      accentFirstBeat = !accentFirstBeat;
+      render();
+    }
+
+    function changeSubdivision(value) {
+      subdivisions = value;
+      if (isPlaying) {
+        stopMetronome();
+        startMetronome();
+      } else {
+        render();
+      }
+    }
+
+    function changeVisualMode(mode) {
+      visualMode = mode;
+      render();
+    }
+
+    function changeVolume(value) {
+      volume = parseFloat(value);
+      render();
+    }
+
+    function changeSoundType(type) {
+      soundType = type;
+      render();
+    }
+
+    function toggleSpeedTrainer() {
+      speedTrainer.active = !speedTrainer.active;
+      if (speedTrainer.active) {
+        speedTrainer.startBPM = bpm;
+        speedTrainer.currentMeasure = 0;
+        showToast(`Speed Trainer activated! ${bpm} → ${speedTrainer.targetBPM} BPM`);
+      }
+      render();
+    }
+
+    function updateSpeedTrainerSettings(key, value) {
+      speedTrainer[key] = parseInt(value);
+      render();
+    }
+
+    function showToast(message) {
+      const toast = document.createElement('div');
+      toast.className = 'fixed top-4 left-1/2 transform -translate-x-1/2 px-6 py-3 rounded-full font-semibold shadow-lg z-50 transition-all';
+      toast.style.backgroundColor = config.primary_action_color || defaultConfig.primary_action_color;
+      toast.style.color = config.text_color || defaultConfig.text_color;
+      toast.textContent = message;
+      document.body.appendChild(toast);
+      
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translate(-50%, -100%)';
+        setTimeout(() => toast.remove(), 300);
+      }, 2000);
+    }
+
+    async function onConfigChange(newConfig) {
+      const baseFontStack = 'system-ui, -apple-system, sans-serif';
+      const customFont = newConfig.font_family || defaultConfig.font_family;
+      const baseSize = newConfig.font_size || defaultConfig.font_size;
+      
+      const bgColor = newConfig.background_color || defaultConfig.background_color;
+      const surfaceColor = newConfig.surface_color || defaultConfig.surface_color;
+      const textColor = newConfig.text_color || defaultConfig.text_color;
+      const primaryColor = newConfig.primary_action_color || defaultConfig.primary_action_color;
+      const secondaryColor = newConfig.secondary_action_color || defaultConfig.secondary_action_color;
+      
+      document.body.style.backgroundColor = bgColor;
+      document.body.style.color = textColor;
+      document.body.style.fontFamily = `${customFont}, ${baseFontStack}`;
+      
+      const app = document.getElementById('app');
+      if (app) {
+        app.style.backgroundColor = bgColor;
+      }
+      
+      const title = document.getElementById('app-title');
+      if (title) {
+        title.textContent = newConfig.app_title || defaultConfig.app_title;
+        title.style.fontSize = `${baseSize * 1.5}px`;
+        title.style.color = textColor;
+      }
+      
+      const bpmDisplay = document.getElementById('bpm-display');
+      if (bpmDisplay) {
+        bpmDisplay.style.fontSize = `${baseSize * 4.5}px`;
+        bpmDisplay.style.color = textColor;
+      }
+      
+      const bpmLabel = document.getElementById('bpm-label');
+      if (bpmLabel) {
+        bpmLabel.style.fontSize = `${baseSize * 0.875}px`;
+        bpmLabel.style.color = textColor;
+      }
+      
+      const visualContainer = document.getElementById('visual-container');
+      if (visualContainer) {
+        visualContainer.style.backgroundColor = surfaceColor;
+      }
+      
+      const beatIndicators = document.querySelectorAll('.beat-indicator');
+      beatIndicators.forEach(ind => {
+        ind.style.backgroundColor = secondaryColor;
+      });
+      
+      const pendulum = document.getElementById('pendulum');
+      if (pendulum) {
+        pendulum.style.backgroundColor = primaryColor;
+      }
+      
+      const pulseCircle = document.getElementById('pulse-circle');
+      if (pulseCircle) {
+        pulseCircle.style.backgroundColor = primaryColor;
+      }
+      
+      const waveBars = document.querySelectorAll('.wave-bar');
+      waveBars.forEach(bar => {
+        bar.style.backgroundColor = secondaryColor;
+      });
+      
+      const startBtn = document.getElementById('start-btn');
+      if (startBtn) {
+        startBtn.style.backgroundColor = isPlaying ? '#dc2626' : primaryColor;
+        startBtn.style.color = textColor;
+        startBtn.style.fontSize = `${baseSize * 1.125}px`;
+        startBtn.textContent = isPlaying ? 
+          (newConfig.stop_button_text || defaultConfig.stop_button_text) :
+          (newConfig.start_button_text || defaultConfig.start_button_text);
+      }
+      
+      const tapBtn = document.getElementById('tap-btn');
+      if (tapBtn) {
+        tapBtn.style.backgroundColor = surfaceColor;
+        tapBtn.style.color = textColor;
+        tapBtn.style.fontSize = `${baseSize}px`;
+        tapBtn.textContent = newConfig.tap_tempo_label || defaultConfig.tap_tempo_label;
+      }
+      
+      const bpmButtons = document.querySelectorAll('.bpm-btn');
+      bpmButtons.forEach(btn => {
+        btn.style.backgroundColor = surfaceColor;
+        btn.style.color = textColor;
+        btn.style.fontSize = `${baseSize * 1.5}px`;
+      });
+      
+      const sliderTrack = document.getElementById('bpm-slider');
+      if (sliderTrack) {
+        sliderTrack.style.backgroundColor = surfaceColor;
+        const thumbColor = primaryColor;
+        sliderTrack.style.setProperty('--thumb-color', thumbColor);
+      }
+      
+      const presetBtns = document.querySelectorAll('.preset-btn');
+      presetBtns.forEach(btn => {
+        btn.style.backgroundColor = surfaceColor;
+        btn.style.color = textColor;
+        btn.style.fontSize = `${baseSize * 0.75}px`;
+      });
+      
+      const labels = document.querySelectorAll('.control-label');
+      labels.forEach(label => {
+        label.style.fontSize = `${baseSize * 0.875}px`;
+        label.style.color = textColor;
+      });
+      
+      const timeButtons = document.querySelectorAll('.time-sig-btn');
+      timeButtons.forEach(btn => {
+        if (btn.classList.contains('active')) {
+          btn.style.backgroundColor = primaryColor;
+        } else {
+          btn.style.backgroundColor = surfaceColor;
+        }
+        btn.style.color = textColor;
+        btn.style.fontSize = `${baseSize * 0.875}px`;
+      });
+      
+      const accentBtn = document.getElementById('accent-btn');
+      if (accentBtn) {
+        accentBtn.style.backgroundColor = accentFirstBeat ? primaryColor : surfaceColor;
+        accentBtn.style.color = textColor;
+        accentBtn.style.fontSize = `${baseSize * 0.875}px`;
+      }
+      
+      const subdivButtons = document.querySelectorAll('.subdiv-btn');
+      subdivButtons.forEach(btn => {
+        if (btn.classList.contains('active')) {
+          btn.style.backgroundColor = primaryColor;
+        } else {
+          btn.style.backgroundColor = surfaceColor;
+        }
+        btn.style.color = textColor;
+        btn.style.fontSize = `${baseSize * 0.75}px`;
+      });
+      
+      const visualButtons = document.querySelectorAll('.visual-btn');
+      visualButtons.forEach(btn => {
+        if (btn.classList.contains('active')) {
+          btn.style.backgroundColor = primaryColor;
+        } else {
+          btn.style.backgroundColor = surfaceColor;
+        }
+        btn.style.color = textColor;
+        btn.style.fontSize = `${baseSize * 0.75}px`;
+      });
+      
+      const soundButtons = document.querySelectorAll('.sound-btn');
+      soundButtons.forEach(btn => {
+        if (btn.classList.contains('active')) {
+          btn.style.backgroundColor = primaryColor;
+        } else {
+          btn.style.backgroundColor = surfaceColor;
+        }
+        btn.style.color = textColor;
+        btn.style.fontSize = `${baseSize * 0.75}px`;
+      });
+      
+      const volumeSlider = document.getElementById('volume-slider');
+      if (volumeSlider) {
+        volumeSlider.style.backgroundColor = surfaceColor;
+      }
+      
+      const trainerBtn = document.getElementById('trainer-btn');
+      if (trainerBtn) {
+        trainerBtn.style.backgroundColor = speedTrainer.active ? secondaryColor : surfaceColor;
+        trainerBtn.style.color = textColor;
+        trainerBtn.style.fontSize = `${baseSize * 0.875}px`;
+      }
+      
+      const trainerInputs = document.querySelectorAll('.trainer-input');
+      trainerInputs.forEach(input => {
+        input.style.backgroundColor = surfaceColor;
+        input.style.color = textColor;
+        input.style.fontSize = `${baseSize * 0.875}px`;
+      });
+      
+      const sliders = document.querySelectorAll('.slider-track');
+      sliders.forEach(slider => {
+        const style = document.createElement('style');
+        style.textContent = `
+          .slider-track::-webkit-slider-thumb {
+            background-color: ${primaryColor};
+          }
+          .slider-track::-moz-range-thumb {
+            background-color: ${primaryColor};
+          }
+        `;
+        if (!document.getElementById('slider-style')) {
+          style.id = 'slider-style';
+          document.head.appendChild(style);
+        } else {
+          document.getElementById('slider-style').textContent = style.textContent;
+        }
+      });
+    }
+
+    function render() {
+      const app = document.getElementById('app');
+      
+      let visualContent = '';
+      if (visualMode === 'circle') {
+        const indicators = Array.from({ length: beatsPerMeasure }, (_, i) => 
+          `<div class="beat-indicator w-5 h-5 rounded-full transition-all"></div>`
+        ).join('');
+        visualContent = `<div class="flex gap-4 justify-center items-center">${indicators}</div>`;
+      } else if (visualMode === 'pendulum') {
+        visualContent = `
+          <div class="relative w-40 h-40 flex items-start justify-center">
+            <div class="absolute top-0 w-3 h-3 rounded-full" style="background-color: ${config.surface_color || defaultConfig.surface_color};"></div>
+            <div id="pendulum" class="pendulum absolute top-0 left-1/2 w-2 h-32 rounded-full" style="margin-left: -4px;"></div>
+            <div class="absolute bottom-0 w-6 h-6 rounded-full" style="background-color: ${config.primary_action_color || defaultConfig.primary_action_color}; margin-top: 128px;"></div>
+          </div>
+        `;
+      } else if (visualMode === 'pulse') {
+        visualContent = `
+          <div class="relative flex items-center justify-center">
+            <div id="pulse-circle" class="relative w-32 h-32 rounded-full overflow-hidden"></div>
+          </div>
+        `;
+      } else if (visualMode === 'wave') {
+        const bars = Array.from({ length: beatsPerMeasure }, () => 
+          `<div class="wave-bar w-3 h-16 rounded-full"></div>`
+        ).join('');
+        visualContent = `<div class="flex gap-3 items-end justify-center h-24">${bars}</div>`;
+      } else {
+        visualContent = `<div class="text-7xl">🎵</div>`;
+      }
+      
+      const speedTrainerSection = speedTrainer.active ? `
+        <div class="p-4 rounded-xl" style="background-color: ${config.surface_color || defaultConfig.surface_color};">
+          <div class="text-center mb-2">
+            <div class="control-label font-semibold mb-1">Speed Training Active 🎯</div>
+            <div class="text-sm opacity-75">Progress: ${speedTrainer.currentMeasure}/${speedTrainer.measures} measures</div>
+            <div class="text-sm opacity-75">Target: ${speedTrainer.targetBPM} BPM</div>
+          </div>
+        </div>
+      ` : '';
+      
+      app.innerHTML = `
+        <div class="w-full h-full flex flex-col p-4 pb-6 relative" style="min-height: 100%; color: ${config.text_color || defaultConfig.text_color};">
+          <header class="text-center mb-4">
+            <h1 id="app-title" class="font-bold tracking-tight">${config.app_title || defaultConfig.app_title}</h1>
+          </header>
+          
+          <main class="flex-1 flex flex-col gap-4">
+            <section class="text-center">
+              <div id="bpm-display" class="font-bold mb-1 tracking-tighter">${bpm}</div>
+              <div id="bpm-label" class="opacity-75 uppercase tracking-wider text-xs">BPM</div>
+              ${speedTrainer.active ? `<div class="text-xs mt-1 opacity-75">→ ${speedTrainer.targetBPM} BPM</div>` : ''}
+            </section>
+            
+            <section id="visual-container" class="rounded-2xl p-8 flex items-center justify-center min-h-[160px] shadow-lg relative overflow-hidden">
+              ${visualContent}
+            </section>
+            
+            ${speedTrainerSection}
+            
+            <section class="flex gap-2">
+              <button id="bpm-minus" class="bpm-btn flex-1 rounded-xl py-4 font-bold btn-press shadow-md">−</button>
+              <button id="start-btn" class="flex-[3] rounded-xl py-4 font-bold btn-press shadow-lg">${isPlaying ? (config.stop_button_text || defaultConfig.stop_button_text) + ' ■' : (config.start_button_text || defaultConfig.start_button_text) + ' ▶'}</button>
+              <button id="bpm-plus" class="bpm-btn flex-1 rounded-xl py-4 font-bold btn-press shadow-md">+</button>
+            </section>
+            
+            <section class="flex gap-2">
+              <button id="tap-btn" class="flex-1 rounded-xl py-3 font-semibold btn-press shadow-md transition-all">${config.tap_tempo_label || defaultConfig.tap_tempo_label} 👆</button>
+              <button id="slider-toggle" class="rounded-xl px-4 py-3 font-semibold btn-press shadow-md" style="background-color: ${config.surface_color || defaultConfig.surface_color}; color: ${config.text_color || defaultConfig.text_color};">${showBPMSlider ? '📊' : '🎚️'}</button>
+            </section>
+            
+            ${showBPMSlider ? `
+              <section class="px-2">
+                <input type="range" id="bpm-slider" class="slider-track w-full" min="10" max="500" value="${bpm}" step="1">
+              </section>
+            ` : ''}
+            
+            <section>
+              <div class="control-label font-semibold mb-2 text-xs uppercase tracking-wide opacity-75">Tempo Presets</div>
+              <div class="grid grid-cols-4 gap-2">
+                ${presets.map(preset => `
+                  <button class="preset-btn rounded-lg py-2.5 px-2 btn-press shadow-sm" data-bpm="${preset.bpm}">
+                    <div class="font-semibold">${preset.name}</div>
+                    <div class="text-xs opacity-75">${preset.bpm}</div>
+                  </button>
+                `).join('')}
+              </div>
+            </section>
+            
+            <section>
+              <div class="control-label font-semibold mb-2 text-xs uppercase tracking-wide opacity-75">Time Signature</div>
+              <div class="flex gap-2">
+                ${[2, 3, 4, 5, 6].map(beats => `
+                  <button class="time-sig-btn flex-1 rounded-lg py-2.5 btn-press shadow-sm ${beatsPerMeasure === beats ? 'active' : ''}" data-beats="${beats}">
+                    <div class="font-bold">${beats}</div>
+                    <div class="text-xs opacity-75">/ 4</div>
+                  </button>
+                `).join('')}
+              </div>
+            </section>
+            
+            <section>
+              <div class="control-label font-semibold mb-2 text-xs uppercase tracking-wide opacity-75">Subdivisions</div>
+              <div class="grid grid-cols-4 gap-2">
+                ${[1, 2, 3, 4].map(sub => `
+                  <button class="subdiv-btn rounded-lg py-2 btn-press shadow-sm ${subdivisions === sub ? 'active' : ''}" data-subdiv="${sub}">
+                    ${sub === 1 ? 'None' : sub === 2 ? 'Eighth' : sub === 3 ? 'Triplet' : '16th'}
+                  </button>
+                `).join('')}
+              </div>
+            </section>
+            
+            <section>
+              <div class="control-label font-semibold mb-2 text-xs uppercase tracking-wide opacity-75">Visual Style</div>
+              <div class="grid grid-cols-3 gap-2">
+                ${[
+                  { id: 'circle', name: '● Dots', icon: '●' },
+                  { id: 'pendulum', name: 'Pendulum', icon: '⟋' },
+                  { id: 'pulse', name: 'Pulse', icon: '◉' },
+                  { id: 'wave', name: 'Wave', icon: '≋' },
+                  { id: 'minimal', name: 'Minimal', icon: '♪' }
+                ].map(mode => `
+                  <button class="visual-btn rounded-lg py-2 btn-press shadow-sm ${visualMode === mode.id ? 'active' : ''}" data-mode="${mode.id}">
+                    ${mode.icon} ${mode.name}
+                  </button>
+                `).join('')}
+              </div>
+            </section>
+            
+            <section>
+              <div class="control-label font-semibold mb-2 text-xs uppercase tracking-wide opacity-75">Sound Type</div>
+              <div class="grid grid-cols-3 gap-2">
+                ${soundTypes.map(sound => `
+                  <button class="sound-btn rounded-lg py-2 btn-press shadow-sm ${soundType === sound.id ? 'active' : ''}" data-sound="${sound.id}">
+                    ${sound.name}
+                  </button>
+                `).join('')}
+              </div>
+            </section>
+            
+            <section>
+              <div class="flex items-center justify-between mb-2">
+                <div class="control-label font-semibold text-xs uppercase tracking-wide opacity-75">Volume</div>
+                <div class="text-sm font-semibold">${Math.round(volume * 100)}%</div>
+              </div>
+              <input type="range" id="volume-slider" class="slider-track w-full" min="0" max="1" value="${volume}" step="0.05">
+            </section>
+            
+            <section>
+              <button id="accent-btn" class="w-full rounded-lg py-3 btn-press shadow-md font-semibold">
+                ${accentFirstBeat ? '✓' : ''} Accent First Beat
+              </button>
+            </section>
+            
+            <section>
+              <div class="control-label font-semibold mb-2 text-xs uppercase tracking-wide opacity-75">Speed Trainer 🎯</div>
+              <button id="trainer-btn" class="w-full rounded-lg py-3 btn-press shadow-md font-semibold mb-2">
+                ${speedTrainer.active ? '■ Stop Training' : '▶ Start Speed Training'}
+              </button>
+              ${!speedTrainer.active ? `
+                <div class="grid grid-cols-3 gap-2 text-sm">
+                  <div>
+                    <label class="text-xs opacity-75 block mb-1">Target BPM</label>
+                    <input type="number" id="trainer-target" class="trainer-input w-full rounded-lg py-2 px-3 text-center" value="${speedTrainer.targetBPM}" min="${bpm + 1}" max="500">
+                  </div>
+                  <div>
+                    <label class="text-xs opacity-75 block mb-1">Increment</label>
+                    <input type="number" id="trainer-increment" class="trainer-input w-full rounded-lg py-2 px-3 text-center" value="${speedTrainer.increment}" min="1" max="20">
+                  </div>
+                  <div>
+                    <label class="text-xs opacity-75 block mb-1">Measures</label>
+                    <input type="number" id="trainer-measures" class="trainer-input w-full rounded-lg py-2 px-3 text-center" value="${speedTrainer.measures}" min="1" max="16">
+                  </div>
+                </div>
+              ` : ''}
+            </section>
+          </main>
+        </div>
+      `;
+      
+      // Event listeners
+      document.getElementById('start-btn').onclick = () => {
+        if (isPlaying) {
+          stopMetronome();
+        } else {
+          startMetronome();
+        }
+      };
+      
+      document.getElementById('bpm-minus').onclick = () => changeBPM(-1);
+      document.getElementById('bpm-plus').onclick = () => changeBPM(1);
+      document.getElementById('tap-btn').onclick = handleTapTempo;
+      
+      document.getElementById('slider-toggle').onclick = () => {
+        showBPMSlider = !showBPMSlider;
+        render();
+      };
+      
+      const bpmSlider = document.getElementById('bpm-slider');
+      if (bpmSlider) {
+        bpmSlider.oninput = (e) => setBPM(e.target.value);
+      }
+      
+      document.querySelectorAll('.preset-btn').forEach(btn => {
+        btn.onclick = () => setPreset(parseInt(btn.dataset.bpm));
+      });
+      
+      document.querySelectorAll('.time-sig-btn').forEach(btn => {
+        btn.onclick = () => changeTimeSignature(parseInt(btn.dataset.beats));
+      });
+      
+      document.getElementById('accent-btn').onclick = toggleAccent;
+      
+      document.querySelectorAll('.subdiv-btn').forEach(btn => {
+        btn.onclick = () => changeSubdivision(parseInt(btn.dataset.subdiv));
+      });
+      
+      document.querySelectorAll('.visual-btn').forEach(btn => {
+        btn.onclick = () => changeVisualMode(btn.dataset.mode);
+      });
+      
+      document.querySelectorAll('.sound-btn').forEach(btn => {
+        btn.onclick = () => changeSoundType(btn.dataset.sound);
+      });
+      
+      const volumeSlider = document.getElementById('volume-slider');
+      if (volumeSlider) {
+        volumeSlider.oninput = (e) => changeVolume(e.target.value);
+      }
+      
+      document.getElementById('trainer-btn').onclick = () => {
+        if (!speedTrainer.active) {
+          const target = parseInt(document.getElementById('trainer-target').value);
+          if (target <= bpm) {
+            showToast('Target BPM must be higher than current BPM');
+            return;
+          }
+          speedTrainer.targetBPM = target;
+          speedTrainer.increment = parseInt(document.getElementById('trainer-increment').value);
+          speedTrainer.measures = parseInt(document.getElementById('trainer-measures').value);
+        }
+        toggleSpeedTrainer();
+      };
+      
+      const trainerTarget = document.getElementById('trainer-target');
+      const trainerIncrement = document.getElementById('trainer-increment');
+      const trainerMeasures = document.getElementById('trainer-measures');
+      
+      if (trainerTarget) trainerTarget.onchange = (e) => updateSpeedTrainerSettings('targetBPM', e.target.value);
+      if (trainerIncrement) trainerIncrement.onchange = (e) => updateSpeedTrainerSettings('increment', e.target.value);
+      if (trainerMeasures) trainerMeasures.onchange = (e) => updateSpeedTrainerSettings('measures', e.target.value);
+      
+      onConfigChange(config);
+    }
+
+    if (window.elementSdk) {
+      window.elementSdk.init({
+        defaultConfig,
+        onConfigChange: async (newConfig) => {
+          config = { ...config, ...newConfig };
+          await onConfigChange(config);
+        },
+        mapToCapabilities: (cfg) => ({
+          recolorables: [
+            {
+              get: () => cfg.background_color || defaultConfig.background_color,
+              set: (value) => {
+                cfg.background_color = value;
+                window.elementSdk.setConfig({ background_color: value });
+              }
+            },
+            {
+              get: () => cfg.surface_color || defaultConfig.surface_color,
+              set: (value) => {
+                cfg.surface_color = value;
+                window.elementSdk.setConfig({ surface_color: value });
+              }
+            },
+            {
+              get: () => cfg.text_color || defaultConfig.text_color,
+              set: (value) => {
+                cfg.text_color = value;
+                window.elementSdk.setConfig({ text_color: value });
+              }
+            },
+            {
+              get: () => cfg.primary_action_color || defaultConfig.primary_action_color,
+              set: (value) => {
+                cfg.primary_action_color = value;
+                window.elementSdk.setConfig({ primary_action_color: value });
+              }
+            },
+            {
+              get: () => cfg.secondary_action_color || defaultConfig.secondary_action_color,
+              set: (value) => {
+                cfg.secondary_action_color = value;
+                window.elementSdk.setConfig({ secondary_action_color: value });
+              }
+            }
+          ],
+          borderables: [],
+          fontEditable: {
+            get: () => cfg.font_family || defaultConfig.font_family,
+            set: (value) => {
+              cfg.font_family = value;
+              window.elementSdk.setConfig({ font_family: value });
+            }
+          },
+          fontSizeable: {
+            get: () => cfg.font_size || defaultConfig.font_size,
+            set: (value) => {
+              cfg.font_size = value;
+              window.elementSdk.setConfig({ font_size: value });
+            }
+          }
+        }),
+        mapToEditPanelValues: (cfg) => new Map([
+          ['app_title', cfg.app_title || defaultConfig.app_title],
+          ['tap_tempo_label', cfg.tap_tempo_label || defaultConfig.tap_tempo_label],
+          ['start_button_text', cfg.start_button_text || defaultConfig.start_button_text],
+          ['stop_button_text', cfg.stop_button_text || defaultConfig.stop_button_text]
+        ])
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', render);
+  </script>
+ </body>
+</html>
