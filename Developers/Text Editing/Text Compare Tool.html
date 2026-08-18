@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Code File Comparator - HTML/CSS/JS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .diff-added { background-color: #dcfce7; border-left: 4px solid #22c55e; }
+        .diff-removed { background-color: #fecaca; border-left: 4px solid #ef4444; }
+        .diff-modified { background-color: #fef3c7; border-left: 4px solid #f59e0b; }
+        .code-line { 
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 13px;
+            line-height: 1.4;
+            padding: 2px 8px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        .line-number { 
+            min-width: 50px; 
+            background-color: #f8fafc; 
+            border-right: 2px solid #e2e8f0;
+            color: #64748b;
+            text-align: right;
+            padding-right: 8px;
+            user-select: none;
+        }
+        .syntax-keyword { color: #7c3aed; font-weight: 600; }
+        .syntax-string { color: #059669; }
+        .syntax-comment { color: #6b7280; font-style: italic; }
+        .syntax-tag { color: #dc2626; }
+        .syntax-attribute { color: #2563eb; }
+        .syntax-value { color: #059669; }
+        .minified-indicator { 
+            background: linear-gradient(45deg, #fbbf24, #f59e0b);
+            color: white;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: bold;
+        }
+        .code-preview {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-slate-50 to-blue-50 min-h-screen">
+    <div class="container mx-auto px-4 py-6 max-w-7xl">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-gray-800 mb-2">⚡ Code File Comparator</h1>
+            <p class="text-gray-600">Smart comparison tool for HTML, CSS, and JavaScript files</p>
+        </div>
+
+        <!-- File Type Selector -->
+        <div class="flex justify-center mb-6">
+            <div class="bg-white rounded-lg shadow-md p-2 flex gap-2">
+                <button onclick="setFileType('html')" id="btn-html" class="px-4 py-2 rounded-md font-medium transition-colors bg-orange-500 text-white">
+                    📄 HTML
+                </button>
+                <button onclick="setFileType('css')" id="btn-css" class="px-4 py-2 rounded-md font-medium transition-colors text-gray-600 hover:bg-gray-100">
+                    🎨 CSS
+                </button>
+                <button onclick="setFileType('js')" id="btn-js" class="px-4 py-2 rounded-md font-medium transition-colors text-gray-600 hover:bg-gray-100">
+                    ⚡ JavaScript
+                </button>
+            </div>
+        </div>
+
+        <!-- Input Section -->
+        <div class="grid lg:grid-cols-2 gap-6 mb-6">
+            <div class="bg-white rounded-lg shadow-md p-4">
+                <div class="flex justify-between items-center mb-3">
+                    <label class="text-sm font-semibold text-gray-700">File 1 (Original)</label>
+                    <div class="flex gap-2">
+                        <button onclick="formatCode(1)" class="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded hover:bg-blue-200 transition-colors">
+                            ✨ Format
+                        </button>
+                        <button onclick="minifyCode(1)" class="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded hover:bg-gray-200 transition-colors">
+                            📦 Minify
+                        </button>
+                    </div>
+                </div>
+                <textarea 
+                    id="file1" 
+                    placeholder="Paste your first code file here..."
+                    class="w-full h-48 p-3 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
+                ></textarea>
+                <div class="mt-2 flex justify-between text-xs text-gray-500">
+                    <div>
+                        Lines: <span id="file1-lines">0</span> | 
+                        Chars: <span id="file1-chars">0</span> |
+                        Size: <span id="file1-size">0 B</span>
+                    </div>
+                    <div id="file1-indicators" class="flex gap-1"></div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-lg shadow-md p-4">
+                <div class="flex justify-between items-center mb-3">
+                    <label class="text-sm font-semibold text-gray-700">File 2 (Modified)</label>
+                    <div class="flex gap-2">
+                        <button onclick="formatCode(2)" class="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded hover:bg-blue-200 transition-colors">
+                            ✨ Format
+                        </button>
+                        <button onclick="minifyCode(2)" class="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded hover:bg-gray-200 transition-colors">
+                            📦 Minify
+                        </button>
+                    </div>
+                </div>
+                <textarea 
+                    id="file2" 
+                    placeholder="Paste your second code file here..."
+                    class="w-full h-48 p-3 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
+                ></textarea>
+                <div class="mt-2 flex justify-between text-xs text-gray-500">
+                    <div>
+                        Lines: <span id="file2-lines">0</span> | 
+                        Chars: <span id="file2-chars">0</span> |
+                        Size: <span id="file2-size">0 B</span>
+                    </div>
+                    <div id="file2-indicators" class="flex gap-1"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Smart Analysis Tools -->
+        <div class="bg-white rounded-lg shadow-md p-4 mb-6">
+            <h3 class="text-lg font-semibold text-gray-800 mb-3">🧠 Smart Analysis Tools</h3>
+            <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                <button onclick="compareFiles()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors">
+                    🔍 Compare
+                </button>
+                <button onclick="findSyntaxErrors()" class="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors">
+                    🐛 Find Errors
+                </button>
+                <button onclick="analyzePerformance()" class="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors">
+                    ⚡ Performance
+                </button>
+                <button onclick="extractSelectors()" class="bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors">
+                    🎯 Selectors
+                </button>
+                <button onclick="mergeFiles()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors">
+                    🔗 Merge
+                </button>
+                <button onclick="clearAll()" class="bg-gray-600 hover:bg-gray-700 text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors">
+                    🗑️ Clear
+                </button>
+            </div>
+        </div>
+
+        <!-- Results Section -->
+        <div id="results" class="bg-white rounded-lg shadow-md p-6 hidden">
+            <div class="flex justify-between items-center mb-4">
+                <h3 id="results-title" class="text-xl font-bold text-gray-800"></h3>
+                <div class="flex gap-2">
+                    <button onclick="copyResult()" class="bg-gray-600 hover:bg-gray-700 text-white px-3 py-1 rounded text-sm font-medium transition-colors">
+                        📋 Copy
+                    </button>
+                    <button onclick="downloadResult()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1 rounded text-sm font-medium transition-colors">
+                        💾 Download
+                    </button>
+                </div>
+            </div>
+            <div id="results-content" class="border border-gray-200 rounded-lg bg-gray-50 max-h-96 overflow-auto"></div>
+        </div>
+
+        <!-- Statistics Dashboard -->
+        <div id="stats" class="mt-6 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 hidden">
+            <div class="bg-white rounded-lg shadow-md p-4 text-center">
+                <div class="text-2xl font-bold text-green-600" id="stat-added">0</div>
+                <div class="text-sm text-gray-600">Added Lines</div>
+            </div>
+            <div class="bg-white rounded-lg shadow-md p-4 text-center">
+                <div class="text-2xl font-bold text-red-600" id="stat-removed">0</div>
+                <div class="text-sm text-gray-600">Removed Lines</div>
+            </div>
+            <div class="bg-white rounded-lg shadow-md p-4 text-center">
+                <div class="text-2xl font-bold text-blue-600" id="stat-modified">0</div>
+                <div class="text-sm text-gray-600">Modified Lines</div>
+            </div>
+            <div class="bg-white rounded-lg shadow-md p-4 text-center">
+                <div class="text-2xl font-bold text-purple-600" id="stat-similarity">0%</div>
+                <div class="text-sm text-gray-600">Similarity</div>
+            </div>
+            <div class="bg-white rounded-lg shadow-md p-4 text-center">
+                <div class="text-2xl font-bold text-orange-600" id="stat-complexity">0</div>
+                <div class="text-sm text-gray-600">Complexity</div>
+            </div>
+            <div class="bg-white rounded-lg shadow-md p-4 text-center">
+                <div class="text-2xl font-bold text-teal-600" id="stat-elements">0</div>
+                <div class="text-sm text-gray-600">Elements</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentFileType = 'html';
+        let currentResult = '';
+        let currentFilename = 'result.txt';
+
+        function setFileType(type) {
+            currentFileType = type;
+            
+            // Update button states
+            document.querySelectorAll('[id^="btn-"]').forEach(btn => {
+                btn.className = 'px-4 py-2 rounded-md font-medium transition-colors text-gray-600 hover:bg-gray-100';
+            });
+            
+            const colors = { html: 'bg-orange-500', css: 'bg-blue-500', js: 'bg-yellow-500' };
+            document.getElementById(`btn-${type}`).className = `px-4 py-2 rounded-md font-medium transition-colors ${colors[type]} text-white`;
+            
+            // Update placeholders
+            const placeholders = {
+                html: 'Paste your HTML code here...',
+                css: 'Paste your CSS code here...',
+                js: 'Paste your JavaScript code here...'
+            };
+            
+            document.getElementById('file1').placeholder = placeholders[type];
+            document.getElementById('file2').placeholder = placeholders[type];
+            
+            updateStats();
+        }
+
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+        }
+
+        function detectCodeFeatures(code, type) {
+            const indicators = [];
+            
+            if (type === 'html') {
+                if (code.includes('<!DOCTYPE')) indicators.push({ text: 'DOCTYPE', color: 'bg-green-100 text-green-700' });
+                if (code.includes('<script')) indicators.push({ text: 'JS', color: 'bg-yellow-100 text-yellow-700' });
+                if (code.includes('<style') || code.includes('css')) indicators.push({ text: 'CSS', color: 'bg-blue-100 text-blue-700' });
+                if (code.includes('class=') || code.includes('id=')) indicators.push({ text: 'Styled', color: 'bg-purple-100 text-purple-700' });
+            } else if (type === 'css') {
+                if (code.includes('@media')) indicators.push({ text: 'Responsive', color: 'bg-green-100 text-green-700' });
+                if (code.includes('@keyframes')) indicators.push({ text: 'Animated', color: 'bg-pink-100 text-pink-700' });
+                if (code.includes('flexbox') || code.includes('grid')) indicators.push({ text: 'Modern', color: 'bg-blue-100 text-blue-700' });
+                if (code.replace(/\s/g, '').length < code.length * 0.7) indicators.push({ text: 'Minified', color: 'bg-orange-100 text-orange-700' });
+            } else if (type === 'js') {
+                if (code.includes('const ') || code.includes('let ')) indicators.push({ text: 'ES6+', color: 'bg-green-100 text-green-700' });
+                if (code.includes('async') || code.includes('await')) indicators.push({ text: 'Async', color: 'bg-blue-100 text-blue-700' });
+                if (code.includes('class ')) indicators.push({ text: 'OOP', color: 'bg-purple-100 text-purple-700' });
+                if (code.includes('function')) indicators.push({ text: 'Functions', color: 'bg-yellow-100 text-yellow-700' });
+            }
+            
+            return indicators;
+        }
+
+        function updateStats() {
+            const file1 = document.getElementById('file1').value;
+            const file2 = document.getElementById('file2').value;
+            
+            // Basic stats
+            document.getElementById('file1-lines').textContent = file1.split('\n').length;
+            document.getElementById('file1-chars').textContent = file1.length;
+            document.getElementById('file1-size').textContent = formatBytes(new Blob([file1]).size);
+            
+            document.getElementById('file2-lines').textContent = file2.split('\n').length;
+            document.getElementById('file2-chars').textContent = file2.length;
+            document.getElementById('file2-size').textContent = formatBytes(new Blob([file2]).size);
+            
+            // Feature indicators
+            const indicators1 = detectCodeFeatures(file1, currentFileType);
+            const indicators2 = detectCodeFeatures(file2, currentFileType);
+            
+            document.getElementById('file1-indicators').innerHTML = indicators1.map(ind => 
+                `<span class="${ind.color} px-2 py-1 rounded text-xs font-medium">${ind.text}</span>`
+            ).join('');
+            
+            document.getElementById('file2-indicators').innerHTML = indicators2.map(ind => 
+                `<span class="${ind.color} px-2 py-1 rounded text-xs font-medium">${ind.text}</span>`
+            ).join('');
+        }
+
+        function formatCode(fileNum) {
+            const textarea = document.getElementById(`file${fileNum}`);
+            let code = textarea.value;
+            
+            if (currentFileType === 'html') {
+                code = formatHTML(code);
+            } else if (currentFileType === 'css') {
+                code = formatCSS(code);
+            } else if (currentFileType === 'js') {
+                code = formatJS(code);
+            }
+            
+            textarea.value = code;
+            updateStats();
+        }
+
+        function formatHTML(html) {
+            return html.replace(/></g, '>\n<').replace(/^\s+|\s+$/gm, '');
+        }
+
+        function formatCSS(css) {
+            return css.replace(/\{/g, ' {\n  ').replace(/\}/g, '\n}\n').replace(/;/g, ';\n  ').replace(/\n\s*\n/g, '\n');
+        }
+
+        function formatJS(js) {
+            return js.replace(/\{/g, ' {\n  ').replace(/\}/g, '\n}\n').replace(/;/g, ';\n').replace(/\n\s*\n/g, '\n');
+        }
+
+        function minifyCode(fileNum) {
+            const textarea = document.getElementById(`file${fileNum}`);
+            let code = textarea.value;
+            
+            if (currentFileType === 'html') {
+                code = code.replace(/>\s+</g, '><').replace(/\s+/g, ' ').trim();
+            } else if (currentFileType === 'css') {
+                code = code.replace(/\s+/g, ' ').replace(/;\s*}/g, '}').replace(/\s*{\s*/g, '{').replace(/;\s*/g, ';').trim();
+            } else if (currentFileType === 'js') {
+                code = code.replace(/\s+/g, ' ').replace(/;\s*}/g, '}').replace(/\s*{\s*/g, '{').trim();
+            }
+            
+            textarea.value = code;
+            updateStats();
+        }
+
+        function compareFiles() {
+            const file1 = document.getElementById('file1').value.trim();
+            const file2 = document.getElementById('file2').value.trim();
+            
+            if (!file1 || !file2) {
+                alert('Please enter code in both text areas');
+                return;
+            }
+
+            const lines1 = file1.split('\n');
+            const lines2 = file2.split('\n');
+            
+            let result = '<div class="code-preview">';
+            let addedCount = 0;
+            let removedCount = 0;
+            let modifiedCount = 0;
+            let commonCount = 0;
+            
+            const maxLines = Math.max(lines1.length, lines2.length);
+            
+            for (let i = 0; i < maxLines; i++) {
+                const line1 = lines1[i] || '';
+                const line2 = lines2[i] || '';
+                
+                if (line1 === line2) {
+                    result += `<div class="code-line flex"><div class="line-number">${i + 1}</div><div class="flex-1 px-3">${escapeHtml(line1)}</div></div>`;
+                    if (line1.trim()) commonCount++;
+                } else {
+                    if (line1 && line2) {
+                        result += `<div class="code-line flex diff-modified"><div class="line-number">${i + 1}</div><div class="flex-1 px-3">~ ${escapeHtml(line2)}</div></div>`;
+                        modifiedCount++;
+                    } else if (line1) {
+                        result += `<div class="code-line flex diff-removed"><div class="line-number">${i + 1}</div><div class="flex-1 px-3">- ${escapeHtml(line1)}</div></div>`;
+                        removedCount++;
+                    } else if (line2) {
+                        result += `<div class="code-line flex diff-added"><div class="line-number">${i + 1}</div><div class="flex-1 px-3">+ ${escapeHtml(line2)}</div></div>`;
+                        addedCount++;
+                    }
+                }
+            }
+            
+            result += '</div>';
+            
+            const similarity = Math.round((commonCount / Math.max(lines1.length, lines2.length)) * 100);
+            const complexity = calculateComplexity(file1, file2);
+            const elements = countElements(file1, file2);
+            
+            showResult('📊 Code Comparison', result, 'comparison.html');
+            updateComparisonStats(addedCount, removedCount, modifiedCount, similarity, complexity, elements);
+        }
+
+        function findSyntaxErrors() {
+            const file1 = document.getElementById('file1').value.trim();
+            const file2 = document.getElementById('file2').value.trim();
+            
+            let errors = [];
+            
+            if (currentFileType === 'html') {
+                errors = [...findHTMLErrors(file1, 'File 1'), ...findHTMLErrors(file2, 'File 2')];
+            } else if (currentFileType === 'css') {
+                errors = [...findCSSErrors(file1, 'File 1'), ...findCSSErrors(file2, 'File 2')];
+            } else if (currentFileType === 'js') {
+                errors = [...findJSErrors(file1, 'File 1'), ...findJSErrors(file2, 'File 2')];
+            }
+            
+            const result = errors.length > 0 ? 
+                errors.map(err => `<div class="p-3 mb-2 bg-red-50 border-l-4 border-red-400 text-red-700">${err}</div>`).join('') :
+                '<div class="p-4 bg-green-50 border-l-4 border-green-400 text-green-700">✅ No syntax errors found!</div>';
+            
+            showResult(`🐛 Syntax Analysis (${errors.length} issues found)`, result, 'errors.html');
+            hideStats();
+        }
+
+        function findHTMLErrors(html, fileName) {
+            const errors = [];
+            const lines = html.split('\n');
+            
+            lines.forEach((line, index) => {
+                if (line.includes('<') && !line.includes('>')) {
+                    errors.push(`${fileName} Line ${index + 1}: Unclosed tag`);
+                }
+                if (line.includes('href=""') || line.includes('src=""')) {
+                    errors.push(`${fileName} Line ${index + 1}: Empty attribute value`);
+                }
+            });
+            
+            return errors;
+        }
+
+        function findCSSErrors(css, fileName) {
+            const errors = [];
+            const lines = css.split('\n');
+            
+            lines.forEach((line, index) => {
+                if (line.includes('{') && !css.includes('}')) {
+                    errors.push(`${fileName} Line ${index + 1}: Unclosed CSS block`);
+                }
+                if (line.includes(':') && !line.includes(';') && line.trim() && !line.includes('{')) {
+                    errors.push(`${fileName} Line ${index + 1}: Missing semicolon`);
+                }
+            });
+            
+            return errors;
+        }
+
+        function findJSErrors(js, fileName) {
+            const errors = [];
+            const lines = js.split('\n');
+            
+            lines.forEach((line, index) => {
+                if ((line.includes('function') || line.includes('{')) && !js.includes('}')) {
+                    errors.push(`${fileName} Line ${index + 1}: Unclosed function or block`);
+                }
+                if (line.includes('console.log')) {
+                    errors.push(`${fileName} Line ${index + 1}: Debug statement found`);
+                }
+            });
+            
+            return errors;
+        }
+
+        function analyzePerformance() {
+            const file1 = document.getElementById('file1').value.trim();
+            const file2 = document.getElementById('file2').value.trim();
+            
+            let analysis = '<div class="space-y-4">';
+            
+            if (currentFileType === 'html') {
+                analysis += analyzeHTMLPerformance(file1, 'File 1');
+                analysis += analyzeHTMLPerformance(file2, 'File 2');
+            } else if (currentFileType === 'css') {
+                analysis += analyzeCSSPerformance(file1, 'File 1');
+                analysis += analyzeCSSPerformance(file2, 'File 2');
+            } else if (currentFileType === 'js') {
+                analysis += analyzeJSPerformance(file1, 'File 1');
+                analysis += analyzeJSPerformance(file2, 'File 2');
+            }
+            
+            analysis += '</div>';
+            
+            showResult('⚡ Performance Analysis', analysis, 'performance.html');
+            hideStats();
+        }
+
+        function analyzeHTMLPerformance(html, fileName) {
+            const imgCount = (html.match(/<img/g) || []).length;
+            const scriptCount = (html.match(/<script/g) || []).length;
+            const styleCount = (html.match(/<style/g) || []).length;
+            
+            return `
+                <div class="p-4 bg-blue-50 border-l-4 border-blue-400">
+                    <h4 class="font-semibold text-blue-800">${fileName}</h4>
+                    <ul class="mt-2 text-blue-700 text-sm">
+                        <li>📷 Images: ${imgCount} ${imgCount > 10 ? '(Consider lazy loading)' : ''}</li>
+                        <li>📜 Scripts: ${scriptCount} ${scriptCount > 5 ? '(Consider bundling)' : ''}</li>
+                        <li>🎨 Inline Styles: ${styleCount} ${styleCount > 0 ? '(Consider external CSS)' : ''}</li>
+                        <li>📏 Size: ${formatBytes(new Blob([html]).size)}</li>
+                    </ul>
+                </div>
+            `;
+        }
+
+        function analyzeCSSPerformance(css, fileName) {
+            const selectorCount = (css.match(/[^{}]+{/g) || []).length;
+            const mediaQueries = (css.match(/@media/g) || []).length;
+            const animations = (css.match(/@keyframes/g) || []).length;
+            
+            return `
+                <div class="p-4 bg-green-50 border-l-4 border-green-400">
+                    <h4 class="font-semibold text-green-800">${fileName}</h4>
+                    <ul class="mt-2 text-green-700 text-sm">
+                        <li>🎯 Selectors: ${selectorCount} ${selectorCount > 100 ? '(Consider optimization)' : ''}</li>
+                        <li>📱 Media Queries: ${mediaQueries}</li>
+                        <li>🎬 Animations: ${animations}</li>
+                        <li>📏 Size: ${formatBytes(new Blob([css]).size)}</li>
+                    </ul>
+                </div>
+            `;
+        }
+
+        function analyzeJSPerformance(js, fileName) {
+            const functionCount = (js.match(/function/g) || []).length;
+            const loops = (js.match(/for\s*\(|while\s*\(/g) || []).length;
+            const asyncCount = (js.match(/async|await/g) || []).length;
+            
+            return `
+                <div class="p-4 bg-yellow-50 border-l-4 border-yellow-400">
+                    <h4 class="font-semibold text-yellow-800">${fileName}</h4>
+                    <ul class="mt-2 text-yellow-700 text-sm">
+                        <li>⚙️ Functions: ${functionCount}</li>
+                        <li>🔄 Loops: ${loops} ${loops > 5 ? '(Watch performance)' : ''}</li>
+                        <li>⏳ Async Operations: ${asyncCount}</li>
+                        <li>📏 Size: ${formatBytes(new Blob([js]).size)}</li>
+                    </ul>
+                </div>
+            `;
+        }
+
+        function extractSelectors() {
+            const file1 = document.getElementById('file1').value.trim();
+            const file2 = document.getElementById('file2').value.trim();
+            
+            let selectors = new Set();
+            
+            if (currentFileType === 'html') {
+                // Extract classes and IDs
+                const classMatches = [...file1.matchAll(/class=["']([^"']+)["']/g), ...file2.matchAll(/class=["']([^"']+)["']/g)];
+                const idMatches = [...file1.matchAll(/id=["']([^"']+)["']/g), ...file2.matchAll(/id=["']([^"']+)["']/g)];
+                
+                classMatches.forEach(match => {
+                    match[1].split(' ').forEach(cls => selectors.add(`.${cls.trim()}`));
+                });
+                idMatches.forEach(match => selectors.add(`#${match[1]}`));
+            } else if (currentFileType === 'css') {
+                const cssSelectors = [...file1.matchAll(/([^{}]+)\s*{/g), ...file2.matchAll(/([^{}]+)\s*{/g)];
+                cssSelectors.forEach(match => {
+                    match[1].split(',').forEach(sel => selectors.add(sel.trim()));
+                });
+            }
+            
+            const result = Array.from(selectors).sort().map(sel => 
+                `<div class="p-2 bg-gray-100 rounded font-mono text-sm">${escapeHtml(sel)}</div>`
+            ).join('');
+            
+            showResult(`🎯 Extracted Selectors (${selectors.size} found)`, result || 'No selectors found', 'selectors.html');
+            hideStats();
+        }
+
+        function mergeFiles() {
+            const file1 = document.getElementById('file1').value.trim();
+            const file2 = document.getElementById('file2').value.trim();
+            
+            if (!file1 && !file2) {
+                alert('Please enter code in at least one text area');
+                return;
+            }
+
+            let result = '';
+            if (currentFileType === 'html') {
+                result = mergeHTML(file1, file2);
+            } else if (currentFileType === 'css') {
+                result = mergeCSS(file1, file2);
+            } else if (currentFileType === 'js') {
+                result = mergeJS(file1, file2);
+            }
+            
+            showResult('🔗 Merged Code', `<pre class="font-mono text-sm whitespace-pre-wrap">${escapeHtml(result)}</pre>`, `merged.${currentFileType}`);
+            hideStats();
+        }
+
+        function mergeHTML(html1, html2) {
+            // Simple merge - combine body contents
+            const body1 = html1.match(/<body[^>]*>([\s\S]*)<\/body>/i);
+            const body2 = html2.match(/<body[^>]*>([\s\S]*)<\/body>/i);
+            
+            if (body1 && body2) {
+                return html1.replace(body1[1], body1[1] + '\n\n<!-- Merged Content -->\n' + body2[1]);
+            }
+            return html1 + '\n\n<!-- Merged Content -->\n' + html2;
+        }
+
+        function mergeCSS(css1, css2) {
+            return css1 + '\n\n/* Merged CSS */\n' + css2;
+        }
+
+        function mergeJS(js1, js2) {
+            return js1 + '\n\n// Merged JavaScript\n' + js2;
+        }
+
+        function calculateComplexity(file1, file2) {
+            const combined = file1 + file2;
+            let complexity = 0;
+            
+            if (currentFileType === 'html') {
+                complexity = (combined.match(/<[^>]+>/g) || []).length;
+            } else if (currentFileType === 'css') {
+                complexity = (combined.match(/[^{}]+{/g) || []).length;
+            } else if (currentFileType === 'js') {
+                complexity = (combined.match(/function|if|for|while|switch/g) || []).length;
+            }
+            
+            return complexity;
+        }
+
+        function countElements(file1, file2) {
+            const combined = file1 + file2;
+            
+            if (currentFileType === 'html') {
+                return (combined.match(/<[^/>][^>]*>/g) || []).length;
+            } else if (currentFileType === 'css') {
+                return (combined.match(/[^{}]+{/g) || []).length;
+            } else if (currentFileType === 'js') {
+                return (combined.match(/function|const|let|var/g) || []).length;
+            }
+            
+            return 0;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function clearAll() {
+            document.getElementById('file1').value = '';
+            document.getElementById('file2').value = '';
+            document.getElementById('results').classList.add('hidden');
+            document.getElementById('stats').classList.add('hidden');
+            updateStats();
+        }
+
+        function showResult(title, content, filename) {
+            document.getElementById('results-title').textContent = title;
+            document.getElementById('results-content').innerHTML = content;
+            document.getElementById('results').classList.remove('hidden');
+            currentResult = content;
+            currentFilename = filename;
+        }
+
+        function updateComparisonStats(added, removed, modified, similarity, complexity, elements) {
+            document.getElementById('stat-added').textContent = added;
+            document.getElementById('stat-removed').textContent = removed;
+            document.getElementById('stat-modified').textContent = modified;
+            document.getElementById('stat-similarity').textContent = similarity + '%';
+            document.getElementById('stat-complexity').textContent = complexity;
+            document.getElementById('stat-elements').textContent = elements;
+            document.getElementById('stats').classList.remove('hidden');
+        }
+
+        function hideStats() {
+            document.getElementById('stats').classList.add('hidden');
+        }
+
+        function copyResult() {
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = currentResult;
+            const text = tempDiv.textContent || tempDiv.innerText || '';
+            navigator.clipboard.writeText(text).then(() => {
+                alert('Result copied to clipboard!');
+            });
+        }
+
+        function downloadResult() {
+            if (!currentResult) return;
+            
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = currentResult;
+            const text = tempDiv.textContent || tempDiv.innerText || '';
+            
+            const blob = new Blob([text], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = currentFilename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // Event listeners
+        document.getElementById('file1').addEventListener('input', updateStats);
+        document.getElementById('file2').addEventListener('input', updateStats);
+
+        // Initialize
+        updateStats();
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'97d31be3854919b0',t:'MTc1NzU1MTE3Ni4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
