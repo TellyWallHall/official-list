@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>clipboard</title>
+  <style>
+    :root {
+      --bg: #09090b;
+      --card-bg: #18181b;
+      --card-border: #27272a;
+      --text: #f4f4f5;
+      --text-muted: #a1a1aa;
+      --accent: #22c55e;
+      --btn-bg: #f4f4f5;
+      --btn-text: #09090b;
+      --radius: 12px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      display: flex;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px 16px 40px 16px;
+    }
+
+    .app {
+      width: 100%;
+      max-width: 480px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    header h1 {
+      font-size: 1.75rem;
+      font-weight: 700;
+      letter-spacing: -0.04em;
+    }
+
+    header p {
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      margin-top: 2px;
+    }
+
+    form {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      background: var(--card-bg);
+      padding: 14px;
+      border-radius: var(--radius);
+      border: 1px solid var(--card-border);
+    }
+
+    input, textarea {
+      background: transparent;
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      padding: 12px;
+      color: var(--text);
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    input:focus, textarea:focus {
+      border-color: #52525b;
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 70px;
+    }
+
+    button.save-btn {
+      background: var(--btn-bg);
+      color: var(--btn-text);
+      border: none;
+      border-radius: 8px;
+      padding: 12px;
+      font-weight: 600;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+
+    button.save-btn:active {
+      opacity: 0.8;
+    }
+
+    .notes-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .note-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius);
+      padding: 16px;
+      position: relative;
+      cursor: pointer;
+      transition: transform 0.1s, border-color 0.2s, background-color 0.2s;
+      user-select: none;
+    }
+
+    .note-card:active {
+      transform: scale(0.98);
+      border-color: #52525b;
+    }
+
+    .note-card.copied {
+      border-color: var(--accent);
+      background: #092010;
+    }
+
+    .note-title {
+      font-weight: 600;
+      font-size: 1rem;
+      margin-bottom: 6px;
+      padding-right: 28px;
+      word-break: break-word;
+    }
+
+    .note-content {
+      color: var(--text-muted);
+      font-size: 0.875rem;
+      white-space: pre-wrap;
+      word-break: break-word;
+      line-height: 1.4;
+    }
+
+    .delete-btn {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 6px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .delete-btn:active {
+      color: #ef4444;
+      background: rgba(239, 68, 68, 0.1);
+    }
+
+    .empty-state {
+      text-align: center;
+      color: var(--text-muted);
+      padding: 32px 16px;
+      font-size: 0.875rem;
+      border: 1px dashed var(--card-border);
+      border-radius: var(--radius);
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: #ffffff;
+      color: #000000;
+      padding: 10px 20px;
+      border-radius: 20px;
+      font-weight: 600;
+      font-size: 0.85rem;
+      box-shadow: 0 10px 20px rgba(0,0,0,0.4);
+      transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.25s;
+      pointer-events: none;
+      opacity: 0;
+      z-index: 1000;
+    }
+
+    .toast.show {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app">
+    <header>
+      <h1>clipboard</h1>
+      <p>Tap any note to copy its contents</p>
+    </header>
+
+    <form id="noteForm">
+      <input type="text" id="noteTitle" placeholder="Title" required autocomplete="off">
+      <textarea id="noteContent" placeholder="Write note details..." rows="3" required></textarea>
+      <button type="submit" class="save-btn">Save Note</button>
+    </form>
+
+    <div id="notesList" class="notes-list"></div>
+  </div>
+
+  <div id="toast" class="toast">Copied to clipboard!</div>
+
+  <script>
+    const STORAGE_KEY = 'clipboard_app_notes';
+    const noteForm = document.getElementById('noteForm');
+    const noteTitle = document.getElementById('noteTitle');
+    const noteContent = document.getElementById('noteContent');
+    const notesList = document.getElementById('notesList');
+    const toast = document.getElementById('toast');
+
+    // Fetch notes from localStorage
+    function getNotes() {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      return saved ? JSON.parse(saved) : [];
+    }
+
+    // Save notes to localStorage
+    function saveNotes(notes) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(notes));
+    }
+
+    // Copy text to user clipboard
+    async function copyToClipboard(text, cardElement) {
+      try {
+        if (navigator.clipboard && window.isSecureContext) {
+          await navigator.clipboard.writeText(text);
+        } else {
+          // Fallback method for older/non-HTTPS environments
+          const textArea = document.createElement("textarea");
+          textArea.value = text;
+          textArea.style.position = "fixed";
+          textArea.style.left = "-999999px";
+          document.body.appendChild(textArea);
+          textArea.focus();
+          textArea.select();
+          document.execCommand('copy');
+          textArea.remove();
+        }
+
+        // Show visual confirmation on the card
+        cardElement.classList.add('copied');
+        setTimeout(() => cardElement.classList.remove('copied'), 600);
+
+        showToast();
+      } catch (err) {
+        console.error('Failed to copy text: ', err);
+      }
+    }
+
+    // Show temporary toast popup
+    let toastTimeout;
+    function showToast() {
+      toast.classList.add('show');
+      clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => {
+        toast.classList.remove('show');
+      }, 1800);
+    }
+
+    // Render list of notes
+    function renderNotes() {
+      const notes = getNotes();
+      notesList.innerHTML = '';
+
+      if (notes.length === 0) {
+        notesList.innerHTML = '<div class="empty-state">No notes saved yet. Create one above!</div>';
+        return;
+      }
+
+      notes.forEach((note) => {
+        const card = document.createElement('div');
+        card.className = 'note-card';
+
+        const titleEl = document.createElement('div');
+        titleEl.className = 'note-title';
+        titleEl.textContent = note.title;
+
+        const contentEl = document.createElement('div');
+        contentEl.className = 'note-content';
+        contentEl.textContent = note.content;
+
+        // Delete button
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'delete-btn';
+        deleteBtn.ariaLabel = 'Delete note';
+        deleteBtn.innerHTML = `
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="3 6 5 6 21 6"></polyline>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+          </svg>
+        `;
+
+        // Delete note without triggering copy
+        deleteBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          deleteNote(note.id);
+        });
+
+        // Copy note content when card is tapped
+        card.addEventListener('click', () => {
+          copyToClipboard(note.content, card);
+        });
+
+        card.appendChild(deleteBtn);
+        card.appendChild(titleEl);
+        card.appendChild(contentEl);
+        notesList.appendChild(card);
+      });
+    }
+
+    // Add new note
+    noteForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const title = noteTitle.value.trim();
+      const content = noteContent.value.trim();
+
+      if (!title || !content) return;
+
+      const newNote = {
+        id: Date.now(),
+        title,
+        content
+      };
+
+      const notes = getNotes();
+      notes.unshift(newNote); // Put newest on top
+      saveNotes(notes);
+
+      noteTitle.value = '';
+      noteContent.value = '';
+      renderNotes();
+    });
+
+    // Delete note by ID
+    function deleteNote(id) {
+      const notes = getNotes().filter(note => note.id !== id);
+      saveNotes(notes);
+      renderNotes();
+    }
+
+    // Initial load
+    renderNotes();
+  </script>
+</body>
+</html>
