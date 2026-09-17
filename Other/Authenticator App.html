@@ -1,0 +1,2569 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Authenticator App</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+  <script src="https://unpkg.com/jsqr@1.4.0/dist/jsQR.js"></script>
+  <style>
+    :root {
+      --bg-primary: #0d1117;
+      --bg-secondary: #161b22;
+      --bg-card: #1c2333;
+      --bg-card-hover: #22293a;
+      --accent: #58a6ff;
+      --accent-glow: rgba(88, 166, 255, 0.3);
+      --text-primary: #e6edf3;
+      --text-secondary: #8b949e;
+      --text-muted: #6e7681;
+      --border: #30363d;
+      --success: #3fb950;
+      --danger: #f85149;
+      --warning: #d29922;
+      --code-color: #79c0ff;
+      --progress-bg: #21262d;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    .header {
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, var(--accent), #a371f7);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+
+    .header h1 {
+      font-size: 20px;
+      font-weight: 600;
+      background: linear-gradient(135deg, var(--accent), #a371f7);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .security-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 500;
+    }
+
+    .security-badge.device {
+      background: rgba(63, 185, 80, 0.1);
+      border: 1px solid rgba(63, 185, 80, 0.3);
+      color: var(--success);
+    }
+
+    .security-badge.portable {
+      background: rgba(88, 166, 255, 0.1);
+      border: 1px solid rgba(88, 166, 255, 0.3);
+      color: var(--accent);
+    }
+
+    .btn {
+      padding: 8px 16px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn:hover {
+      background: var(--bg-card);
+      border-color: var(--accent);
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #000;
+      border-color: var(--accent);
+    }
+
+    .btn-primary:hover {
+      background: #79c0ff;
+      box-shadow: 0 0 20px var(--accent-glow);
+    }
+
+    .btn-danger {
+      border-color: var(--danger);
+      color: var(--danger);
+    }
+
+    .btn-danger:hover {
+      background: rgba(248, 81, 73, 0.1);
+    }
+
+    .btn-sm {
+      padding: 6px 12px;
+      font-size: 12px;
+    }
+
+    .btn-icon {
+      width: 36px;
+      height: 36px;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+    }
+
+    .main-content {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 24px 16px;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 80px 24px;
+    }
+
+    .empty-state .icon {
+      font-size: 64px;
+      margin-bottom: 24px;
+      opacity: 0.5;
+    }
+
+    .empty-state h2 {
+      font-size: 24px;
+      margin-bottom: 12px;
+    }
+
+    .empty-state p {
+      color: var(--text-secondary);
+      margin-bottom: 32px;
+      line-height: 1.6;
+    }
+
+    .accounts-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .account-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      transition: all 0.3s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .account-card:hover {
+      background: var(--bg-card-hover);
+      border-color: var(--accent);
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+    }
+
+    .account-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--accent), #a371f7);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .account-card:hover::before {
+      opacity: 1;
+    }
+
+    .account-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 16px;
+    }
+
+    .account-info h3 {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .account-info .issuer {
+      color: var(--text-secondary);
+      font-size: 13px;
+    }
+
+    .account-actions {
+      display: flex;
+      gap: 4px;
+    }
+
+    .code-display {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 4px;
+    }
+
+    .totp-code {
+      font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+      font-size: 36px;
+      font-weight: 700;
+      letter-spacing: 6px;
+      color: var(--code-color);
+      cursor: pointer;
+      transition: all 0.2s;
+      user-select: all;
+    }
+
+    .totp-code:hover {
+      text-shadow: 0 0 20px var(--accent-glow);
+    }
+
+    .totp-code.expiring {
+      color: var(--danger);
+      animation: pulse 1s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        opacity: 1;
+      }
+
+      50% {
+        opacity: 0.5;
+      }
+    }
+
+    .timer-ring {
+      width: 44px;
+      height: 44px;
+      flex-shrink: 0;
+    }
+
+    .timer-ring circle {
+      fill: none;
+      stroke-width: 3;
+    }
+
+    .timer-ring .bg {
+      stroke: var(--progress-bg);
+    }
+
+    .timer-ring .progress {
+      stroke: var(--accent);
+      stroke-linecap: round;
+      transition: stroke-dashoffset 1s linear, stroke 0.3s;
+      transform: rotate(-90deg);
+      transform-origin: center;
+    }
+
+    .timer-ring .progress.expiring {
+      stroke: var(--danger);
+    }
+
+    .timer-ring text {
+      fill: var(--text-primary);
+      font-size: 13px;
+      font-weight: 600;
+      font-family: -apple-system, sans-serif;
+    }
+
+    .copied-toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: var(--success);
+      color: #000;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 14px;
+      transition: transform 0.3s ease;
+      z-index: 1000;
+    }
+
+    .copied-toast.show {
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.7);
+      z-index: 200;
+      justify-content: center;
+      align-items: center;
+      padding: 16px;
+      backdrop-filter: blur(4px);
+    }
+
+    .modal-overlay.active {
+      display: flex;
+    }
+
+    .modal {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      width: 100%;
+      max-width: 480px;
+      max-height: 90vh;
+      overflow-y: auto;
+      animation: modalIn 0.3s ease;
+    }
+
+    @keyframes modalIn {
+      from {
+        transform: scale(0.9);
+        opacity: 0;
+      }
+
+      to {
+        transform: scale(1);
+        opacity: 1;
+      }
+    }
+
+    .modal-header {
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .modal-header h2 {
+      font-size: 18px;
+    }
+
+    .modal-body {
+      padding: 24px;
+    }
+
+    .modal-footer {
+      padding: 16px 24px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 20px;
+      background: var(--bg-primary);
+      border-radius: 10px;
+      padding: 4px;
+    }
+
+    .tab {
+      flex: 1;
+      padding: 10px 16px;
+      border: none;
+      background: transparent;
+      color: var(--text-secondary);
+      cursor: pointer;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+
+    .tab.active {
+      background: var(--bg-card);
+      color: var(--text-primary);
+    }
+
+    .tab:hover:not(.active) {
+      color: var(--text-primary);
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-secondary);
+    }
+
+    .form-group input,
+    .form-group select {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      font-size: 14px;
+      transition: border-color 0.2s;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+
+    .form-group input::placeholder {
+      color: var(--text-muted);
+    }
+
+    .qr-upload-area {
+      border: 2px dashed var(--border);
+      border-radius: 12px;
+      padding: 40px 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .qr-upload-area:hover,
+    .qr-upload-area.dragover {
+      border-color: var(--accent);
+      background: rgba(88, 166, 255, 0.05);
+    }
+
+    .qr-upload-area .icon {
+      font-size: 48px;
+      margin-bottom: 12px;
+    }
+
+    .qr-upload-area p {
+      color: var(--text-secondary);
+      font-size: 14px;
+    }
+
+    .qr-upload-area input[type="file"] {
+      display: none;
+    }
+
+    .camera-container {
+      position: relative;
+      border-radius: 12px;
+      overflow: hidden;
+      background: #000;
+      aspect-ratio: 1;
+    }
+
+    .camera-container video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .camera-container canvas {
+      display: none;
+    }
+
+    .scan-overlay {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 200px;
+      height: 200px;
+      border: 2px solid var(--accent);
+      border-radius: 16px;
+      box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
+    }
+
+    .scan-overlay::before {
+      content: '';
+      position: absolute;
+      top: -2px;
+      left: -2px;
+      right: -2px;
+      bottom: -2px;
+      border: 2px solid var(--accent);
+      border-radius: 16px;
+      animation: scanPulse 2s ease-in-out infinite;
+    }
+
+    @keyframes scanPulse {
+
+      0%,
+      100% {
+        opacity: 1;
+      }
+
+      50% {
+        opacity: 0.3;
+      }
+    }
+
+    .camera-status {
+      text-align: center;
+      padding: 12px;
+      color: var(--text-secondary);
+      font-size: 13px;
+    }
+
+    .firebase-section {
+      margin-top: 16px;
+      padding: 16px;
+      background: var(--bg-primary);
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+
+    .firebase-section summary {
+      cursor: pointer;
+      color: var(--text-secondary);
+      font-size: 13px;
+      user-select: none;
+    }
+
+    .firebase-section summary:hover {
+      color: var(--text-primary);
+    }
+
+    .firebase-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 12px;
+      font-size: 13px;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--text-muted);
+    }
+
+    .status-dot.connected {
+      background: var(--success);
+      box-shadow: 0 0 8px rgba(63, 185, 80, 0.5);
+    }
+
+    .search-bar {
+      margin-bottom: 20px;
+      position: relative;
+    }
+
+    .search-bar input {
+      width: 100%;
+      padding: 12px 16px 12px 44px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text-primary);
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+
+    .search-bar input:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+
+    .search-bar::before {
+      content: '🔍';
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 16px;
+    }
+
+    .setting-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .setting-row:last-child {
+      border-bottom: none;
+    }
+
+    .setting-label h4 {
+      font-size: 14px;
+      margin-bottom: 2px;
+    }
+
+    .setting-label p {
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    .preview-img {
+      max-width: 100%;
+      max-height: 200px;
+      border-radius: 8px;
+      margin-top: 12px;
+    }
+
+    .decode-result {
+      margin-top: 12px;
+      padding: 12px;
+      background: var(--bg-primary);
+      border-radius: 8px;
+      font-size: 13px;
+      word-break: break-all;
+    }
+
+    .decode-result.success {
+      border: 1px solid var(--success);
+      color: var(--success);
+    }
+
+    .decode-result.error {
+      border: 1px solid var(--danger);
+      color: var(--danger);
+    }
+
+    .export-data {
+      background: var(--bg-primary);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      font-family: monospace;
+      font-size: 11px;
+      color: var(--text-secondary);
+      width: 100%;
+      min-height: 100px;
+      resize: vertical;
+    }
+
+    .lock-screen {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: calc(100vh - 80px);
+      padding: 24px;
+      text-align: center;
+    }
+
+    .lock-screen .icon {
+      font-size: 64px;
+      margin-bottom: 24px;
+    }
+
+    .lock-screen h2 {
+      margin-bottom: 8px;
+    }
+
+    .lock-screen p {
+      color: var(--text-secondary);
+      margin-bottom: 24px;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .lock-screen input {
+      width: 100%;
+      max-width: 300px;
+      padding: 14px 16px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text-primary);
+      font-size: 18px;
+      text-align: center;
+      margin-bottom: 16px;
+      letter-spacing: 8px;
+    }
+
+    .lock-screen input:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+
+    .confirm-text {
+      font-size: 14px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+      margin-bottom: 8px;
+    }
+
+    .security-info {
+      background: rgba(88, 166, 255, 0.05);
+      border: 1px solid rgba(88, 166, 255, 0.2);
+      border-radius: 8px;
+      padding: 14px;
+      margin-top: 16px;
+      font-size: 12px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+
+    .security-info strong {
+      color: var(--accent);
+    }
+
+    .warning-box {
+      background: rgba(210, 153, 34, 0.08);
+      border: 1px solid rgba(210, 153, 34, 0.3);
+      border-radius: 8px;
+      padding: 14px;
+      margin-top: 12px;
+      font-size: 12px;
+      color: var(--warning);
+      line-height: 1.6;
+    }
+
+    .warning-box strong {
+      color: var(--warning);
+    }
+
+    .danger-box {
+      background: rgba(248, 81, 73, 0.08);
+      border: 1px solid rgba(248, 81, 73, 0.3);
+      border-radius: 8px;
+      padding: 14px;
+      margin-top: 12px;
+      font-size: 12px;
+      color: #ffa198;
+      line-height: 1.6;
+    }
+
+    .toggle-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 16px;
+      background: var(--bg-primary);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      margin-bottom: 12px;
+    }
+
+    .toggle-row label {
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    .toggle {
+      position: relative;
+      width: 44px;
+      height: 24px;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    .toggle input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .toggle .slider {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: var(--border);
+      border-radius: 24px;
+      transition: 0.3s;
+    }
+
+    .toggle .slider::before {
+      content: '';
+      position: absolute;
+      width: 18px;
+      height: 18px;
+      left: 3px;
+      bottom: 3px;
+      background: var(--text-primary);
+      border-radius: 50%;
+      transition: 0.3s;
+    }
+
+    .toggle input:checked+.slider {
+      background: var(--accent);
+    }
+
+    .toggle input:checked+.slider::before {
+      transform: translateX(20px);
+    }
+
+    .error-shake {
+      animation: shake 0.5s ease;
+    }
+
+    @keyframes shake {
+
+      0%,
+      100% {
+        transform: translateX(0);
+      }
+
+      20%,
+      60% {
+        transform: translateX(-8px);
+      }
+
+      40%,
+      80% {
+        transform: translateX(8px);
+      }
+    }
+
+    .import-methods {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .import-method-btn {
+      padding: 16px;
+      background: var(--bg-primary);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: left;
+    }
+
+    .import-method-btn:hover {
+      border-color: var(--accent);
+      background: var(--bg-card);
+    }
+
+    .import-method-btn h4 {
+      font-size: 14px;
+      margin-bottom: 4px;
+      color: var(--text-primary);
+    }
+
+    .import-method-btn p {
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin: 0;
+    }
+
+    .import-divider {
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 12px;
+      position: relative;
+      margin: 8px 0;
+    }
+
+    .import-divider::before,
+    .import-divider::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      width: 40%;
+      height: 1px;
+      background: var(--border);
+    }
+
+    .import-divider::before {
+      left: 0;
+    }
+
+    .import-divider::after {
+      right: 0;
+    }
+
+    @media (max-width: 480px) {
+      .header h1 {
+        font-size: 16px;
+      }
+
+      .totp-code {
+        font-size: 28px;
+        letter-spacing: 4px;
+      }
+
+      .modal {
+        max-height: 95vh;
+      }
+
+      .security-badge {
+        display: none;
+      }
+    }
+
+  </style>
+</head>
+
+<body>
+
+  <div class="header">
+    <div class="header-left">
+      <div class="logo">🔐</div>
+      <h1>Authenticator</h1>
+    </div>
+    <div class="header-actions">
+      <div class="security-badge device" id="securityBadge" style="display:none;">🛡️ Device-Bound</div>
+      <button class="btn btn-icon" onclick="lockApp()" title="Lock" id="lockBtn" style="display:none;">🔒</button>
+      <button class="btn btn-icon" onclick="openSettings()" title="Settings" id="settingsBtn" style="display:none;">⚙️</button>
+      <button class="btn btn-primary" onclick="openAddModal()" id="addBtn" style="display:none;">+ Add</button>
+    </div>
+  </div>
+
+  <div class="main-content" id="mainContent"></div>
+  <div class="copied-toast" id="copiedToast">✓ Code copied to clipboard</div>
+
+  <!-- Add Account Modal -->
+  <div class="modal-overlay" id="addModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>Add Account</h2><button class="btn btn-icon btn-sm" onclick="closeAddModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="tabs">
+          <button class="tab active" onclick="switchTab('manual',this)">Manual</button>
+          <button class="tab" onclick="switchTab('qrUpload',this)">QR Image</button>
+          <button class="tab" onclick="switchTab('camera',this)">Camera</button>
+        </div>
+        <div class="tab-content active" id="tab-manual">
+          <div class="form-group"><label>Account Name *</label><input type="text" id="accountName" placeholder="e.g., user@gmail.com"></div>
+          <div class="form-group"><label>Issuer</label><input type="text" id="issuerName" placeholder="e.g., Google, GitHub"></div>
+          <div class="form-group"><label>Secret Key *</label><input type="text" id="secretKey" placeholder="Base32 encoded secret" style="font-family:monospace;"></div>
+          <div class="form-group"><label>Algorithm</label><select id="algorithm">
+              <option value="SHA-1" selected>SHA-1 (default)</option>
+              <option value="SHA-256">SHA-256</option>
+              <option value="SHA-512">SHA-512</option>
+            </select></div>
+          <div class="form-group"><label>Digits</label><select id="digits">
+              <option value="6" selected>6 digits</option>
+              <option value="8">8 digits</option>
+            </select></div>
+          <div class="form-group"><label>Period (seconds)</label><input type="number" id="period" value="30" min="15" max="60"></div>
+        </div>
+        <div class="tab-content" id="tab-qrUpload">
+          <div class="qr-upload-area" id="qrUploadArea" onclick="document.getElementById('qrFileInput').click()">
+            <div class="icon">📷</div>
+            <p><strong>Click to upload</strong> or drag & drop a QR code image</p>
+            <input type="file" id="qrFileInput" accept="image/*" onchange="handleQRUpload(event)">
+          </div>
+          <div id="uploadPreview"></div>
+          <div id="uploadResult"></div>
+        </div>
+        <div class="tab-content" id="tab-camera">
+          <div class="camera-container" id="cameraContainer" style="display:none;">
+            <video id="cameraVideo" autoplay playsinline></video>
+            <canvas id="cameraCanvas"></canvas>
+            <div class="scan-overlay"></div>
+          </div>
+          <div class="camera-status" id="cameraStatus">
+            <button class="btn btn-primary" onclick="startCamera()">📸 Start Camera</button>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" onclick="closeAddModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="saveAccount()" id="saveAccountBtn">Save Account</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings Modal -->
+  <div class="modal-overlay" id="settingsModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>Settings</h2><button class="btn btn-icon btn-sm" onclick="closeSettings()">✕</button>
+      </div>
+      <div class="modal-body">
+        <h3 style="font-size:15px;margin-bottom:16px;">🔒 Security</h3>
+        <div class="setting-row">
+          <div class="setting-label">
+            <h4>Security Mode</h4>
+            <p id="secModeDesc">Device-bound encryption</p>
+          </div>
+          <button class="btn btn-sm" onclick="showSecurityModeDialog()">Change</button>
+        </div>
+        <div class="setting-row">
+          <div class="setting-label">
+            <h4>Change PIN</h4>
+            <p>Update your unlock PIN</p>
+          </div>
+          <button class="btn btn-sm" onclick="changePIN()">Change</button>
+        </div>
+        <div class="setting-row">
+          <div class="setting-label">
+            <h4>Security Info</h4>
+            <p>How your data is protected</p>
+          </div>
+          <button class="btn btn-sm" onclick="showSecurityInfo()">View</button>
+        </div>
+        <details class="firebase-section">
+          <summary>☁️ Firebase Cloud Sync</summary>
+          <div style="margin-top:16px;">
+            <div class="form-group"><label>Database URL</label><input type="text" id="fbDbUrl" placeholder="https://your-app.firebaseio.com"></div>
+            <div class="form-group"><label>API Key</label><input type="text" id="fbApiKey" placeholder="Firebase API key"></div>
+            <div class="form-group"><label>User ID</label><input type="text" id="fbUserId" placeholder="Unique identifier"></div>
+            <div style="display:flex;gap:8px;"><button class="btn btn-primary btn-sm" onclick="connectFirebase()">Connect</button><button class="btn btn-sm" onclick="disconnectFirebase()">Disconnect</button></div>
+            <div class="firebase-status">
+              <div class="status-dot" id="fbStatusDot"></div><span id="fbStatusText">Not connected</span>
+            </div>
+          </div>
+        </details>
+        <div style="margin-top:24px;">
+          <h3 style="font-size:15px;margin-bottom:16px;">📦 Data Management</h3>
+          <div class="setting-row">
+            <div class="setting-label">
+              <h4>Export Accounts</h4>
+              <p>Save backup file</p>
+            </div>
+            <button class="btn btn-sm" onclick="exportAccounts()">💾 Export</button>
+          </div>
+          <div class="setting-row">
+            <div class="setting-label">
+              <h4>Import Accounts</h4>
+              <p>Open backup file</p>
+            </div>
+            <button class="btn btn-sm" onclick="importAccountsPrompt()">📂 Import</button>
+          </div>
+          <div class="setting-row">
+            <div class="setting-label">
+              <h4>Delete All Accounts</h4>
+              <p>Cannot be undone</p>
+            </div>
+            <button class="btn btn-sm btn-danger" onclick="deleteAllAccounts()">Delete All</button>
+          </div>
+          <div class="setting-row">
+            <div class="setting-label">
+              <h4>Factory Reset</h4>
+              <p>Delete everything including keys</p>
+            </div>
+            <button class="btn btn-sm btn-danger" onclick="factoryReset()">Reset</button>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer"><button class="btn" onclick="closeSettings()">Close</button></div>
+    </div>
+  </div>
+
+  <!-- Confirm Modal -->
+  <div class="modal-overlay" id="confirmModal">
+    <div class="modal" style="max-width:420px;">
+      <div class="modal-header">
+        <h2 id="confirmTitle">Confirm</h2><button class="btn btn-icon btn-sm" onclick="closeConfirm()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div id="confirmBody"></div>
+      </div>
+      <div class="modal-footer"><button class="btn" onclick="closeConfirm()">Cancel</button><button class="btn btn-danger" id="confirmBtn">Confirm</button></div>
+    </div>
+  </div>
+
+  <!-- Import Modal -->
+  <div class="modal-overlay" id="importModal">
+    <div class="modal" style="max-width:480px;">
+      <div class="modal-header">
+        <h2>Import Accounts</h2><button class="btn btn-icon btn-sm" onclick="closeImport()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="import-methods">
+          <div class="import-method-btn" onclick="importFromFilePicker()">
+            <h4>📂 Open Backup File</h4>
+            <p>Browse and select your .json backup file</p>
+          </div>
+        </div>
+        <div class="import-divider">or paste manually</div>
+        <textarea class="export-data" id="importData" placeholder='Paste JSON backup here...' style="margin-top:12px;"></textarea>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" onclick="closeImport()">Cancel</button>
+        <button class="btn btn-primary" onclick="importFromPaste()">Import from Paste</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Security Info Modal -->
+  <div class="modal-overlay" id="securityInfoModal">
+    <div class="modal" style="max-width:500px;">
+      <div class="modal-header">
+        <h2>🛡️ Security Architecture</h2><button class="btn btn-icon btn-sm" onclick="document.getElementById('securityInfoModal').classList.remove('active')">✕</button>
+      </div>
+      <div class="modal-body" id="securityInfoBody"></div>
+      <div class="modal-footer"><button class="btn" onclick="document.getElementById('securityInfoModal').classList.remove('active')">Close</button></div>
+    </div>
+  </div>
+
+  <!-- Security Mode Modal -->
+  <div class="modal-overlay" id="secModeModal">
+    <div class="modal" style="max-width:480px;">
+      <div class="modal-header">
+        <h2>Security Mode</h2><button class="btn btn-icon btn-sm" onclick="document.getElementById('secModeModal').classList.remove('active')">✕</button>
+      </div>
+      <div class="modal-body" id="secModeBody"></div>
+      <div class="modal-footer">
+        <button class="btn" onclick="document.getElementById('secModeModal').classList.remove('active')">Cancel</button>
+        <button class="btn btn-primary" id="secModeConfirmBtn">Apply</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ============================================================
+    // STORAGE KEYS (v2)
+    // ============================================================
+    const V1_KEY = 'authenticator_accounts';
+    const VAULT_KEY = 'auth_v2_vault';
+    const RECOVERY_KEY = 'auth_v2_recovery';
+    const PIN_SALT_KEY = 'auth_v2_pin_salt';
+    const PIN_VERIFY_KEY = 'auth_v2_pin_verify';
+    const CONFIG_KEY = 'auth_v2_config';
+    const FB_CONFIG_KEY = 'auth_v2_firebase';
+    const DB_NAME = 'AuthV2KeyStore';
+    const DB_VERSION = 1;
+    const KEY_STORE = 'keys';
+    const DEVICE_KEY_ID = 'device-master-key-v2';
+
+    // ============================================================
+    // STATE
+    // ============================================================
+    let deviceCryptoKey = null,
+      pinCryptoKey = null,
+      accounts = [];
+    let appConfig = {
+      securityMode: 'device'
+    };
+    let updateInterval = null,
+      cameraStream = null,
+      cameraScanInterval = null;
+    let firebaseConnected = false,
+      appUnlocked = false;
+
+    // ============================================================
+    // UTILITIES
+    // ============================================================
+    function concatBuf(a, b) {
+      const r = new Uint8Array(a.length + b.length);
+      r.set(a, 0);
+      r.set(b, a.length);
+      return r;
+    }
+
+    function toHex(b) {
+      return Array.from(b).map(x => x.toString(16).padStart(2, '0')).join('');
+    }
+
+    function fromHex(h) {
+      const b = new Uint8Array(h.length / 2);
+      for (let i = 0; i < b.length; i++) b[i] = parseInt(h.substr(i * 2, 2), 16);
+      return b;
+    }
+
+    function esc(s) {
+      const d = document.createElement('div');
+      d.textContent = s || '';
+      return d.innerHTML;
+    }
+
+    function fmtCode(c) {
+      return c.length === 6 ? c.substr(0, 3) + ' ' + c.substr(3) : c.length === 8 ? c.substr(0, 4) + ' ' + c.substr(4) : c;
+    }
+
+    function toast(msg, color) {
+      const t = document.getElementById('copiedToast');
+      t.textContent = msg;
+      if (color) t.style.background = color;
+      else t.style.background = '';
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 2500);
+    }
+
+    // ============================================================
+    // FILE SYSTEM ACCESS API WITH FALLBACK
+    // ============================================================
+    function hasFileSystemAccess() {
+      return 'showSaveFilePicker' in window;
+    }
+
+    async function saveFileWithPicker(content, suggestedName, types) {
+      if (hasFileSystemAccess()) {
+        try {
+          const handle = await window.showSaveFilePicker({
+            suggestedName,
+            types: types || [{
+              description: 'JSON Files',
+              accept: {
+                'application/json': ['.json']
+              }
+            }]
+          });
+          const writable = await handle.createWritable();
+          await writable.write(content);
+          await writable.close();
+          return {
+            ok: true,
+            name: handle.name
+          };
+        } catch (e) {
+          if (e.name === 'AbortError') return {
+            ok: false,
+            cancelled: true
+          };
+          throw e;
+        }
+      }
+      // Fallback: legacy download
+      const blob = new Blob([content], {
+        type: 'application/json'
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = suggestedName;
+      a.click();
+      URL.revokeObjectURL(url);
+      return {
+        ok: true,
+        name: suggestedName,
+        fallback: true
+      };
+    }
+
+    async function openFileWithPicker(types) {
+      if (hasFileSystemAccess()) {
+        try {
+          const [handle] = await window.showOpenFilePicker({
+            types: types || [{
+              description: 'JSON Files',
+              accept: {
+                'application/json': ['.json']
+              }
+            }],
+            multiple: false
+          });
+          const file = await handle.getFile();
+          return {
+            ok: true,
+            text: await file.text(),
+            name: file.name
+          };
+        } catch (e) {
+          if (e.name === 'AbortError') return {
+            ok: false,
+            cancelled: true
+          };
+          throw e;
+        }
+      }
+      // Fallback: hidden file input
+      return new Promise(resolve => {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.json,application/json';
+        input.onchange = async () => {
+          if (!input.files.length) return resolve({
+            ok: false,
+            cancelled: true
+          });
+          const file = input.files[0];
+          resolve({
+            ok: true,
+            text: await file.text(),
+            name: file.name
+          });
+        };
+        input.click();
+        // Handle cancel (input won't fire change if cancelled, use focus hack)
+        window.addEventListener('focus', function once() {
+          window.removeEventListener('focus', once);
+          setTimeout(() => {
+            if (!input.files.length) resolve({
+              ok: false,
+              cancelled: true
+            });
+          }, 500);
+        });
+      });
+    }
+
+    // ============================================================
+    // INDEXEDDB
+    // ============================================================
+    function openKeyDB() {
+      return new Promise((res, rej) => {
+        const r = indexedDB.open(DB_NAME, DB_VERSION);
+        r.onupgradeneeded = () => {
+          if (!r.result.objectStoreNames.contains(KEY_STORE)) r.result.createObjectStore(KEY_STORE, {
+            keyPath: 'id'
+          });
+        };
+        r.onsuccess = () => res(r.result);
+        r.onerror = () => rej(r.error);
+      });
+    }
+    async function getDeviceKey() {
+      const db = await openKeyDB();
+      return new Promise((res, rej) => {
+        const tx = db.transaction(KEY_STORE, 'readonly');
+        const req = tx.objectStore(KEY_STORE).get(DEVICE_KEY_ID);
+        req.onsuccess = () => res(req.result ? req.result.key : null);
+        req.onerror = () => rej(req.error);
+      });
+    }
+    async function storeDeviceKey(key) {
+      const db = await openKeyDB();
+      return new Promise((res, rej) => {
+        const tx = db.transaction(KEY_STORE, 'readwrite');
+        tx.objectStore(KEY_STORE).put({
+          id: DEVICE_KEY_ID,
+          key
+        });
+        tx.oncomplete = () => res();
+        tx.onerror = () => rej(tx.error);
+      });
+    }
+    async function deleteDeviceKey() {
+      const db = await openKeyDB();
+      return new Promise((res, rej) => {
+        const tx = db.transaction(KEY_STORE, 'readwrite');
+        tx.objectStore(KEY_STORE).delete(DEVICE_KEY_ID);
+        tx.oncomplete = () => res();
+        tx.onerror = () => rej(tx.error);
+      });
+    }
+    async function ensureDeviceKey() {
+      let k = await getDeviceKey();
+      if (!k) {
+        k = await crypto.subtle.generateKey({
+          name: 'AES-GCM',
+          length: 256
+        }, false, ['encrypt', 'decrypt']);
+        await storeDeviceKey(k);
+      }
+      deviceCryptoKey = k;
+      return k;
+    }
+
+    // ============================================================
+    // PIN KEY
+    // ============================================================
+    async function derivePINKey(pin, salt) {
+      const km = await crypto.subtle.importKey('raw', new TextEncoder().encode(pin), 'PBKDF2', false, ['deriveKey']);
+      return crypto.subtle.deriveKey({
+        name: 'PBKDF2',
+        salt,
+        iterations: 600000,
+        hash: 'SHA-256'
+      }, km, {
+        name: 'AES-GCM',
+        length: 256
+      }, false, ['encrypt', 'decrypt']);
+    }
+
+    function getPINSalt() {
+      let h = localStorage.getItem(PIN_SALT_KEY);
+      if (h) return fromHex(h);
+      const s = crypto.getRandomValues(new Uint8Array(32));
+      localStorage.setItem(PIN_SALT_KEY, toHex(s));
+      return s;
+    }
+
+    // ============================================================
+    // ENCRYPTION
+    // ============================================================
+    async function aesEnc(key, pt) {
+      const iv = crypto.getRandomValues(new Uint8Array(12));
+      const ct = await crypto.subtle.encrypt({
+        name: 'AES-GCM',
+        iv
+      }, key, new TextEncoder().encode(pt));
+      return toHex(concatBuf(iv, new Uint8Array(ct)));
+    }
+    async function aesDec(key, hex) {
+      const r = fromHex(hex);
+      const pt = await crypto.subtle.decrypt({
+        name: 'AES-GCM',
+        iv: r.slice(0, 12)
+      }, key, r.slice(12));
+      return new TextDecoder().decode(pt);
+    }
+    async function dblEnc(pt) {
+      const iv1 = crypto.getRandomValues(new Uint8Array(12));
+      const c1 = await crypto.subtle.encrypt({
+        name: 'AES-GCM',
+        iv: iv1
+      }, deviceCryptoKey, new TextEncoder().encode(pt));
+      const l1 = concatBuf(iv1, new Uint8Array(c1));
+      const iv2 = crypto.getRandomValues(new Uint8Array(12));
+      const c2 = await crypto.subtle.encrypt({
+        name: 'AES-GCM',
+        iv: iv2
+      }, pinCryptoKey, l1);
+      return toHex(concatBuf(iv2, new Uint8Array(c2)));
+    }
+    async function dblDec(hex) {
+      const r = fromHex(hex);
+      const l1 = new Uint8Array(await crypto.subtle.decrypt({
+        name: 'AES-GCM',
+        iv: r.slice(0, 12)
+      }, pinCryptoKey, r.slice(12)));
+      const pt = await crypto.subtle.decrypt({
+        name: 'AES-GCM',
+        iv: l1.slice(0, 12)
+      }, deviceCryptoKey, l1.slice(12));
+      return new TextDecoder().decode(pt);
+    }
+    async function encVault(pt) {
+      return (appConfig.securityMode === 'device' && deviceCryptoKey) ? dblEnc(pt) : aesEnc(pinCryptoKey, pt);
+    }
+    async function decVault(hex) {
+      return (appConfig.securityMode === 'device' && deviceCryptoKey) ? dblDec(hex) : aesDec(pinCryptoKey, hex);
+    }
+
+    // ============================================================
+    // PIN VERIFY + RECOVERY
+    // ============================================================
+    async function createPINVerifier() {
+      localStorage.setItem(PIN_VERIFY_KEY, await encVault('AUTH_V2_PIN_OK_' + Date.now()));
+    }
+    async function verifyPIN() {
+      const s = localStorage.getItem(PIN_VERIFY_KEY);
+      if (!s) return false;
+      try {
+        return (await decVault(s)).startsWith('AUTH_V2_PIN_OK_');
+      } catch {
+        return false;
+      }
+    }
+    async function saveRecovery() {
+      if (!pinCryptoKey || !accounts.length) return;
+      try {
+        localStorage.setItem(RECOVERY_KEY, await aesEnc(pinCryptoKey, JSON.stringify(accounts)));
+      } catch {}
+    }
+    async function loadRecovery() {
+      const e = localStorage.getItem(RECOVERY_KEY);
+      if (!e) return null;
+      try {
+        return JSON.parse(await aesDec(pinCryptoKey, e));
+      } catch {
+        return null;
+      }
+    }
+
+    // ============================================================
+    // CONFIG
+    // ============================================================
+    function loadConfig() {
+      try {
+        appConfig = JSON.parse(localStorage.getItem(CONFIG_KEY)) || {
+          securityMode: 'device'
+        };
+      } catch {
+        appConfig = {
+          securityMode: 'device'
+        };
+      }
+    }
+
+    function saveConfig() {
+      localStorage.setItem(CONFIG_KEY, JSON.stringify(appConfig));
+    }
+
+    // ============================================================
+    // DATA
+    // ============================================================
+    async function loadAccounts() {
+      const enc = localStorage.getItem(VAULT_KEY);
+      if (!enc) {
+        accounts = [];
+        return;
+      }
+      try {
+        accounts = JSON.parse(await decVault(enc));
+      } catch {
+        const r = await loadRecovery();
+        if (r) {
+          accounts = r;
+          await saveAccounts();
+        } else accounts = [];
+      }
+    }
+    async function saveAccounts() {
+      localStorage.setItem(VAULT_KEY, await encVault(JSON.stringify(accounts)));
+      await saveRecovery();
+      if (firebaseConnected) syncToFirebase();
+    }
+    async function addAccountObj(a) {
+      a.id = Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+      a.createdAt = new Date().toISOString();
+      accounts.push(a);
+      await saveAccounts();
+      renderAccounts();
+    }
+
+    // ============================================================
+    // V1 MIGRATION
+    // ============================================================
+    function hasV1() {
+      try {
+        const d = localStorage.getItem(V1_KEY);
+        return d && JSON.parse(d).length > 0;
+      } catch {
+        return false;
+      }
+    }
+
+    function getV1() {
+      try {
+        return JSON.parse(localStorage.getItem(V1_KEY)) || [];
+      } catch {
+        return [];
+      }
+    }
+    async function migrateV1() {
+      const v1 = getV1();
+      if (!v1.length) return;
+      for (const i of v1) {
+        if (!accounts.some(a => a.secret === i.secret && a.name === i.name)) {
+          accounts.push({
+            ...i,
+            id: i.id || Date.now().toString(36) + Math.random().toString(36).substr(2, 5),
+            algorithm: i.algorithm || 'SHA-1',
+            digits: i.digits || 6,
+            period: i.period || 30,
+            migratedFromV1: true
+          });
+        }
+      }
+      await saveAccounts();
+      localStorage.removeItem(V1_KEY);
+      renderAccounts();
+    }
+
+    // ============================================================
+    // TOTP
+    // ============================================================
+    function b32dec(e) {
+      const A = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+      let c = e.replace(/[\s=-]+/g, '').toUpperCase(),
+        b = '';
+      for (let ch of c) {
+        const v = A.indexOf(ch);
+        if (v === -1) continue;
+        b += v.toString(2).padStart(5, '0');
+      }
+      const r = new Uint8Array(Math.floor(b.length / 8));
+      for (let i = 0; i < r.length; i++) r[i] = parseInt(b.substr(i * 8, 8), 2);
+      return r;
+    }
+    async function hmacS(algo, key, msg) {
+      const m = {
+        'SHA-1': 'SHA-1',
+        'SHA-256': 'SHA-256',
+        'SHA-512': 'SHA-512'
+      };
+      const k = await crypto.subtle.importKey('raw', key, {
+        name: 'HMAC',
+        hash: m[algo] || 'SHA-1'
+      }, false, ['sign']);
+      return new Uint8Array(await crypto.subtle.sign('HMAC', k, msg));
+    }
+    async function genTOTP(secret, algo = 'SHA-1', digits = 6, period = 30) {
+      const counter = Math.floor(Math.floor(Date.now() / 1000) / period);
+      const cb = new Uint8Array(8);
+      let t = counter;
+      for (let i = 7; i >= 0; i--) {
+        cb[i] = t & 0xff;
+        t = Math.floor(t / 256);
+      }
+      const h = await hmacS(algo, b32dec(secret), cb);
+      const o = h[h.length - 1] & 0x0f;
+      const bin = ((h[o] & 0x7f) << 24) | ((h[o + 1] & 0xff) << 16) | ((h[o + 2] & 0xff) << 8) | (h[o + 3] & 0xff);
+      return (bin % Math.pow(10, digits)).toString().padStart(digits, '0');
+    }
+
+    // ============================================================
+    // INIT
+    // ============================================================
+    async function init() {
+      loadConfig();
+      if (appConfig.securityMode === 'device') {
+        try {
+          await ensureDeviceKey();
+        } catch {
+          appConfig.securityMode = 'portable';
+          saveConfig();
+        }
+      }
+      const hasVault = localStorage.getItem(PIN_VERIFY_KEY);
+      if (!hasVault && !hasV1()) showSetupScreen(false);
+      else if (!hasVault && hasV1()) showSetupScreen(true);
+      else showUnlockScreen();
+    }
+
+    // ============================================================
+    // SETUP
+    // ============================================================
+    function showSetupScreen(hasMigration) {
+      const main = document.getElementById('mainContent');
+      main.innerHTML = `
+        <div class="lock-screen">
+            <div class="icon">🔐</div><h2>Set Up Authenticator</h2>
+            <p>Choose a PIN to protect your accounts.${hasMigration?'<br><strong style="color:var(--accent);">'+getV1().length+' existing account(s) will be migrated & encrypted.</strong>':''}</p>
+            <input type="password" id="setupPin" placeholder="••••" maxlength="32" autocomplete="off">
+            <p style="color:var(--text-secondary);font-size:13px;margin-bottom:16px;">PIN (4+ characters)</p>
+            <input type="password" id="setupPinConfirm" placeholder="••••" maxlength="32" autocomplete="off">
+            <p style="color:var(--text-secondary);font-size:13px;margin-bottom:16px;">Confirm PIN</p>
+            <div class="toggle-row" style="max-width:300px;margin-bottom:24px;">
+                <label>🛡️ Device-bound encryption</label>
+                <label class="toggle"><input type="checkbox" id="setupDeviceMode" ${appConfig.securityMode==='device'?'checked':''}><span class="slider"></span></label>
+            </div>
+            <button class="btn btn-primary" onclick="handleSetup(${hasMigration})" style="padding:12px 48px;font-size:16px;">Create Vault</button>
+            <div class="security-info" style="max-width:380px;margin-top:24px;text-align:left;">
+                <strong>🛡️ Device-Bound</strong> — Double-encrypts with browser-internal key + PIN. Maximum security, tied to this browser.<br><br>
+                <strong>🔑 Portable</strong> — PIN-only encryption (PBKDF2 600k). Works across devices if you move localStorage.
+            </div>
+            <div class="warning-box" style="max-width:380px;text-align:left;">
+                <strong>⚠️ What destroys the device key:</strong><br>
+                Clearing browser/site data • Uninstalling browser • Incognito mode<br>
+                A PIN-only recovery vault is always maintained as safety net.
+            </div>
+        </div>`;
+      const p = document.getElementById('setupPin');
+      p.focus();
+      p.addEventListener('keydown', e => {
+        if (e.key === 'Enter') document.getElementById('setupPinConfirm').focus();
+      });
+      document.getElementById('setupPinConfirm').addEventListener('keydown', e => {
+        if (e.key === 'Enter') handleSetup(hasMigration);
+      });
+    }
+    async function handleSetup(hasMigration) {
+      const pin = document.getElementById('setupPin').value,
+        confirm = document.getElementById('setupPinConfirm').value;
+      const dm = document.getElementById('setupDeviceMode').checked;
+      if (pin.length < 4) {
+        alert('PIN must be at least 4 characters');
+        return;
+      }
+      if (pin !== confirm) {
+        alert('PINs do not match');
+        return;
+      }
+      appConfig.securityMode = dm ? 'device' : 'portable';
+      saveConfig();
+      if (dm) {
+        try {
+          await ensureDeviceKey();
+        } catch {
+          appConfig.securityMode = 'portable';
+          saveConfig();
+        }
+      }
+      pinCryptoKey = await derivePINKey(pin, getPINSalt());
+      accounts = [];
+      await createPINVerifier();
+      await saveAccounts();
+      if (hasMigration) await migrateV1();
+      unlockApp();
+    }
+
+    // ============================================================
+    // UNLOCK
+    // ============================================================
+    function showUnlockScreen() {
+      const mode = appConfig.securityMode === 'device' ? 'Device-Bound' : 'Portable';
+      document.getElementById('mainContent').innerHTML = `
+        <div class="lock-screen" id="unlockScreen">
+            <div class="icon">🔒</div><h2>Unlock Authenticator</h2>
+            <p>Enter your PIN to decrypt your accounts.<br><span style="font-size:12px;color:var(--text-muted);">Security: ${mode}</span></p>
+            <input type="password" id="unlockPin" placeholder="••••" maxlength="32" autocomplete="off">
+            <button class="btn btn-primary" onclick="handleUnlock()" style="padding:12px 48px;font-size:16px;">Unlock</button>
+            <p id="unlockError" style="color:var(--danger);margin-top:12px;display:none;font-size:13px;"></p>
+            <button class="btn btn-sm" onclick="showRecoveryOption()" style="margin-top:24px;font-size:12px;color:var(--text-muted);border-color:transparent;">Lost access? Recovery options →</button>
+        </div>`;
+      const p = document.getElementById('unlockPin');
+      p.focus();
+      p.addEventListener('keydown', e => {
+        if (e.key === 'Enter') handleUnlock();
+      });
+    }
+    async function handleUnlock() {
+      const pin = document.getElementById('unlockPin').value;
+      if (!pin) return;
+      pinCryptoKey = await derivePINKey(pin, getPINSalt());
+      if (appConfig.securityMode === 'device') {
+        try {
+          await ensureDeviceKey();
+        } catch {
+          return handleDeviceKeyLost();
+        }
+      }
+      if (!await verifyPIN()) {
+        if (appConfig.securityMode === 'device') return handleDeviceKeyLost();
+        pinCryptoKey = null;
+        showUnlockError('Incorrect PIN.');
+        return;
+      }
+      await loadAccounts();
+      unlockApp();
+    }
+    async function handleDeviceKeyLost() {
+      const r = await loadRecovery();
+      if (r && r.length) {
+        document.getElementById('mainContent').innerHTML = `
+            <div class="lock-screen">
+                <div class="icon">⚠️</div><h2>Device Key Lost</h2>
+                <p>Browser key is gone, but <strong>${r.length} account(s)</strong> recovered from PIN-protected backup.</p>
+                <div class="warning-box" style="max-width:380px;text-align:left;margin-bottom:24px;">
+                    The non-extractable IndexedDB key was deleted (browser data cleared?). A new device key will be generated.
+                </div>
+                <button class="btn btn-primary" onclick="handleRecoveryRestore()" style="padding:12px 48px;">Restore & Generate New Key</button>
+            </div>`;
+        window._recoveredAccounts = r;
+        return;
+      }
+      pinCryptoKey = null;
+      showUnlockError('Incorrect PIN, or device key lost with no recovery data.');
+    }
+    async function handleRecoveryRestore() {
+      accounts = window._recoveredAccounts || [];
+      delete window._recoveredAccounts;
+      await deleteDeviceKey();
+      await ensureDeviceKey();
+      await createPINVerifier();
+      await saveAccounts();
+      unlockApp();
+    }
+
+    function showRecoveryOption() {
+      document.getElementById('mainContent').innerHTML = `
+        <div class="lock-screen">
+            <div class="icon">🔧</div><h2>Recovery Options</h2>
+            <div style="max-width:380px;width:100%;text-align:left;">
+                <div class="setting-row"><div class="setting-label"><h4>Import from Backup</h4><p>Open a .json backup file</p></div><button class="btn btn-sm" onclick="recoveryImport()">Import</button></div>
+                <div class="setting-row"><div class="setting-label"><h4>Factory Reset</h4><p>Delete everything, start fresh</p></div><button class="btn btn-sm btn-danger" onclick="factoryReset()">Reset</button></div>
+            </div>
+            <button class="btn" onclick="showUnlockScreen()" style="margin-top:24px;">← Back</button>
+        </div>`;
+    }
+
+    function recoveryImport() {
+      showConfirm('Recovery Import', '<p class="confirm-text">This erases current data and lets you set up fresh, then import from backup.</p>', async () => {
+        await performFactoryReset();
+        showSetupScreen(false);
+      });
+    }
+
+    function showUnlockError(msg) {
+      const e = document.getElementById('unlockError');
+      if (!e) return;
+      e.textContent = msg;
+      e.style.display = 'block';
+      const s = document.getElementById('unlockScreen');
+      if (s) {
+        s.classList.add('error-shake');
+        setTimeout(() => s.classList.remove('error-shake'), 500);
+      }
+      document.getElementById('unlockPin').value = '';
+      document.getElementById('unlockPin').focus();
+    }
+
+    // ============================================================
+    // UNLOCK APP
+    // ============================================================
+    function unlockApp() {
+      appUnlocked = true;
+      document.getElementById('lockBtn').style.display = '';
+      document.getElementById('settingsBtn').style.display = '';
+      document.getElementById('addBtn').style.display = '';
+      const badge = document.getElementById('securityBadge');
+      badge.style.display = '';
+      if (appConfig.securityMode === 'device') {
+        badge.className = 'security-badge device';
+        badge.textContent = '🛡️ Device-Bound';
+      } else {
+        badge.className = 'security-badge portable';
+        badge.textContent = '🔑 Portable';
+      }
+      document.getElementById('mainContent').innerHTML = `
+        <div class="search-bar" id="searchBar" style="display:none;"><input type="text" placeholder="Search accounts..." oninput="filterAccounts(this.value)"></div>
+        <div id="accountsList" class="accounts-list"></div>
+        <div class="empty-state" id="emptyState" style="display:none;">
+            <div class="icon">🔑</div><h2>No accounts yet</h2>
+            <p>Add your first account by scanning a QR code,<br>uploading a QR image, or entering a secret key.</p>
+            <button class="btn btn-primary" onclick="openAddModal()">+ Add Account</button>
+        </div>`;
+      renderAccounts();
+      startUpdateLoop();
+      updateSecModeDesc();
+      try {
+        const c = JSON.parse(localStorage.getItem(FB_CONFIG_KEY) || '{}');
+        if (c.connected) firebaseConnected = true;
+      } catch {}
+    }
+
+    function lockApp() {
+      appUnlocked = false;
+      pinCryptoKey = null;
+      accounts = [];
+      if (updateInterval) clearInterval(updateInterval);
+      ['lockBtn', 'settingsBtn', 'addBtn', 'securityBadge'].forEach(id => document.getElementById(id).style.display = 'none');
+      showUnlockScreen();
+    }
+
+    // ============================================================
+    // RENDERING
+    // ============================================================
+    async function renderAccounts() {
+      const list = document.getElementById('accountsList'),
+        empty = document.getElementById('emptyState'),
+        search = document.getElementById('searchBar');
+      if (!list) return;
+      if (!accounts.length) {
+        list.innerHTML = '';
+        empty.style.display = 'block';
+        search.style.display = 'none';
+        return;
+      }
+      empty.style.display = 'none';
+      search.style.display = 'block';
+      let html = '';
+      for (const a of accounts) {
+        const code = await genTOTP(a.secret, a.algorithm, a.digits, a.period);
+        const tl = a.period - (Math.floor(Date.now() / 1000) % a.period);
+        const circ = 2 * Math.PI * 18,
+          off = circ * (1 - tl / a.period),
+          exp = tl <= 5;
+        html += `<div class="account-card" data-name="${esc(a.name).toLowerCase()}" data-issuer="${esc(a.issuer).toLowerCase()}">
+            <div class="account-top"><div class="account-info"><h3>${esc(a.issuer||'Unknown')}</h3><div class="issuer">${esc(a.name||'')}</div></div>
+            <div class="account-actions"><button class="btn btn-icon btn-sm" onclick="editAccount('${a.id}')" title="Edit">✏️</button><button class="btn btn-icon btn-sm btn-danger" onclick="removeAccount('${a.id}')" title="Delete">🗑️</button></div></div>
+            <div class="code-display"><div class="totp-code ${exp?'expiring':''}" onclick="copyCode('${code}')" title="Click to copy" id="code-${a.id}">${fmtCode(code)}</div>
+            <svg class="timer-ring" viewBox="0 0 44 44"><circle class="bg" cx="22" cy="22" r="18"/><circle class="progress ${exp?'expiring':''}" cx="22" cy="22" r="18" stroke-dasharray="${circ}" stroke-dashoffset="${off}" id="ring-${a.id}"/><text x="22" y="26" text-anchor="middle" id="timer-${a.id}">${tl}</text></svg></div></div>`;
+      }
+      list.innerHTML = html;
+    }
+    async function updateCodes() {
+      for (const a of accounts) {
+        const ce = document.getElementById(`code-${a.id}`),
+          re = document.getElementById(`ring-${a.id}`),
+          te = document.getElementById(`timer-${a.id}`);
+        if (!ce) continue;
+        const code = await genTOTP(a.secret, a.algorithm, a.digits, a.period);
+        const tl = a.period - (Math.floor(Date.now() / 1000) % a.period);
+        const circ = 2 * Math.PI * 18,
+          off = circ * (1 - tl / a.period),
+          exp = tl <= 5;
+        ce.textContent = fmtCode(code);
+        ce.className = `totp-code ${exp?'expiring':''}`;
+        ce.onclick = () => copyCode(code);
+        re.style.strokeDashoffset = off;
+        re.className = `progress ${exp?'expiring':''}`;
+        te.textContent = tl;
+      }
+    }
+
+    function startUpdateLoop() {
+      if (updateInterval) clearInterval(updateInterval);
+      updateInterval = setInterval(updateCodes, 1000);
+    }
+
+    function copyCode(c) {
+      navigator.clipboard.writeText(c).then(() => toast('✓ Code copied to clipboard'));
+    }
+
+    function filterAccounts(q) {
+      q = q.toLowerCase();
+      document.querySelectorAll('.account-card').forEach(c => {
+        c.style.display = (c.dataset.name.includes(q) || c.dataset.issuer.includes(q)) ? '' : 'none';
+      });
+    }
+
+    // ============================================================
+    // MODALS
+    // ============================================================
+    function openAddModal() {
+      if (!appUnlocked) return;
+      document.getElementById('addModal').classList.add('active');
+      resetAddForm();
+    }
+
+    function closeAddModal() {
+      document.getElementById('addModal').classList.remove('active');
+      stopCamera();
+      resetAddForm();
+      const b = document.getElementById('saveAccountBtn');
+      b.textContent = 'Save Account';
+      b.onclick = saveAccount;
+    }
+
+    function resetAddForm() {
+      ['accountName', 'issuerName', 'secretKey'].forEach(id => document.getElementById(id).value = '');
+      document.getElementById('algorithm').value = 'SHA-1';
+      document.getElementById('digits').value = '6';
+      document.getElementById('period').value = '30';
+      document.getElementById('uploadPreview').innerHTML = '';
+      document.getElementById('uploadResult').innerHTML = '';
+    }
+
+    function openSettings() {
+      if (!appUnlocked) return;
+      document.getElementById('settingsModal').classList.add('active');
+      loadFBConfig();
+      updateSecModeDesc();
+    }
+
+    function closeSettings() {
+      document.getElementById('settingsModal').classList.remove('active');
+    }
+
+    function showConfirm(title, bodyHTML, onConfirm) {
+      document.getElementById('confirmTitle').textContent = title;
+      document.getElementById('confirmBody').innerHTML = bodyHTML;
+      document.getElementById('confirmBtn').onclick = () => {
+        onConfirm();
+        closeConfirm();
+      };
+      document.getElementById('confirmModal').classList.add('active');
+    }
+
+    function closeConfirm() {
+      document.getElementById('confirmModal').classList.remove('active');
+    }
+
+    function closeImport() {
+      document.getElementById('importModal').classList.remove('active');
+    }
+
+    function switchTab(tabId, btn) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById(`tab-${tabId}`).classList.add('active');
+      if (tabId !== 'camera') stopCamera();
+    }
+
+    // ============================================================
+    // SAVE / EDIT ACCOUNT
+    // ============================================================
+    async function saveAccount() {
+      const name = document.getElementById('accountName').value.trim(),
+        issuer = document.getElementById('issuerName').value.trim();
+      const secret = document.getElementById('secretKey').value.replace(/\s/g, '').toUpperCase();
+      const algorithm = document.getElementById('algorithm').value,
+        digits = parseInt(document.getElementById('digits').value),
+        period = parseInt(document.getElementById('period').value);
+      if (!name) {
+        alert('Account name required');
+        return;
+      }
+      if (!secret) {
+        alert('Secret key required');
+        return;
+      }
+      if (!/^[A-Z2-7]+=*$/i.test(secret)) {
+        alert('Invalid Base32 secret key.');
+        return;
+      }
+      await addAccountObj({
+        name,
+        issuer,
+        secret,
+        algorithm,
+        digits,
+        period
+      });
+      closeAddModal();
+    }
+
+    function editAccount(id) {
+      const a = accounts.find(x => x.id === id);
+      if (!a) return;
+      openAddModal();
+      document.getElementById('accountName').value = a.name || '';
+      document.getElementById('issuerName').value = a.issuer || '';
+      document.getElementById('secretKey').value = a.secret || '';
+      document.getElementById('algorithm').value = a.algorithm || 'SHA-1';
+      document.getElementById('digits').value = (a.digits || 6).toString();
+      document.getElementById('period').value = (a.period || 30).toString();
+      const btn = document.getElementById('saveAccountBtn');
+      btn.textContent = 'Update Account';
+      btn.onclick = async () => {
+        const n = document.getElementById('accountName').value.trim(),
+          s = document.getElementById('secretKey').value.replace(/\s/g, '').toUpperCase();
+        if (!n || !s) {
+          alert('Name and secret required');
+          return;
+        }
+        a.name = n;
+        a.issuer = document.getElementById('issuerName').value.trim();
+        a.secret = s;
+        a.algorithm = document.getElementById('algorithm').value;
+        a.digits = parseInt(document.getElementById('digits').value);
+        a.period = parseInt(document.getElementById('period').value);
+        await saveAccounts();
+        renderAccounts();
+        closeAddModal();
+      };
+    }
+
+    function removeAccount(id) {
+      showConfirm('Delete Account', '<p class="confirm-text">Delete this account? Cannot be undone.</p>', async () => {
+        accounts = accounts.filter(a => a.id !== id);
+        await saveAccounts();
+        renderAccounts();
+      });
+    }
+
+    // ============================================================
+    // CHANGE PIN
+    // ============================================================
+    function changePIN() {
+      closeSettings();
+      const main = document.getElementById('mainContent');
+      window._prevMainHTML = main.innerHTML;
+      main.innerHTML = `<div class="lock-screen"><div class="icon">🔑</div><h2>Change PIN</h2>
+        <input type="password" id="oldPin" placeholder="Current PIN" maxlength="32" autocomplete="off">
+        <input type="password" id="newPin" placeholder="New PIN" maxlength="32" autocomplete="off" style="margin-top:4px;">
+        <input type="password" id="newPinConfirm" placeholder="Confirm New PIN" maxlength="32" autocomplete="off" style="margin-top:4px;">
+        <div style="display:flex;gap:8px;margin-top:16px;"><button class="btn" onclick="cancelChangePIN()">Cancel</button><button class="btn btn-primary" onclick="handleChangePIN()">Update</button></div>
+        <p id="changePinError" style="color:var(--danger);font-size:13px;margin-top:12px;display:none;"></p></div>`;
+      document.getElementById('oldPin').focus();
+    }
+
+    function cancelChangePIN() {
+      document.getElementById('mainContent').innerHTML = window._prevMainHTML || '';
+      renderAccounts();
+      startUpdateLoop();
+    }
+    async function handleChangePIN() {
+      const oldP = document.getElementById('oldPin').value,
+        newP = document.getElementById('newPin').value,
+        confP = document.getElementById('newPinConfirm').value;
+      const err = document.getElementById('changePinError');
+      const oldK = await derivePINKey(oldP, getPINSalt()),
+        saved = pinCryptoKey;
+      pinCryptoKey = oldK;
+      const valid = await verifyPIN();
+      pinCryptoKey = saved;
+      if (!valid) {
+        err.textContent = 'Current PIN incorrect.';
+        err.style.display = 'block';
+        return;
+      }
+      if (newP.length < 4) {
+        err.textContent = 'New PIN must be 4+ chars.';
+        err.style.display = 'block';
+        return;
+      }
+      if (newP !== confP) {
+        err.textContent = 'PINs do not match.';
+        err.style.display = 'block';
+        return;
+      }
+      const ns = crypto.getRandomValues(new Uint8Array(32));
+      localStorage.setItem(PIN_SALT_KEY, toHex(ns));
+      pinCryptoKey = await derivePINKey(newP, ns);
+      await createPINVerifier();
+      await saveAccounts();
+      cancelChangePIN();
+      toast('✓ PIN changed successfully');
+    }
+
+    // ============================================================
+    // SECURITY MODE
+    // ============================================================
+    function updateSecModeDesc() {
+      const el = document.getElementById('secModeDesc');
+      if (el) el.textContent = appConfig.securityMode === 'device' ? 'Device-bound (double encryption)' : 'Portable (PIN-only encryption)';
+    }
+
+    function showSecurityModeDialog() {
+      const cur = appConfig.securityMode;
+      document.getElementById('secModeBody').innerHTML = `
+        <div class="toggle-row"><div><strong>🛡️ Device-Bound</strong><p style="font-size:12px;color:var(--text-secondary);margin-top:4px;">Double-encrypts with browser internal key + PIN. Max security.</p></div>
+        <input type="radio" name="secMode" value="device" ${cur==='device'?'checked':''} style="width:18px;height:18px;"></div>
+        <div class="toggle-row" style="margin-top:8px;"><div><strong>🔑 Portable</strong><p style="font-size:12px;color:var(--text-secondary);margin-top:4px;">PIN only (PBKDF2 600k). Survives browser clears, movable.</p></div>
+        <input type="radio" name="secMode" value="portable" ${cur==='portable'?'checked':''} style="width:18px;height:18px;"></div>
+        <div class="warning-box"><strong>⚠️ Switching re-encrypts all data.</strong> Your accounts stay safe.</div>`;
+      document.getElementById('secModeConfirmBtn').onclick = handleSecModeChange;
+      document.getElementById('secModeModal').classList.add('active');
+    }
+    async function handleSecModeChange() {
+      const sel = document.querySelector('input[name="secMode"]:checked').value;
+      document.getElementById('secModeModal').classList.remove('active');
+      if (sel === appConfig.securityMode) return;
+      appConfig.securityMode = sel;
+      saveConfig();
+      if (sel === 'device') {
+        try {
+          await ensureDeviceKey();
+        } catch {
+          alert('IndexedDB unavailable.');
+          appConfig.securityMode = 'portable';
+          saveConfig();
+          return;
+        }
+      }
+      await createPINVerifier();
+      await saveAccounts();
+      const badge = document.getElementById('securityBadge');
+      if (sel === 'device') {
+        badge.className = 'security-badge device';
+        badge.textContent = '🛡️ Device-Bound';
+      } else {
+        badge.className = 'security-badge portable';
+        badge.textContent = '🔑 Portable';
+      }
+      updateSecModeDesc();
+      toast('✓ Security mode updated');
+    }
+
+    function showSecurityInfo() {
+      const m = appConfig.securityMode;
+      document.getElementById('securityInfoBody').innerHTML = `
+        <div class="security-info" style="margin-top:0;"><strong>Current: ${m==='device'?'🛡️ Device-Bound':'🔑 Portable'}</strong></div>
+        ${m==='device'?`<div class="security-info"><strong>Layer 1 — Non-Extractable CryptoKey</strong><br>256-bit AES-GCM in IndexedDB. Cannot be read by JS — browser crypto module holds raw key.</div>
+        <div class="security-info"><strong>Layer 2 — PBKDF2 PIN Key</strong><br>PIN → 600k iterations + 256-bit salt → AES-256-GCM. Double-wrapped.</div>`:
+        `<div class="security-info"><strong>PBKDF2 PIN Key</strong><br>PIN → 600k iterations + 256-bit salt → AES-256-GCM. Portable but PIN-strength dependent.</div>`}
+        <div class="security-info"><strong>Recovery Vault</strong><br>PIN-only encrypted copy always maintained. Auto-recovers if device key lost.</div>
+        <div class="security-info"><strong>localStorage contents:</strong><br>AES-256-GCM ciphertext only. ${m==='device'?'Need IndexedDB CryptoKey AND PIN to decrypt.':'Need to brute-force PIN through 600k PBKDF2.'}</div>`;
+      document.getElementById('securityInfoModal').classList.add('active');
+    }
+
+    // ============================================================
+    // EXPORT / IMPORT (File System Access API)
+    // ============================================================
+    async function exportAccounts() {
+      const data = JSON.stringify(accounts, null, 2);
+      const suggestedName = `authenticator-backup-${new Date().toISOString().split('T')[0]}.json`;
+
+      try {
+        const result = await saveFileWithPicker(data, suggestedName);
+        if (result.cancelled) return;
+        if (result.fallback) {
+          toast('✓ Backup downloaded as ' + result.name);
+        } else {
+          toast('✓ Backup saved to ' + result.name);
+        }
+      } catch (e) {
+        console.error('Export failed:', e);
+        alert('Export failed: ' + e.message);
+      }
+    }
+
+    function importAccountsPrompt() {
+      document.getElementById('importData').value = '';
+      document.getElementById('importModal').classList.add('active');
+    }
+
+    async function importFromFilePicker() {
+      try {
+        const result = await openFileWithPicker();
+        if (!result.ok) return;
+        await processImportText(result.text, result.name);
+        closeImport();
+      } catch (e) {
+        console.error('Import failed:', e);
+        alert('Import failed: ' + e.message);
+      }
+    }
+
+    async function importFromPaste() {
+      const raw = document.getElementById('importData').value.trim();
+      if (!raw) {
+        alert('Paste your backup data first');
+        return;
+      }
+      await processImportText(raw, 'pasted data');
+      closeImport();
+    }
+
+    async function processImportText(text, sourceName) {
+      try {
+        const data = JSON.parse(text);
+        if (!Array.isArray(data)) throw new Error('Expected a JSON array');
+        let n = 0;
+        for (const item of data) {
+          if (item.secret && item.name) {
+            if (!accounts.some(a => a.secret === item.secret && a.name === item.name)) {
+              accounts.push({
+                ...item,
+                id: item.id || Date.now().toString(36) + Math.random().toString(36).substr(2, 5),
+                algorithm: item.algorithm || 'SHA-1',
+                digits: item.digits || 6,
+                period: item.period || 30
+              });
+              n++;
+            }
+          }
+        }
+        await saveAccounts();
+        renderAccounts();
+        toast(`✓ Imported ${n} account(s) from ${sourceName}`);
+      } catch (e) {
+        alert('Invalid backup data: ' + e.message);
+      }
+    }
+
+    function deleteAllAccounts() {
+      showConfirm('Delete All', '<p class="confirm-text">Permanently delete ALL accounts?</p><div class="danger-box"><strong>Tip:</strong> Export a backup first!</div>',
+        async () => {
+          accounts = [];
+          await saveAccounts();
+          renderAccounts();
+          closeSettings();
+        });
+    }
+    async function performFactoryReset() {
+      [VAULT_KEY, RECOVERY_KEY, PIN_SALT_KEY, PIN_VERIFY_KEY, CONFIG_KEY, FB_CONFIG_KEY, V1_KEY].forEach(k => localStorage.removeItem(k));
+      try {
+        await deleteDeviceKey();
+      } catch {}
+      accounts = [];
+      pinCryptoKey = null;
+      deviceCryptoKey = null;
+      appUnlocked = false;
+      appConfig = {
+        securityMode: 'device'
+      };
+    }
+
+    function factoryReset() {
+      showConfirm('Factory Reset', '<p class="confirm-text">Permanently delete <strong>everything</strong> — accounts, keys, settings?</p><div class="danger-box"><strong>⚠️ Export first if you want to keep your accounts!</strong></div>',
+        async () => {
+          await performFactoryReset();
+          ['lockBtn', 'settingsBtn', 'addBtn', 'securityBadge'].forEach(id => document.getElementById(id).style.display = 'none');
+          closeSettings();
+          showSetupScreen(false);
+        });
+    }
+
+    // ============================================================
+    // QR
+    // ============================================================
+    function parseOTP(uri) {
+      try {
+        if (!uri.startsWith('otpauth://totp/') && !uri.startsWith('otpauth://hotp/')) return null;
+        const url = new URL(uri);
+        const path = decodeURIComponent(url.pathname.replace(/^\/\/totp\/|^\/\/hotp\//, ''));
+        const p = url.searchParams;
+        let issuer = p.get('issuer') || '',
+          name = path;
+        if (path.includes(':')) {
+          const parts = path.split(':');
+          if (!issuer) issuer = parts[0].trim();
+          name = parts.slice(1).join(':').trim();
+        }
+        return {
+          name: name || 'Unknown',
+          issuer,
+          secret: (p.get('secret') || '').replace(/\s/g, '').toUpperCase(),
+          algorithm: p.get('algorithm') || 'SHA-1',
+          digits: parseInt(p.get('digits')) || 6,
+          period: parseInt(p.get('period')) || 30
+        };
+      } catch {
+        return null;
+      }
+    }
+
+    function populateFromQR(data) {
+      const p = parseOTP(data);
+      if (!p) return false;
+      document.getElementById('accountName').value = p.name;
+      document.getElementById('issuerName').value = p.issuer;
+      document.getElementById('secretKey').value = p.secret;
+      let a = p.algorithm.toUpperCase();
+      if (a === 'SHA1') a = 'SHA-1';
+      if (a === 'SHA256') a = 'SHA-256';
+      if (a === 'SHA512') a = 'SHA-512';
+      document.getElementById('algorithm').value = a;
+      document.getElementById('digits').value = p.digits.toString();
+      document.getElementById('period').value = p.period.toString();
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+      document.querySelector('.tab').classList.add('active');
+      document.getElementById('tab-manual').classList.add('active');
+      return true;
+    }
+
+    function handleQRUpload(e) {
+      const f = e.target.files[0];
+      if (f) processQRFile(f);
+    }
+
+    function processQRFile(file) {
+      const r = new FileReader();
+      r.onload = function(e) {
+        const img = new Image();
+        img.onload = function() {
+          const c = document.createElement('canvas');
+          c.width = img.width;
+          c.height = img.height;
+          const ctx = c.getContext('2d');
+          ctx.drawImage(img, 0, 0);
+          const id = ctx.getImageData(0, 0, c.width, c.height);
+          const code = jsQR(id.data, c.width, c.height, {
+            inversionAttempts: 'attemptBoth'
+          });
+          document.getElementById('uploadPreview').innerHTML = `<img src="${e.target.result}" class="preview-img">`;
+          const res = document.getElementById('uploadResult');
+          if (code) {
+            const p = parseOTP(code.data);
+            if (p) {
+              res.innerHTML = `<div class="decode-result success">✓ ${esc(p.issuer||'Unknown')} — ${esc(p.name)}</div>`;
+              populateFromQR(code.data);
+            } else res.innerHTML = `<div class="decode-result error">QR decoded but not OTP URI:<br>${esc(code.data)}</div>`;
+          } else res.innerHTML = `<div class="decode-result error">❌ No QR code detected.</div>`;
+        };
+        img.src = e.target.result;
+      };
+      r.readAsDataURL(file);
+    }
+    const uploadArea = document.getElementById('qrUploadArea');
+    uploadArea.addEventListener('dragover', e => {
+      e.preventDefault();
+      uploadArea.classList.add('dragover');
+    });
+    uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('dragover'));
+    uploadArea.addEventListener('drop', e => {
+      e.preventDefault();
+      uploadArea.classList.remove('dragover');
+      const f = e.dataTransfer.files[0];
+      if (f && f.type.startsWith('image/')) processQRFile(f);
+    });
+
+    // ============================================================
+    // CAMERA
+    // ============================================================
+    async function startCamera() {
+      const cont = document.getElementById('cameraContainer'),
+        status = document.getElementById('cameraStatus'),
+        video = document.getElementById('cameraVideo');
+      try {
+        status.innerHTML = '<p>Starting camera...</p>';
+        cameraStream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: 'environment',
+            width: {
+              ideal: 640
+            },
+            height: {
+              ideal: 640
+            }
+          }
+        });
+        video.srcObject = cameraStream;
+        cont.style.display = 'block';
+        status.innerHTML = '<p>Point at QR code</p>';
+        video.addEventListener('loadedmetadata', () => {
+          const c = document.getElementById('cameraCanvas');
+          c.width = video.videoWidth;
+          c.height = video.videoHeight;
+          cameraScanInterval = setInterval(() => scanFrame(video, c), 250);
+        });
+      } catch (e) {
+        status.innerHTML = `<div class="decode-result error">❌ Camera denied: ${e.message}</div><button class="btn btn-primary" onclick="startCamera()" style="margin-top:12px">Retry</button>`;
+      }
+    }
+
+    function scanFrame(v, c) {
+      if (v.readyState !== v.HAVE_ENOUGH_DATA) return;
+      const ctx = c.getContext('2d');
+      ctx.drawImage(v, 0, 0, c.width, c.height);
+      const id = ctx.getImageData(0, 0, c.width, c.height);
+      const code = jsQR(id.data, c.width, c.height, {
+        inversionAttempts: 'attemptBoth'
+      });
+      if (code) {
+        const p = parseOTP(code.data);
+        if (p) {
+          stopCamera();
+          populateFromQR(code.data);
+          document.getElementById('cameraStatus').innerHTML = `<div class="decode-result success">✓ ${esc(p.issuer||'Unknown')} — ${esc(p.name)}</div>`;
+        }
+      }
+    }
+
+    function stopCamera() {
+      if (cameraStream) {
+        cameraStream.getTracks().forEach(t => t.stop());
+        cameraStream = null;
+      }
+      if (cameraScanInterval) {
+        clearInterval(cameraScanInterval);
+        cameraScanInterval = null;
+      }
+      document.getElementById('cameraContainer').style.display = 'none';
+      document.getElementById('cameraStatus').innerHTML = '<button class="btn btn-primary" onclick="startCamera()">📸 Start Camera</button>';
+    }
+
+    // ============================================================
+    // FIREBASE
+    // ============================================================
+    function loadFBConfig() {
+      try {
+        const c = JSON.parse(localStorage.getItem(FB_CONFIG_KEY) || '{}');
+        document.getElementById('fbDbUrl').value = c.dbUrl || '';
+        document.getElementById('fbApiKey').value = c.apiKey || '';
+        document.getElementById('fbUserId').value = c.userId || '';
+        updateFBStatus(c.connected || false);
+      } catch {}
+    }
+
+    function saveFBConf(c) {
+      localStorage.setItem(FB_CONFIG_KEY, JSON.stringify(c));
+    }
+    async function connectFirebase() {
+      const dbUrl = document.getElementById('fbDbUrl').value.trim().replace(/\/$/, ''),
+        apiKey = document.getElementById('fbApiKey').value.trim(),
+        userId = document.getElementById('fbUserId').value.trim();
+      if (!dbUrl || !userId) {
+        alert('URL and User ID required');
+        return;
+      }
+      try {
+        const res = await fetch(`${dbUrl}/authenticator/${userId}.json${apiKey?'?auth='+apiKey:''}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        await syncToFirebase(dbUrl, apiKey, userId);
+        firebaseConnected = true;
+        saveFBConf({
+          dbUrl,
+          apiKey,
+          userId,
+          connected: true
+        });
+        updateFBStatus(true);
+      } catch (e) {
+        alert('Failed: ' + e.message);
+        updateFBStatus(false);
+      }
+    }
+    async function syncToFirebase(dbUrl, apiKey, userId) {
+      try {
+        const c = JSON.parse(localStorage.getItem(FB_CONFIG_KEY) || '{}');
+        dbUrl = dbUrl || c.dbUrl;
+        apiKey = apiKey || c.apiKey;
+        userId = userId || c.userId;
+        if (!dbUrl || !userId) return;
+        await fetch(`${dbUrl}/authenticator/${userId}.json${apiKey?'?auth='+apiKey:''}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            vault: localStorage.getItem(VAULT_KEY) || '',
+            lastSync: new Date().toISOString()
+          })
+        });
+      } catch (e) {
+        console.error('Sync fail:', e);
+      }
+    }
+
+    function disconnectFirebase() {
+      firebaseConnected = false;
+      saveFBConf({});
+      updateFBStatus(false);
+      ['fbDbUrl', 'fbApiKey', 'fbUserId'].forEach(id => document.getElementById(id).value = '');
+    }
+
+    function updateFBStatus(c) {
+      firebaseConnected = c;
+      const d = document.getElementById('fbStatusDot'),
+        t = document.getElementById('fbStatusText');
+      if (c) {
+        d.classList.add('connected');
+        t.textContent = 'Connected (encrypted)';
+      } else {
+        d.classList.remove('connected');
+        t.textContent = 'Not connected';
+      }
+    }
+
+    // ============================================================
+    // PASTE HANDLER
+    // ============================================================
+    document.addEventListener('paste', e => {
+      if (!document.getElementById('addModal').classList.contains('active')) return;
+      const t = (e.clipboardData || window.clipboardData).getData('text');
+      if (t.startsWith('otpauth://')) {
+        e.preventDefault();
+        populateFromQR(t);
+      }
+    });
+
+    // ============================================================
+    // BOOT
+    // ============================================================
+    init();
+
+  </script>
+</body>
+
+</html>
