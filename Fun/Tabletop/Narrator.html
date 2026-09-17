@@ -1,0 +1,2271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Werewolf Narrator</title>
+<style>
+  :root {
+    --bg-primary: #0a0a12;
+    --bg-secondary: #12121f;
+    --bg-card: #1a1a2e;
+    --bg-card-hover: #222240;
+    --accent: #e94560;
+    --accent-dim: #c73a52;
+    --accent-glow: rgba(233, 69, 96, 0.3);
+    --gold: #f0c040;
+    --gold-dim: #c9a030;
+    --blue: #4a9eff;
+    --green: #4ecdc4;
+    --purple: #9b59b6;
+    --text-primary: #eee;
+    --text-secondary: #999;
+    --text-dim: #555;
+    --border: #2a2a44;
+    --radius: 12px;
+    --radius-sm: 8px;
+    --shadow: 0 4px 24px rgba(0,0,0,0.5);
+    --transition: 0.25s ease;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    min-height: 100vh;
+    min-height: 100dvh;
+    overflow-x: hidden;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  /* ---- TOP NAV ---- */
+  .top-nav {
+    position: fixed; top: 0; left: 0; right: 0;
+    height: 56px;
+    background: rgba(10,10,18,0.95);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 16px;
+    z-index: 100;
+  }
+  .top-nav h1 {
+    font-size: 18px; font-weight: 700;
+    background: linear-gradient(135deg, var(--accent), var(--gold));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .top-nav .nav-btns { display: flex; gap: 8px; }
+  .top-nav .nav-btns button {
+    background: var(--bg-card); border: 1px solid var(--border);
+    color: var(--text-secondary); border-radius: var(--radius-sm);
+    padding: 6px 12px; font-size: 13px; cursor: pointer;
+    transition: var(--transition);
+  }
+  .top-nav .nav-btns button:hover,
+  .top-nav .nav-btns button.active {
+    background: var(--accent); color: #fff; border-color: var(--accent);
+  }
+
+  /* ---- MAIN CONTENT ---- */
+  .main-content {
+    margin-top: 56px;
+    padding: 16px;
+    padding-bottom: 100px;
+    max-width: 600px;
+    margin-left: auto; margin-right: auto;
+  }
+
+  /* ---- SCREENS ---- */
+  .screen { display: none; animation: fadeIn 0.3s ease; }
+  .screen.active { display: block; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* ---- GAME MODE SELECT ---- */
+  .mode-grid {
+    display: grid; grid-template-columns: 1fr; gap: 12px;
+    margin-top: 16px;
+  }
+  .mode-card {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 20px;
+    cursor: pointer; transition: var(--transition);
+    position: relative; overflow: hidden;
+  }
+  .mode-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    background: linear-gradient(90deg, var(--accent), var(--gold));
+    opacity: 0; transition: var(--transition);
+  }
+  .mode-card:hover { background: var(--bg-card-hover); transform: translateY(-2px); }
+  .mode-card:hover::before { opacity: 1; }
+  .mode-card .mode-icon { font-size: 32px; margin-bottom: 8px; }
+  .mode-card .mode-title { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+  .mode-card .mode-desc { font-size: 13px; color: var(--text-secondary); line-height: 1.4; }
+  .mode-card .mode-badge {
+    position: absolute; top: 12px; right: 12px;
+    background: var(--accent); color: #fff; font-size: 10px; font-weight: 700;
+    padding: 2px 8px; border-radius: 10px; text-transform: uppercase;
+  }
+
+  /* ---- SECTION HEADERS ---- */
+  .section-header {
+    font-size: 14px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 1px; color: var(--text-secondary);
+    margin: 24px 0 12px; padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .section-header:first-child { margin-top: 8px; }
+
+  /* ---- ROLE TOGGLES ---- */
+  .role-list { display: flex; flex-direction: column; gap: 6px; }
+  .role-item {
+    display: flex; align-items: center; gap: 12px;
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); padding: 12px 14px;
+    cursor: pointer; transition: var(--transition);
+    user-select: none; -webkit-user-select: none;
+  }
+  .role-item:active { transform: scale(0.98); }
+  .role-item.selected { border-color: var(--accent); background: rgba(233,69,96,0.08); }
+  .role-item .role-icon { font-size: 24px; flex-shrink: 0; width: 32px; text-align: center; }
+  .role-item .role-info { flex: 1; min-width: 0; }
+  .role-item .role-name { font-size: 15px; font-weight: 600; }
+  .role-item .role-team {
+    font-size: 11px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.5px; margin-top: 2px;
+  }
+  .role-item .role-team.wolf { color: var(--accent); }
+  .role-item .role-team.village { color: var(--green); }
+  .role-item .role-team.neutral { color: var(--gold); }
+  .role-item .role-team.special { color: var(--purple); }
+  .role-item .role-desc { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+  .role-item .role-toggle {
+    width: 44px; height: 26px; border-radius: 13px;
+    background: var(--border); position: relative;
+    transition: var(--transition); flex-shrink: 0;
+  }
+  .role-item .role-toggle::after {
+    content: ''; position: absolute; top: 3px; left: 3px;
+    width: 20px; height: 20px; border-radius: 50%;
+    background: #fff; transition: var(--transition);
+  }
+  .role-item.selected .role-toggle { background: var(--accent); }
+  .role-item.selected .role-toggle::after { left: 21px; }
+
+  /* Role count stepper */
+  .role-count {
+    display: flex; align-items: center; gap: 4px; flex-shrink: 0;
+  }
+  .role-count button {
+    width: 28px; height: 28px; border-radius: 50%;
+    border: 1px solid var(--border); background: var(--bg-secondary);
+    color: var(--text-primary); font-size: 16px; font-weight: 700;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    transition: var(--transition);
+  }
+  .role-count button:active { background: var(--accent); }
+  .role-count .count-val {
+    width: 24px; text-align: center; font-size: 16px; font-weight: 700;
+  }
+
+  /* ---- PLAYER INPUT ---- */
+  .player-input-wrap {
+    display: flex; gap: 8px; margin-bottom: 12px;
+  }
+  .player-input-wrap input {
+    flex: 1; background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); padding: 12px 14px;
+    color: var(--text-primary); font-size: 15px; outline: none;
+    transition: var(--transition);
+  }
+  .player-input-wrap input:focus { border-color: var(--accent); }
+  .player-input-wrap input::placeholder { color: var(--text-dim); }
+
+  .player-chips {
+    display: flex; flex-wrap: wrap; gap: 8px; min-height: 36px;
+  }
+  .player-chip {
+    display: flex; align-items: center; gap: 6px;
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 20px; padding: 6px 10px 6px 14px;
+    font-size: 14px; animation: fadeIn 0.2s ease;
+  }
+  .player-chip .remove-player {
+    width: 20px; height: 20px; border-radius: 50%;
+    background: var(--border); border: none; color: var(--text-secondary);
+    font-size: 14px; cursor: pointer; display: flex;
+    align-items: center; justify-content: center;
+    transition: var(--transition); line-height: 1;
+  }
+  .player-chip .remove-player:hover { background: var(--accent); color: #fff; }
+
+  /* ---- SETTINGS ---- */
+  .setting-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 0; border-bottom: 1px solid var(--border);
+  }
+  .setting-row:last-child { border-bottom: none; }
+  .setting-label { font-size: 15px; }
+  .setting-label small { display: block; font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+  .toggle-switch {
+    width: 48px; height: 28px; border-radius: 14px;
+    background: var(--border); position: relative;
+    cursor: pointer; transition: var(--transition); flex-shrink: 0;
+  }
+  .toggle-switch::after {
+    content: ''; position: absolute; top: 3px; left: 3px;
+    width: 22px; height: 22px; border-radius: 50%;
+    background: #fff; transition: var(--transition);
+  }
+  .toggle-switch.on { background: var(--accent); }
+  .toggle-switch.on::after { left: 23px; }
+
+  .setting-select {
+    background: var(--bg-card); border: 1px solid var(--border);
+    color: var(--text-primary); border-radius: var(--radius-sm);
+    padding: 8px 12px; font-size: 14px; outline: none;
+    cursor: pointer;
+  }
+
+  /* ---- BUTTONS ---- */
+  .btn {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    width: 100%; padding: 14px 20px; border: none;
+    border-radius: var(--radius); font-size: 16px; font-weight: 700;
+    cursor: pointer; transition: var(--transition);
+    text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .btn:active { transform: scale(0.97); }
+  .btn-primary {
+    background: linear-gradient(135deg, var(--accent), #d63851);
+    color: #fff; box-shadow: 0 4px 16px var(--accent-glow);
+  }
+  .btn-primary:hover { box-shadow: 0 6px 24px var(--accent-glow); }
+  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+  .btn-secondary {
+    background: var(--bg-card); color: var(--text-primary);
+    border: 1px solid var(--border);
+  }
+  .btn-secondary:hover { background: var(--bg-card-hover); }
+  .btn-gold {
+    background: linear-gradient(135deg, var(--gold), #d4a020);
+    color: #111;
+  }
+  .btn-sm { padding: 10px 16px; font-size: 14px; width: auto; }
+
+  .btn-row { display: flex; gap: 8px; margin-top: 16px; }
+  .btn-row .btn { flex: 1; }
+
+  /* ---- NARRATOR SCREEN ---- */
+  .narrator-display {
+    text-align: center; padding: 24px 0;
+  }
+  .narrator-phase {
+    font-size: 12px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 2px; color: var(--accent); margin-bottom: 8px;
+  }
+  .narrator-role {
+    font-size: 28px; font-weight: 800; margin-bottom: 16px;
+    line-height: 1.2;
+  }
+  .narrator-text {
+    font-size: 18px; line-height: 1.6; color: var(--text-primary);
+    padding: 24px 16px; background: var(--bg-card);
+    border-radius: var(--radius); border: 1px solid var(--border);
+    margin-bottom: 16px; min-height: 120px;
+    display: flex; align-items: center; justify-content: center;
+    text-align: center;
+    position: relative;
+  }
+  .narrator-text .script-note {
+    display: block; font-size: 13px; color: var(--gold);
+    font-style: italic; margin-top: 12px;
+  }
+  .narrator-timer {
+    width: 80px; height: 80px; border-radius: 50%;
+    border: 3px solid var(--border); margin: 0 auto 16px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 28px; font-weight: 800; position: relative;
+  }
+  .narrator-timer svg {
+    position: absolute; top: -3px; left: -3px;
+    width: 80px; height: 80px; transform: rotate(-90deg);
+  }
+  .narrator-timer svg circle {
+    fill: none; stroke: var(--accent); stroke-width: 3;
+    stroke-dasharray: 236; stroke-dashoffset: 0;
+    transition: stroke-dashoffset 1s linear;
+  }
+
+  .narrator-controls {
+    display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;
+  }
+  .narrator-controls .btn { width: auto; min-width: 100px; }
+
+  /* Audio indicator */
+  .audio-indicator {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 12px; color: var(--text-dim); margin-top: 8px;
+  }
+  .audio-bars {
+    display: flex; gap: 2px; align-items: flex-end; height: 16px;
+  }
+  .audio-bars span {
+    width: 3px; background: var(--accent); border-radius: 2px;
+    animation: audioBar 0.8s ease-in-out infinite;
+  }
+  .audio-bars span:nth-child(1) { height: 6px; animation-delay: 0s; }
+  .audio-bars span:nth-child(2) { height: 12px; animation-delay: 0.15s; }
+  .audio-bars span:nth-child(3) { height: 8px; animation-delay: 0.3s; }
+  .audio-bars span:nth-child(4) { height: 14px; animation-delay: 0.1s; }
+  .audio-bars.paused span { animation-play-state: paused; }
+  @keyframes audioBar {
+    0%, 100% { transform: scaleY(0.5); }
+    50% { transform: scaleY(1); }
+  }
+
+  /* ---- SCRIPT VIEW (non-auto) ---- */
+  .script-list { display: flex; flex-direction: column; gap: 2px; }
+  .script-step {
+    padding: 14px 16px; background: var(--bg-card);
+    border: 1px solid var(--border); border-radius: var(--radius-sm);
+    transition: var(--transition); cursor: pointer;
+    position: relative;
+  }
+  .script-step:hover { background: var(--bg-card-hover); }
+  .script-step.current {
+    border-color: var(--accent);
+    background: rgba(233,69,96,0.08);
+  }
+  .script-step.done { opacity: 0.4; }
+  .script-step .step-role {
+    font-size: 13px; font-weight: 700; color: var(--accent);
+    text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .script-step .step-text { font-size: 15px; margin-top: 4px; line-height: 1.5; }
+  .script-step .step-note {
+    font-size: 12px; color: var(--gold); font-style: italic; margin-top: 4px;
+  }
+  .script-step .step-audio-btn {
+    position: absolute; top: 12px; right: 12px;
+    width: 32px; height: 32px; border-radius: 50%;
+    background: var(--accent); border: none; color: #fff;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    font-size: 14px; transition: var(--transition);
+  }
+  .script-step .step-audio-btn:hover { transform: scale(1.1); }
+
+  /* ---- CLASSIC GAME STATE ---- */
+  .game-state-bar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 16px; background: var(--bg-card);
+    border: 1px solid var(--border); border-radius: var(--radius);
+    margin-bottom: 16px;
+  }
+  .game-state-bar .state-info { font-size: 14px; }
+  .game-state-bar .state-info strong { color: var(--accent); }
+
+  .player-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 8px; margin-bottom: 16px;
+  }
+  .player-card-mini {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); padding: 12px; text-align: center;
+    cursor: pointer; transition: var(--transition); position: relative;
+  }
+  .player-card-mini:hover { background: var(--bg-card-hover); }
+  .player-card-mini.dead {
+    opacity: 0.35; text-decoration: line-through;
+  }
+  .player-card-mini.selected-target {
+    border-color: var(--accent); background: rgba(233,69,96,0.15);
+  }
+  .player-card-mini .pname { font-size: 14px; font-weight: 600; }
+  .player-card-mini .pstatus {
+    font-size: 11px; color: var(--text-secondary); margin-top: 2px;
+  }
+  .player-card-mini .death-icon {
+    position: absolute; top: 4px; right: 4px; font-size: 16px;
+  }
+
+  /* ---- VOTE PHASE ---- */
+  .vote-section { margin-top: 16px; }
+  .vote-candidate {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 14px; background: var(--bg-card);
+    border: 1px solid var(--border); border-radius: var(--radius-sm);
+    margin-bottom: 6px; cursor: pointer; transition: var(--transition);
+  }
+  .vote-candidate:hover { background: var(--bg-card-hover); }
+  .vote-candidate.voted { border-color: var(--accent); }
+  .vote-candidate .vote-count {
+    font-size: 20px; font-weight: 800; color: var(--accent); min-width: 30px; text-align: right;
+  }
+
+  /* ---- LOG ---- */
+  .game-log {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 16px;
+    max-height: 300px; overflow-y: auto; margin-top: 16px;
+  }
+  .game-log h3 { font-size: 14px; color: var(--text-secondary); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
+  .log-entry { font-size: 13px; color: var(--text-secondary); padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.03); }
+  .log-entry:last-child { border-bottom: none; }
+  .log-entry .log-time { color: var(--text-dim); margin-right: 8px; }
+
+  /* ---- INFO PANELS ---- */
+  .info-panel {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 20px; margin-bottom: 12px;
+  }
+  .info-panel h3 { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
+  .info-panel p { font-size: 14px; color: var(--text-secondary); line-height: 1.6; }
+  .info-panel ul { padding-left: 20px; margin-top: 8px; }
+  .info-panel ul li { font-size: 13px; color: var(--text-secondary); padding: 3px 0; line-height: 1.5; }
+
+  /* ---- TABS ---- */
+  .tab-bar {
+    display: flex; gap: 4px; margin-bottom: 16px;
+    background: var(--bg-secondary); border-radius: var(--radius);
+    padding: 4px; overflow-x: auto;
+  }
+  .tab-bar button {
+    flex: 1; min-width: 0; padding: 10px 8px; border: none;
+    background: transparent; color: var(--text-secondary);
+    border-radius: var(--radius-sm); font-size: 13px; font-weight: 600;
+    cursor: pointer; transition: var(--transition); white-space: nowrap;
+  }
+  .tab-bar button.active { background: var(--accent); color: #fff; }
+
+  /* ---- COUNTER ---- */
+  .counter-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 0; border-bottom: 1px solid var(--border);
+  }
+  .counter-row:last-child { border-bottom: none; }
+  .counter-label { font-size: 15px; }
+
+  /* ---- FLOATING ACTION ---- */
+  .fab {
+    position: fixed; bottom: 24px; right: 24px;
+    width: 56px; height: 56px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), #d63851);
+    color: #fff; border: none; font-size: 24px;
+    cursor: pointer; box-shadow: 0 4px 20px var(--accent-glow);
+    display: flex; align-items: center; justify-content: center;
+    transition: var(--transition); z-index: 50;
+  }
+  .fab:hover { transform: scale(1.1); }
+
+  /* ---- MODAL ---- */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+    z-index: 200; display: none; align-items: flex-end; justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal-sheet {
+    background: var(--bg-secondary); border-radius: var(--radius) var(--radius) 0 0;
+    width: 100%; max-width: 600px; max-height: 80vh;
+    padding: 24px 16px; overflow-y: auto;
+    animation: slideUp 0.3s ease;
+  }
+  @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+  .modal-handle {
+    width: 40px; height: 4px; background: var(--border);
+    border-radius: 2px; margin: 0 auto 16px;
+  }
+  .modal-sheet h2 { font-size: 20px; margin-bottom: 16px; }
+
+  /* ---- BACK BUTTON ---- */
+  .back-btn {
+    background: none; border: none; color: var(--text-secondary);
+    font-size: 14px; cursor: pointer; padding: 8px 0;
+    display: flex; align-items: center; gap: 6px;
+    margin-bottom: 8px;
+  }
+  .back-btn:hover { color: var(--text-primary); }
+
+  /* ---- PULSE ANIMATION ---- */
+  .pulse { animation: pulse 2s infinite; }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  /* Night/Day indicator */
+  .phase-banner {
+    text-align: center; padding: 20px; border-radius: var(--radius);
+    margin-bottom: 16px; font-size: 24px; font-weight: 800;
+    text-transform: uppercase; letter-spacing: 2px;
+  }
+  .phase-banner.night {
+    background: linear-gradient(135deg, #0a0a2e, #1a1a3e);
+    border: 1px solid #2a2a5e; color: #8888cc;
+  }
+  .phase-banner.day {
+    background: linear-gradient(135deg, #2e2a0a, #3e3a1a);
+    border: 1px solid #5e5a2a; color: var(--gold);
+  }
+
+  /* ---- RESPONSIVE ---- */
+  @media (min-width: 480px) {
+    .mode-grid { grid-template-columns: 1fr 1fr; }
+  }
+
+  /* Timer duration selector */
+  .timer-selector {
+    display: flex; gap: 6px; flex-wrap: wrap;
+  }
+  .timer-selector button {
+    padding: 6px 14px; border-radius: 20px;
+    background: var(--bg-card); border: 1px solid var(--border);
+    color: var(--text-secondary); font-size: 13px; font-weight: 600;
+    cursor: pointer; transition: var(--transition);
+  }
+  .timer-selector button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+  /* Center cards for ONUW */
+  .center-cards {
+    display: flex; gap: 12px; justify-content: center; margin: 16px 0;
+  }
+  .center-card {
+    width: 70px; height: 100px; background: var(--bg-card);
+    border: 2px solid var(--border); border-radius: var(--radius-sm);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px; cursor: pointer; transition: var(--transition);
+    position: relative;
+  }
+  .center-card:hover { border-color: var(--accent); }
+  .center-card .cc-label {
+    position: absolute; bottom: -20px; font-size: 10px;
+    color: var(--text-dim); white-space: nowrap;
+  }
+
+  /* hide class */
+  .hidden { display: none !important; }
+
+  /* Discussion timer */
+  .discussion-timer {
+    text-align: center; margin: 20px 0;
+  }
+  .discussion-timer .big-time {
+    font-size: 64px; font-weight: 800; font-variant-numeric: tabular-nums;
+  }
+  .discussion-timer .timer-label {
+    font-size: 14px; color: var(--text-secondary); text-transform: uppercase;
+    letter-spacing: 1px; margin-top: 4px;
+  }
+</style>
+</head>
+<body>
+
+<!-- TOP NAV -->
+<nav class="top-nav">
+  <h1>🐺 Werewolf</h1>
+  <div class="nav-btns">
+    <button onclick="showScreen('home')" class="active" id="nav-home">Home</button>
+    <button onclick="openSettings()" id="nav-settings">⚙️</button>
+  </div>
+</nav>
+
+<!-- MAIN CONTENT -->
+<div class="main-content">
+
+  <!-- HOME SCREEN -->
+  <div class="screen active" id="screen-home">
+    <div class="section-header">Choose a Game Mode</div>
+    <div class="mode-grid">
+      <div class="mode-card" onclick="selectMode('onuw')">
+        <div class="mode-icon">🌙</div>
+        <div class="mode-title">One Night Ultimate Werewolf</div>
+        <div class="mode-desc">Single night, hidden roles, bluff & deduce. 3-10 players. ~10 minutes.</div>
+      </div>
+      <div class="mode-card" onclick="selectMode('classic')">
+        <div class="mode-icon">🐺</div>
+        <div class="mode-title">Classic Werewolf / Mafia</div>
+        <div class="mode-desc">Multi-night elimination game with day voting. 6-20+ players.</div>
+      </div>
+      <div class="mode-card" onclick="selectMode('mafia')">
+        <div class="mode-icon">🔫</div>
+        <div class="mode-title">Mafia</div>
+        <div class="mode-desc">Classic Mafia variant with Godfather, Cop, and more.</div>
+        <div class="mode-badge">Variant</div>
+      </div>
+      <div class="mode-card" onclick="selectMode('secrethitler')">
+        <div class="mode-icon">🏛️</div>
+        <div class="mode-title">Secret Hitler</div>
+        <div class="mode-desc">Hidden identity political game. Liberals vs Fascists. 5-10 players.</div>
+        <div class="mode-badge">Coming Soon</div>
+      </div>
+      <div class="mode-card" onclick="selectMode('bloodontheclocktower')">
+        <div class="mode-icon">🗼</div>
+        <div class="mode-title">Blood on the Clocktower</div>
+        <div class="mode-desc">Advanced social deduction with Storyteller. 5-20 players.</div>
+        <div class="mode-badge">Coming Soon</div>
+      </div>
+      <div class="mode-card" onclick="selectMode('resistance')">
+        <div class="mode-icon">🕵️</div>
+        <div class="mode-title">The Resistance / Avalon</div>
+        <div class="mode-desc">Mission-based hidden role game. No elimination. 5-10 players.</div>
+        <div class="mode-badge">Coming Soon</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SETUP SCREEN - ONUW -->
+  <div class="screen" id="screen-onuw-setup">
+    <button class="back-btn" onclick="showScreen('home')">← Back to Games</button>
+    <h2 style="font-size:22px;margin-bottom:4px;">🌙 One Night Ultimate Werewolf</h2>
+    <p style="font-size:13px;color:var(--text-secondary);margin-bottom:16px;">Select roles and add players. Roles = Players + 3 center cards.</p>
+
+    <div class="section-header">Players</div>
+    <div class="player-input-wrap">
+      <input type="text" id="onuw-player-input" placeholder="Enter player name..." maxlength="20"
+        onkeydown="if(event.key==='Enter')addPlayer('onuw')">
+      <button class="btn btn-primary btn-sm" onclick="addPlayer('onuw')">Add</button>
+    </div>
+    <div class="player-chips" id="onuw-player-chips"></div>
+    <p style="font-size:12px;color:var(--text-dim);margin-top:8px;" id="onuw-player-count">0 players — need 0 more roles selected (players + 3)</p>
+
+    <div class="section-header">Roles (tap to toggle)</div>
+    <div class="role-list" id="onuw-role-list"></div>
+    <p style="font-size:12px;color:var(--text-dim);margin-top:8px;" id="onuw-role-count">0 roles selected</p>
+
+    <div class="section-header">Settings</div>
+    <div class="setting-row">
+      <div class="setting-label">Auto Narrator<small>Automatically advance through night script</small></div>
+      <div class="toggle-switch on" id="toggle-onuw-auto" onclick="toggleSetting(this)"></div>
+    </div>
+    <div class="setting-row">
+      <div class="setting-label">Night Phase Timer<small>Seconds per role action</small></div>
+      <div class="timer-selector" id="onuw-timer-selector">
+        <button onclick="setTimer('onuw',5,this)">5s</button>
+        <button class="active" onclick="setTimer('onuw',10,this)">10s</button>
+        <button onclick="setTimer('onuw',15,this)">15s</button>
+        <button onclick="setTimer('onuw',20,this)">20s</button>
+      </div>
+    </div>
+    <div class="setting-row">
+      <div class="setting-label">Discussion Timer<small>Minutes for day discussion</small></div>
+      <div class="timer-selector" id="onuw-discuss-timer">
+        <button onclick="setDiscussTimer('onuw',3,this)">3m</button>
+        <button class="active" onclick="setDiscussTimer('onuw',5,this)">5m</button>
+        <button onclick="setDiscussTimer('onuw',7,this)">7m</button>
+        <button onclick="setDiscussTimer('onuw',10,this)">10m</button>
+      </div>
+    </div>
+    <div class="setting-row">
+      <div class="setting-label">Sound Effects<small>Play audio cues during narration</small></div>
+      <div class="toggle-switch on" id="toggle-onuw-sound" onclick="toggleSetting(this)"></div>
+    </div>
+
+    <div style="margin-top:24px;">
+      <button class="btn btn-primary" id="onuw-start-btn" onclick="startONUW()" disabled>
+        🌙 Start Night Phase
+      </button>
+    </div>
+  </div>
+
+  <!-- ONUW NARRATOR SCREEN -->
+  <div class="screen" id="screen-onuw-narrator">
+    <div class="narrator-display">
+      <div class="narrator-phase" id="onuw-n-phase">NIGHT PHASE</div>
+      <div class="narrator-role" id="onuw-n-role">Everyone</div>
+      <div class="narrator-timer" id="onuw-n-timer-wrap" style="display:none;">
+        <svg viewBox="0 0 80 80"><circle cx="40" cy="40" r="37.5" id="onuw-timer-circle"/></svg>
+        <span id="onuw-n-timer-val">10</span>
+      </div>
+      <div class="narrator-text" id="onuw-n-text">
+        Everyone, close your eyes.
+      </div>
+      <div class="audio-indicator" id="onuw-audio-ind" style="display:none;">
+        <div class="audio-bars"><span></span><span></span><span></span><span></span></div>
+        <span>Audio playing...</span>
+      </div>
+    </div>
+    <div class="narrator-controls">
+      <button class="btn btn-secondary btn-sm" onclick="onuwPrev()">⏮ Prev</button>
+      <button class="btn btn-primary btn-sm" onclick="onuwPause()" id="onuw-pause-btn">⏸ Pause</button>
+      <button class="btn btn-secondary btn-sm" onclick="onuwNext()">Next ⏭</button>
+    </div>
+    <div style="text-align:center;margin-top:12px;">
+      <button class="btn btn-secondary btn-sm" onclick="onuwToggleScript()" id="onuw-script-toggle-btn">📜 Show Full Script</button>
+    </div>
+    <div class="hidden" id="onuw-script-panel" style="margin-top:16px;">
+      <div class="script-list" id="onuw-script-list"></div>
+    </div>
+    <div style="text-align:center;margin-top:24px;">
+      <button class="btn btn-secondary btn-sm" style="color:var(--accent);" onclick="endONUWNarrator()">✕ End Game</button>
+    </div>
+  </div>
+
+  <!-- ONUW DAY/VOTE SCREEN -->
+  <div class="screen" id="screen-onuw-day">
+    <div class="phase-banner day">☀️ Day Phase</div>
+    <div class="discussion-timer">
+      <div class="big-time" id="onuw-discuss-time">5:00</div>
+      <div class="timer-label">Discussion Time</div>
+    </div>
+    <div class="narrator-controls" style="margin-bottom:16px;">
+      <button class="btn btn-secondary btn-sm" onclick="onuwDiscussToggle()" id="onuw-discuss-toggle">▶️ Start Timer</button>
+      <button class="btn btn-primary btn-sm" onclick="onuwGoToVote()">🗳️ Vote Now</button>
+    </div>
+    <div class="hidden" id="onuw-vote-section">
+      <div class="section-header">Vote to Eliminate</div>
+      <p style="font-size:13px;color:var(--text-secondary);margin-bottom:12px;">Each player points at who they want to eliminate. Tap to add votes.</p>
+      <div id="onuw-vote-list"></div>
+      <button class="btn btn-primary" style="margin-top:16px;" onclick="onuwResolveVote()">⚖️ Resolve Vote</button>
+    </div>
+    <div style="text-align:center;margin-top:24px;">
+      <button class="btn btn-secondary btn-sm" style="color:var(--accent);" onclick="endONUWNarrator()">✕ End Game</button>
+    </div>
+  </div>
+
+  <!-- SETUP SCREEN - CLASSIC -->
+  <div class="screen" id="screen-classic-setup">
+    <button class="back-btn" onclick="showScreen('home')">← Back to Games</button>
+    <h2 style="font-size:22px;margin-bottom:4px;">🐺 Classic Werewolf</h2>
+    <p style="font-size:13px;color:var(--text-secondary);margin-bottom:16px;">Multi-night game. Add players, select roles, and configure settings.</p>
+
+    <div class="section-header">Players</div>
+    <div class="player-input-wrap">
+      <input type="text" id="classic-player-input" placeholder="Enter player name..." maxlength="20"
+        onkeydown="if(event.key==='Enter')addPlayer('classic')">
+      <button class="btn btn-primary btn-sm" onclick="addPlayer('classic')">Add</button>
+    </div>
+    <div class="player-chips" id="classic-player-chips"></div>
+    <p style="font-size:12px;color:var(--text-dim);margin-top:8px;" id="classic-player-count">0 players</p>
+
+    <div class="section-header">Roles</div>
+    <div class="role-list" id="classic-role-list"></div>
+
+    <div class="section-header">Settings</div>
+    <div class="setting-row">
+      <div class="setting-label">Auto Narrator<small>Auto-advance night script with timers</small></div>
+      <div class="toggle-switch on" id="toggle-classic-auto" onclick="toggleSetting(this)"></div>
+    </div>
+    <div class="setting-row">
+      <div class="setting-label">Night Phase Timer<small>Seconds per role action</small></div>
+      <div class="timer-selector">
+        <button onclick="setTimer('classic',8,this)">8s</button>
+        <button onclick="setTimer('classic',10,this)">10s</button>
+        <button class="active" onclick="setTimer('classic',15,this)">15s</button>
+        <button onclick="setTimer('classic',20,this)">20s</button>
+      </div>
+    </div>
+    <div class="setting-row">
+      <div class="setting-label">Day Discussion Timer<small>Minutes for discussion before vote</small></div>
+      <div class="timer-selector">
+        <button onclick="setDiscussTimer('classic',3,this)">3m</button>
+        <button class="active" onclick="setDiscussTimer('classic',5,this)">5m</button>
+        <button onclick="setDiscussTimer('classic',8,this)">8m</button>
+        <button onclick="setDiscussTimer('classic',10,this)">10m</button>
+      </div>
+    </div>
+    <div class="setting-row">
+      <div class="setting-label">Sound Effects</div>
+      <div class="toggle-switch on" id="toggle-classic-sound" onclick="toggleSetting(this)"></div>
+    </div>
+
+    <div style="margin-top:24px;">
+      <button class="btn btn-primary" id="classic-start-btn" onclick="startClassic()" disabled>
+        🐺 Start Game
+      </button>
+    </div>
+  </div>
+
+  <!-- CLASSIC GAME SCREEN -->
+  <div class="screen" id="screen-classic-game">
+    <div class="game-state-bar">
+      <div class="state-info"><strong id="classic-phase-label">Night 1</strong></div>
+      <div class="state-info"><span id="classic-alive-count">0</span> alive</div>
+    </div>
+
+    <div id="classic-night-panel">
+      <div class="narrator-display">
+        <div class="narrator-phase" id="classic-n-phase">NIGHT PHASE</div>
+        <div class="narrator-role" id="classic-n-role">Everyone</div>
+        <div class="narrator-timer" id="classic-n-timer-wrap" style="display:none;">
+          <svg viewBox="0 0 80 80"><circle cx="40" cy="40" r="37.5" id="classic-timer-circle"/></svg>
+          <span id="classic-n-timer-val">15</span>
+        </div>
+        <div class="narrator-text" id="classic-n-text">Everyone close your eyes and put your heads down.</div>
+        <div class="audio-indicator" id="classic-audio-ind" style="display:none;">
+          <div class="audio-bars"><span></span><span></span><span></span><span></span></div>
+          <span>Audio playing...</span>
+        </div>
+      </div>
+      <div class="narrator-controls">
+        <button class="btn btn-secondary btn-sm" onclick="classicPrev()">⏮ Prev</button>
+        <button class="btn btn-primary btn-sm" onclick="classicPause()" id="classic-pause-btn">⏸ Pause</button>
+        <button class="btn btn-secondary btn-sm" onclick="classicNext()">Next ⏭</button>
+      </div>
+      <div style="text-align:center;margin-top:12px;">
+        <button class="btn btn-secondary btn-sm" onclick="classicToggleScript()" id="classic-script-toggle-btn">📜 Show Full Script</button>
+      </div>
+      <div class="hidden" id="classic-script-panel" style="margin-top:16px;">
+        <div class="script-list" id="classic-script-list"></div>
+      </div>
+    </div>
+
+    <div id="classic-day-panel" class="hidden">
+      <div class="phase-banner day">☀️ Day <span id="classic-day-num">1</span></div>
+      <div id="classic-day-announcement" class="info-panel" style="margin-bottom:16px;"></div>
+      <div class="discussion-timer">
+        <div class="big-time" id="classic-discuss-time">5:00</div>
+        <div class="timer-label">Discussion Time</div>
+      </div>
+      <div class="narrator-controls" style="margin-bottom:16px;">
+        <button class="btn btn-secondary btn-sm" onclick="classicDiscussToggle()" id="classic-discuss-toggle">▶️ Start Timer</button>
+        <button class="btn btn-primary btn-sm" onclick="classicGoToVote()">🗳️ Vote</button>
+      </div>
+    </div>
+
+    <div id="classic-vote-panel" class="hidden">
+      <div class="section-header">Vote to Eliminate</div>
+      <p style="font-size:13px;color:var(--text-secondary);margin-bottom:12px;">Tap a player to add a vote against them.</p>
+      <div id="classic-vote-list"></div>
+      <button class="btn btn-gold" style="margin-top:12px;" onclick="classicSkipVote()">No Elimination (Skip)</button>
+      <button class="btn btn-primary" style="margin-top:8px;" onclick="classicResolveVote()">⚖️ Execute Vote</button>
+    </div>
+
+    <div class="section-header">Players</div>
+    <div class="player-grid" id="classic-player-grid"></div>
+
+    <div class="game-log" id="classic-log">
+      <h3>Game Log</h3>
+    </div>
+
+    <div style="text-align:center;margin-top:24px;">
+      <button class="btn btn-secondary btn-sm" style="color:var(--accent);" onclick="endClassicGame()">✕ End Game</button>
+    </div>
+  </div>
+
+  <!-- MAFIA SETUP -->
+  <div class="screen" id="screen-mafia-setup">
+    <button class="back-btn" onclick="showScreen('home')">← Back to Games</button>
+    <h2 style="font-size:22px;margin-bottom:4px;">🔫 Mafia</h2>
+    <p style="font-size:13px;color:var(--text-secondary);margin-bottom:16px;">Classic Mafia with Godfather, Cop, Doctor, and more. Works similarly to Classic Werewolf.</p>
+    <div class="info-panel">
+      <h3>How to Play</h3>
+      <p>Mafia uses the same core system as Classic Werewolf, just with different role names. Configure it using the Classic Werewolf setup — the roles map as follows:</p>
+      <ul>
+        <li><strong>Werewolf → Mafia</strong></li>
+        <li><strong>Seer → Cop / Detective</strong></li>
+        <li><strong>Doctor → Doctor</strong></li>
+        <li><strong>Minion → Informant</strong></li>
+        <li><strong>Hunter → Vigilante</strong></li>
+        <li><strong>Bodyguard → Bodyguard</strong></li>
+      </ul>
+    </div>
+    <button class="btn btn-primary" onclick="selectMode('classic')">🔫 Set Up as Classic Werewolf</button>
+  </div>
+
+  <!-- SECRET HITLER / BOTC / RESISTANCE (placeholders) -->
+  <div class="screen" id="screen-secrethitler-setup">
+    <button class="back-btn" onclick="showScreen('home')">← Back to Games</button>
+    <h2 style="font-size:22px;margin-bottom:4px;">🏛️ Secret Hitler</h2>
+    <div class="info-panel">
+      <h3>Coming Soon</h3>
+      <p>Secret Hitler support is under development. This mode will include policy tracking, election management, and investigation mechanics.</p>
+      <ul>
+        <li>5-10 Players</li>
+        <li>Liberal vs Fascist teams</li>
+        <li>Policy enactment tracking</li>
+        <li>Presidential powers</li>
+        <li>Election and government formation</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="screen" id="screen-bloodontheclocktower-setup">
+    <button class="back-btn" onclick="showScreen('home')">← Back to Games</button>
+    <h2 style="font-size:22px;margin-bottom:4px;">🗼 Blood on the Clocktower</h2>
+    <div class="info-panel">
+      <h3>Coming Soon</h3>
+      <p>Blood on the Clocktower support with Storyteller tools, role scripts (Trouble Brewing, Bad Moon Rising, Sects & Violets), and night order management.</p>
+    </div>
+  </div>
+
+  <div class="screen" id="screen-resistance-setup">
+    <button class="back-btn" onclick="showScreen('home')">← Back to Games</button>
+    <h2 style="font-size:22px;margin-bottom:4px;">🕵️ The Resistance / Avalon</h2>
+    <div class="info-panel">
+      <h3>Coming Soon</h3>
+      <p>Support for The Resistance and Avalon with mission team selection, vote tracking, and role reveals (Merlin, Assassin, Mordred, etc.)</p>
+    </div>
+  </div>
+
+  <!-- GLOBAL SETTINGS SCREEN -->
+  <div class="screen" id="screen-settings">
+    <button class="back-btn" onclick="showScreen('home')">← Back</button>
+    <h2 style="font-size:22px;margin-bottom:16px;">⚙️ Global Settings</h2>
+
+    <div class="setting-row">
+      <div class="setting-label">Keep Screen Awake<small>Prevent phone from sleeping during game</small></div>
+      <div class="toggle-switch on" id="toggle-wakelock" onclick="toggleWakeLock(this)"></div>
+    </div>
+    <div class="setting-row">
+      <div class="setting-label">Vibration Feedback<small>Vibrate on phase changes</small></div>
+      <div class="toggle-switch on" id="toggle-vibrate" onclick="toggleSetting(this)"></div>
+    </div>
+    <div class="setting-row">
+      <div class="setting-label">Dark Theme<small>Always on (it's a night game!)</small></div>
+      <div class="toggle-switch on" style="opacity:0.5;pointer-events:none;"></div>
+    </div>
+
+    <div class="section-header">Audio Files</div>
+    <div class="info-panel">
+      <h3>Custom Audio</h3>
+      <p>You can add custom audio files for each narrator line. Place MP3/WAV files in an <code>/audio/</code> directory with filenames matching the role keys. The app will look for:</p>
+      <ul>
+        <li><code>audio/everyone_close.mp3</code></li>
+        <li><code>audio/werewolf_wake.mp3</code></li>
+        <li><code>audio/werewolf_close.mp3</code></li>
+        <li><code>audio/seer_wake.mp3</code></li>
+        <li>...etc for each line</li>
+      </ul>
+      <p style="margin-top:8px;">If no audio file exists, the narrator text will display without audio (or use browser TTS if enabled below).</p>
+    </div>
+    <div class="setting-row">
+      <div class="setting-label">Use Browser TTS<small>Text-to-speech as fallback when no audio file</small></div>
+      <div class="toggle-switch" id="toggle-tts" onclick="toggleSetting(this)"></div>
+    </div>
+    <div class="setting-row">
+      <div class="setting-label">TTS Voice</div>
+      <select class="setting-select" id="tts-voice-select" onchange="setTTSVoice(this.value)">
+        <option value="">Default</option>
+      </select>
+    </div>
+    <div class="setting-row">
+      <div class="setting-label">TTS Speed</div>
+      <div class="timer-selector">
+        <button onclick="setTTSRate(0.7,this)">Slow</button>
+        <button class="active" onclick="setTTSRate(0.9,this)">Normal</button>
+        <button onclick="setTTSRate(1.1,this)">Fast</button>
+      </div>
+    </div>
+
+    <div class="section-header">About</div>
+    <div class="info-panel">
+      <h3>Werewolf Narrator v1.0</h3>
+      <p>A mobile-first web narrator for Werewolf, Mafia, and other social deduction games. No accounts, no servers — everything runs locally on your device.</p>
+    </div>
+  </div>
+
+</div><!-- end main-content -->
+
+<!-- SETTINGS MODAL (unused, using screen instead) -->
+
+<script>
+// ========================================
+// STATE
+// ========================================
+const state = {
+  currentScreen: 'home',
+  // ONUW
+  onuw: {
+    players: [],
+    selectedRoles: {},
+    timerSec: 10,
+    discussMin: 5,
+    autoNarrator: true,
+    soundOn: true,
+    nightSteps: [],
+    currentStep: 0,
+    paused: false,
+    timerInterval: null,
+    discussInterval: null,
+    discussRunning: false,
+    discussRemaining: 0,
+    votes: {},
+  },
+  // Classic
+  classic: {
+    players: [],
+    selectedRoles: {},
+    timerSec: 15,
+    discussMin: 5,
+    autoNarrator: true,
+    soundOn: true,
+    nightNum: 1,
+    nightSteps: [],
+    currentStep: 0,
+    paused: false,
+    timerInterval: null,
+    discussInterval: null,
+    discussRunning: false,
+    discussRemaining: 0,
+    alive: [],
+    dead: [],
+    votes: {},
+    wolfTarget: null,
+    doctorSave: null,
+    log: [],
+    phase: 'night', // night, day, vote
+  },
+  // Global
+  wakeLock: null,
+  vibrateOn: true,
+  ttsEnabled: false,
+  ttsRate: 0.9,
+  ttsVoice: '',
+};
+
+// ========================================
+// ROLE DEFINITIONS
+// ========================================
+const ONUW_ROLES = [
+  { id: 'doppelganger', name: 'Doppelgänger', icon: '🎭', team: 'special', desc: 'Copies another player\'s role and becomes it.', order: 1 },
+  { id: 'werewolf', name: 'Werewolf', icon: '🐺', team: 'wolf', desc: 'Tries to survive. If alone, may look at a center card.', order: 2, min: 1, max: 2, count: 2 },
+  { id: 'minion', name: 'Minion', icon: '👹', team: 'wolf', desc: 'Knows the Werewolves. Wins if Werewolves survive.', order: 3 },
+  { id: 'mason', name: 'Mason', icon: '🔨', team: 'village', desc: 'Wakes with other Masons to confirm identities.', order: 4, min: 2, max: 2, count: 2 },
+  { id: 'seer', name: 'Seer', icon: '🔮', team: 'village', desc: 'Looks at one player\'s card or two center cards.', order: 5 },
+  { id: 'robber', name: 'Robber', icon: '🦹', team: 'village', desc: 'Swaps card with another player, then views new card.', order: 6 },
+  { id: 'troublemaker', name: 'Troublemaker', icon: '🔀', team: 'village', desc: 'Swaps two other players\' cards without looking.', order: 7 },
+  { id: 'drunk', name: 'Drunk', icon: '🍺', team: 'village', desc: 'Swaps card with a center card without looking.', order: 8 },
+  { id: 'insomniac', name: 'Insomniac', icon: '😴', team: 'village', desc: 'Wakes at end of night to check own card.', order: 9 },
+  { id: 'villager', name: 'Villager', icon: '👨‍🌾', team: 'village', desc: 'No special power. Uses deduction to find wolves.', order: 99, min: 1, max: 3, count: 1 },
+  { id: 'tanner', name: 'Tanner', icon: '💀', team: 'neutral', desc: 'Wins only if eliminated. Hates life.', order: 99 },
+  { id: 'hunter', name: 'Hunter', icon: '🏹', team: 'village', desc: 'If eliminated, the player they voted for also dies.', order: 99 },
+];
+
+const CLASSIC_ROLES = [
+  { id: 'werewolf', name: 'Werewolf', icon: '🐺', team: 'wolf', desc: 'Each night, wolves choose someone to kill.', nightOrder: 1, min: 1, max: 5, count: 2 },
+  { id: 'minion', name: 'Minion', icon: '👹', team: 'wolf', desc: 'Knows wolves, but wolves don\'t know them. Night 1 only.', nightOrder: 2 },
+  { id: 'seer', name: 'Seer', icon: '🔮', team: 'village', desc: 'Each night, checks one player\'s alignment.', nightOrder: 3 },
+  { id: 'bodyguard', name: 'Bodyguard', icon: '🛡️', team: 'village', desc: 'Protects one player each night from wolves.', nightOrder: 4 },
+  { id: 'doctor', name: 'Doctor', icon: '💊', team: 'village', desc: 'Can save the wolf target each night.', nightOrder: 5 },
+  { id: 'witch', name: 'Witch', icon: '🧙‍♀️', team: 'village', desc: 'Has one save potion and one kill potion for the whole game.', nightOrder: 6 },
+  { id: 'cupid', name: 'Cupid', icon: '💘', team: 'special', desc: 'Night 1: links two lovers. If one dies, both die.', nightOrder: 0.5 },
+  { id: 'hunter_classic', name: 'Hunter', icon: '🏹', team: 'village', desc: 'When eliminated, takes someone with them.', nightOrder: 99 },
+  { id: 'villager', name: 'Villager', icon: '👨‍🌾', team: 'village', desc: 'No special power.', nightOrder: 99, min: 1, max: 10, count: 3 },
+];
+
+// ========================================
+// NAVIGATION
+// ========================================
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  const el = document.getElementById('screen-' + id);
+  if (el) {
+    el.classList.add('active');
+    state.currentScreen = id;
+  }
+  document.querySelectorAll('.top-nav .nav-btns button').forEach(b => b.classList.remove('active'));
+  if (id === 'home') document.getElementById('nav-home').classList.add('active');
+  if (id === 'settings') document.getElementById('nav-settings').classList.add('active');
+}
+
+function selectMode(mode) {
+  if (mode === 'secrethitler' || mode === 'bloodontheclocktower' || mode === 'resistance') {
+    showScreen(mode + '-setup');
+    return;
+  }
+  if (mode === 'mafia') {
+    showScreen('mafia-setup');
+    return;
+  }
+  showScreen(mode + '-setup');
+}
+
+function openSettings() {
+  showScreen('settings');
+  populateTTSVoices();
+}
+
+// ========================================
+// COMMON UI HELPERS
+// ========================================
+function toggleSetting(el) {
+  el.classList.toggle('on');
+  // Sync state
+  if (el.id === 'toggle-onuw-auto') state.onuw.autoNarrator = el.classList.contains('on');
+  if (el.id === 'toggle-onuw-sound') state.onuw.soundOn = el.classList.contains('on');
+  if (el.id === 'toggle-classic-auto') state.classic.autoNarrator = el.classList.contains('on');
+  if (el.id === 'toggle-classic-sound') state.classic.soundOn = el.classList.contains('on');
+  if (el.id === 'toggle-vibrate') state.vibrateOn = el.classList.contains('on');
+  if (el.id === 'toggle-tts') state.ttsEnabled = el.classList.contains('on');
+}
+
+function setTimer(mode, sec, btn) {
+  state[mode].timerSec = sec;
+  btn.parentElement.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function setDiscussTimer(mode, min, btn) {
+  state[mode].discussMin = min;
+  btn.parentElement.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function setTTSRate(rate, btn) {
+  state.ttsRate = rate;
+  btn.parentElement.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function setTTSVoice(v) { state.ttsVoice = v; }
+
+function populateTTSVoices() {
+  const sel = document.getElementById('tts-voice-select');
+  if (!('speechSynthesis' in window)) return;
+  const voices = speechSynthesis.getVoices();
+  sel.innerHTML = '<option value="">Default</option>';
+  voices.forEach((v, i) => {
+    const opt = document.createElement('option');
+    opt.value = i;
+    opt.textContent = `${v.name} (${v.lang})`;
+    sel.appendChild(opt);
+  });
+}
+if ('speechSynthesis' in window) {
+  speechSynthesis.onvoiceschanged = populateTTSVoices;
+}
+
+function vibrate(ms = 50) {
+  if (state.vibrateOn && navigator.vibrate) navigator.vibrate(ms);
+}
+
+// Wake lock
+async function toggleWakeLock(el) {
+  el.classList.toggle('on');
+  if (el.classList.contains('on')) {
+    try {
+      if ('wakeLock' in navigator) {
+        state.wakeLock = await navigator.wakeLock.request('screen');
+      }
+    } catch(e) { console.log('Wake lock failed', e); }
+  } else {
+    if (state.wakeLock) { state.wakeLock.release(); state.wakeLock = null; }
+  }
+}
+
+// TTS
+function speakText(text) {
+  if (!state.ttsEnabled || !('speechSynthesis' in window)) return Promise.resolve();
+  return new Promise(resolve => {
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text.replace(/<[^>]*>/g, ''));
+    u.rate = state.ttsRate;
+    if (state.ttsVoice !== '') {
+      const voices = speechSynthesis.getVoices();
+      u.voice = voices[parseInt(state.ttsVoice)] || null;
+    }
+    u.onend = resolve;
+    u.onerror = resolve;
+    speechSynthesis.speak(u);
+  });
+}
+
+// Audio file attempt
+function playAudioFile(key) {
+  return new Promise((resolve) => {
+    const audio = new Audio(`audio/${key}.mp3`);
+    audio.onended = resolve;
+    audio.onerror = () => resolve(); // fail silently
+    audio.play().catch(() => resolve());
+  });
+}
+
+async function narrateStep(text, audioKey, soundOn) {
+  if (!soundOn) return;
+  // Try audio file first
+  // For now, just try TTS since we don't have real audio files
+  if (state.ttsEnabled) {
+    await speakText(text);
+  }
+}
+
+// ========================================
+// PLAYER MANAGEMENT
+// ========================================
+function addPlayer(mode) {
+  const input = document.getElementById(mode + '-player-input');
+  const name = input.value.trim();
+  if (!name) return;
+  if (state[mode].players.includes(name)) { input.value = ''; return; }
+  state[mode].players.push(name);
+  input.value = '';
+  renderPlayers(mode);
+  updateStartButton(mode);
+}
+
+function removePlayer(mode, name) {
+  state[mode].players = state[mode].players.filter(p => p !== name);
+  renderPlayers(mode);
+  updateStartButton(mode);
+}
+
+function renderPlayers(mode) {
+  const container = document.getElementById(mode + '-player-chips');
+  container.innerHTML = state[mode].players.map(p =>
+    `<div class="player-chip">
+      ${p}
+      <button class="remove-player" onclick="removePlayer('${mode}','${p}')">×</button>
+    </div>`
+  ).join('');
+  const countEl = document.getElementById(mode + '-player-count');
+  if (mode === 'onuw') {
+    const needed = state.onuw.players.length + 3;
+    const selected = getTotalRoleCount('onuw');
+    countEl.textContent = `${state.onuw.players.length} players — ${selected}/${needed} roles selected (need players + 3)`;
+  } else {
+    countEl.textContent = `${state[mode].players.length} players`;
+  }
+}
+
+// ========================================
+// ROLE RENDERING
+// ========================================
+function initRoles() {
+  renderRoleList('onuw', ONUW_ROLES);
+  renderRoleList('classic', CLASSIC_ROLES);
+}
+
+function renderRoleList(mode, roles) {
+  const container = document.getElementById(mode + '-role-list');
+  container.innerHTML = '';
+
+  const teams = { wolf: 'Werewolf Team', village: 'Village Team', neutral: 'Neutral', special: 'Special' };
+  const grouped = {};
+  roles.forEach(r => {
+    if (!grouped[r.team]) grouped[r.team] = [];
+    grouped[r.team].push(r);
+  });
+
+  Object.entries(grouped).forEach(([team, rs]) => {
+    const header = document.createElement('div');
+    header.style.cssText = 'font-size:12px;font-weight:700;color:var(--text-dim);padding:8px 0 4px;text-transform:uppercase;letter-spacing:0.5px;';
+    header.textContent = teams[team] || team;
+    container.appendChild(header);
+
+    rs.forEach(r => {
+      const hasCount = r.max && r.max > 1;
+      const currentCount = state[mode].selectedRoles[r.id] || 0;
+      const isSelected = currentCount > 0;
+
+      const div = document.createElement('div');
+      div.className = 'role-item' + (isSelected ? ' selected' : '');
+      div.id = `role-${mode}-${r.id}`;
+
+      if (hasCount) {
+        div.innerHTML = `
+          <div class="role-icon">${r.icon}</div>
+          <div class="role-info">
+            <div class="role-name">${r.name}</div>
+            <div class="role-team ${r.team}">${teams[r.team]}</div>
+            <div class="role-desc">${r.desc}</div>
+          </div>
+          <div class="role-count">
+            <button onclick="event.stopPropagation();adjustRoleCount('${mode}','${r.id}',-1,${r.min||0},${r.max})">−</button>
+            <span class="count-val">${currentCount}</span>
+            <button onclick="event.stopPropagation();adjustRoleCount('${mode}','${r.id}',1,${r.min||0},${r.max})">+</button>
+          </div>`;
+        div.onclick = () => {
+          if (currentCount === 0) {
+            adjustRoleCount(mode, r.id, r.count || 1, r.min || 0, r.max);
+          } else {
+            state[mode].selectedRoles[r.id] = 0;
+            renderRoleList(mode, mode === 'onuw' ? ONUW_ROLES : CLASSIC_ROLES);
+            updateStartButton(mode);
+          }
+        };
+      } else {
+        div.innerHTML = `
+          <div class="role-icon">${r.icon}</div>
+          <div class="role-info">
+            <div class="role-name">${r.name}</div>
+            <div class="role-team ${r.team}">${teams[r.team]}</div>
+            <div class="role-desc">${r.desc}</div>
+          </div>
+          <div class="role-toggle"></div>`;
+        div.onclick = () => {
+          state[mode].selectedRoles[r.id] = isSelected ? 0 : 1;
+          renderRoleList(mode, mode === 'onuw' ? ONUW_ROLES : CLASSIC_ROLES);
+          updateStartButton(mode);
+        };
+      }
+
+      container.appendChild(div);
+    });
+  });
+
+  // Update count display
+  if (mode === 'onuw') {
+    const total = getTotalRoleCount('onuw');
+    const countEl = document.getElementById('onuw-role-count');
+    if (countEl) countEl.textContent = `${total} roles selected`;
+    renderPlayers(mode);
+  }
+}
+
+function adjustRoleCount(mode, roleId, delta, min, max) {
+  const current = state[mode].selectedRoles[roleId] || 0;
+  let newVal = current + delta;
+  if (delta > 1) newVal = delta; // clicking from 0, set to default count
+  if (newVal < 0) newVal = 0;
+  if (newVal > max) newVal = max;
+  state[mode].selectedRoles[roleId] = newVal;
+  renderRoleList(mode, mode === 'onuw' ? ONUW_ROLES : CLASSIC_ROLES);
+  updateStartButton(mode);
+}
+
+function getTotalRoleCount(mode) {
+  return Object.values(state[mode].selectedRoles).reduce((a, b) => a + b, 0);
+}
+
+function updateStartButton(mode) {
+  if (mode === 'onuw') {
+    const btn = document.getElementById('onuw-start-btn');
+    const needed = state.onuw.players.length + 3;
+    const selected = getTotalRoleCount('onuw');
+    btn.disabled = state.onuw.players.length < 3 || selected !== needed;
+  } else if (mode === 'classic') {
+    const btn = document.getElementById('classic-start-btn');
+    const totalRoles = getTotalRoleCount('classic');
+    btn.disabled = state.classic.players.length < 4 || totalRoles < state.classic.players.length;
+  }
+}
+
+// ========================================
+// ONE NIGHT ULTIMATE WEREWOLF
+// ========================================
+function buildONUWNightScript() {
+  const roles = state.onuw.selectedRoles;
+  const steps = [];
+
+  steps.push({
+    role: 'Everyone',
+    text: 'Everyone, close your eyes.',
+    audioKey: 'everyone_close',
+    timer: false,
+  });
+
+  // 1. Doppelganger
+  if (roles.doppelganger) {
+    steps.push({
+      role: 'Doppelgänger',
+      text: 'Doppelgänger, wake up and look at one other player\'s card. You are now that role. If your new role has a night action, do it now.',
+      note: 'If she saw a Werewolf or Mason, she wakes again with them. If Seer/Robber/Troublemaker/Drunk, do that action now. If Villager/Tanner/Hunter, do nothing.',
+      audioKey: 'doppelganger_wake',
+      timer: true,
+    });
+    steps.push({
+      role: 'Doppelgänger',
+      text: 'Doppelgänger, close your eyes.',
+      audioKey: 'doppelganger_close',
+      timer: false,
+    });
+  }
+
+  // 2. Werewolves
+  if (roles.werewolf) {
+    const wolfCount = roles.werewolf;
+    let wolfText = 'Werewolves, wake up and look for other Werewolves.';
+    let wolfNote = '';
+    if (wolfCount === 1) {
+      wolfNote = 'Only one Werewolf — Werewolf, you may look at one card in the center.';
+    }
+    steps.push({
+      role: 'Werewolves',
+      text: wolfText,
+      note: wolfNote,
+      audioKey: 'werewolf_wake',
+      timer: true,
+    });
+    steps.push({
+      role: 'Werewolves',
+      text: 'Werewolves, close your eyes.',
+      audioKey: 'werewolf_close',
+      timer: false,
+    });
+  }
+
+  // 3. Minion
+  if (roles.minion) {
+    steps.push({
+      role: 'Minion',
+      text: 'Minion, wake up. Werewolves, stick out your thumb so the Minion can see who you are.',
+      audioKey: 'minion_wake',
+      timer: true,
+    });
+    steps.push({
+      role: 'Minion',
+      text: 'Werewolves, put your thumbs away. Minion, close your eyes.',
+      audioKey: 'minion_close',
+      timer: false,
+    });
+  }
+
+  // 4. Masons
+  if (roles.mason) {
+    steps.push({
+      role: 'Masons',
+      text: 'Masons, wake up and look for other Masons.',
+      audioKey: 'mason_wake',
+      timer: true,
+    });
+    steps.push({
+      role: 'Masons',
+      text: 'Masons, close your eyes.',
+      audioKey: 'mason_close',
+      timer: false,
+    });
+  }
+
+  // 5. Seer
+  if (roles.seer) {
+    steps.push({
+      role: 'Seer',
+      text: 'Seer, wake up. You may look at another player\'s card, or two of the center cards.',
+      audioKey: 'seer_wake',
+      timer: true,
+    });
+    steps.push({
+      role: 'Seer',
+      text: 'Seer, close your eyes.',
+      audioKey: 'seer_close',
+      timer: false,
+    });
+  }
+
+  // 6. Robber
+  if (roles.robber) {
+    steps.push({
+      role: 'Robber',
+      text: 'Robber, wake up. You may exchange your card with another player\'s card, and then view your new card.',
+      audioKey: 'robber_wake',
+      timer: true,
+    });
+    steps.push({
+      role: 'Robber',
+      text: 'Robber, close your eyes.',
+      audioKey: 'robber_close',
+      timer: false,
+    });
+  }
+
+  // 7. Troublemaker
+  if (roles.troublemaker) {
+    steps.push({
+      role: 'Troublemaker',
+      text: 'Troublemaker, wake up. You may exchange cards between two other players.',
+      audioKey: 'troublemaker_wake',
+      timer: true,
+    });
+    steps.push({
+      role: 'Troublemaker',
+      text: 'Troublemaker, close your eyes.',
+      audioKey: 'troublemaker_close',
+      timer: false,
+    });
+  }
+
+  // 8. Drunk
+  if (roles.drunk) {
+    steps.push({
+      role: 'Drunk',
+      text: 'Drunk, wake up and exchange your card with a card from the center.',
+      audioKey: 'drunk_wake',
+      timer: true,
+    });
+    steps.push({
+      role: 'Drunk',
+      text: 'Drunk, close your eyes.',
+      audioKey: 'drunk_close',
+      timer: false,
+    });
+  }
+
+  // 9. Insomniac
+  if (roles.insomniac) {
+    steps.push({
+      role: 'Insomniac',
+      text: 'Insomniac, wake up and look at your card.',
+      audioKey: 'insomniac_wake',
+      timer: true,
+    });
+    steps.push({
+      role: 'Insomniac',
+      text: 'Insomniac, close your eyes.',
+      audioKey: 'insomniac_close',
+      timer: false,
+    });
+  }
+
+  // Wake everyone
+  steps.push({
+    role: 'Everyone',
+    text: 'Everyone, wake up!',
+    audioKey: 'everyone_wake',
+    timer: false,
+    isFinal: true,
+  });
+
+  return steps;
+}
+
+function startONUW() {
+  state.onuw.nightSteps = buildONUWNightScript();
+  state.onuw.currentStep = 0;
+  state.onuw.paused = false;
+  state.onuw.votes = {};
+  state.onuw.players.forEach(p => state.onuw.votes[p] = 0);
+
+  showScreen('onuw-narrator');
+  renderONUWStep();
+  renderONUWScriptList();
+
+  if (state.onuw.autoNarrator) {
+    scheduleONUWAuto();
+  }
+}
+
+function renderONUWStep() {
+  const step = state.onuw.nightSteps[state.onuw.currentStep];
+  document.getElementById('onuw-n-role').textContent = step.role;
+  let html = step.text;
+  if (step.note) html += `<span class="script-note">${step.note}</span>`;
+  document.getElementById('onuw-n-text').innerHTML = html;
+
+  const timerWrap = document.getElementById('onuw-n-timer-wrap');
+  if (step.timer) {
+    timerWrap.style.display = 'flex';
+    document.getElementById('onuw-n-timer-val').textContent = state.onuw.timerSec;
+  } else {
+    timerWrap.style.display = 'none';
+  }
+
+  // Update script list highlighting
+  document.querySelectorAll('#onuw-script-list .script-step').forEach((el, i) => {
+    el.classList.remove('current', 'done');
+    if (i === state.onuw.currentStep) el.classList.add('current');
+    if (i < state.onuw.currentStep) el.classList.add('done');
+  });
+
+  vibrate();
+}
+
+function renderONUWScriptList() {
+  const container = document.getElementById('onuw-script-list');
+  container.innerHTML = state.onuw.nightSteps.map((step, i) => `
+    <div class="script-step ${i === state.onuw.currentStep ? 'current' : ''} ${i < state.onuw.currentStep ? 'done' : ''}" onclick="onuwGoToStep(${i})">
+      <div class="step-role">${step.role}</div>
+      <div class="step-text">${step.text}</div>
+      ${step.note ? `<div class="step-note">${step.note}</div>` : ''}
+      <button class="step-audio-btn" onclick="event.stopPropagation();playStepAudio('${step.audioKey}','${step.text.replace(/'/g, "\\'")}')">▶</button>
+    </div>
+  `).join('');
+}
+
+function onuwGoToStep(i) {
+  clearONUWTimer();
+  state.onuw.currentStep = i;
+  renderONUWStep();
+  if (state.onuw.autoNarrator && !state.onuw.paused) scheduleONUWAuto();
+}
+
+function onuwNext() {
+  clearONUWTimer();
+  if (state.onuw.currentStep < state.onuw.nightSteps.length - 1) {
+    state.onuw.currentStep++;
+    renderONUWStep();
+    narrateStep(
+      state.onuw.nightSteps[state.onuw.currentStep].text,
+      state.onuw.nightSteps[state.onuw.currentStep].audioKey,
+      state.onuw.soundOn
+    );
+    if (state.onuw.autoNarrator && !state.onuw.paused) scheduleONUWAuto();
+  } else {
+    // Night done, go to day
+    goToONUWDay();
+  }
+}
+
+function onuwPrev() {
+  clearONUWTimer();
+  if (state.onuw.currentStep > 0) {
+    state.onuw.currentStep--;
+    renderONUWStep();
+    if (state.onuw.autoNarrator && !state.onuw.paused) scheduleONUWAuto();
+  }
+}
+
+function onuwPause() {
+  state.onuw.paused = !state.onuw.paused;
+  const btn = document.getElementById('onuw-pause-btn');
+  btn.textContent = state.onuw.paused ? '▶️ Resume' : '⏸ Pause';
+  if (state.onuw.paused) {
+    clearONUWTimer();
+  } else {
+    if (state.onuw.autoNarrator) scheduleONUWAuto();
+  }
+}
+
+function scheduleONUWAuto() {
+  clearONUWTimer();
+  const step = state.onuw.nightSteps[state.onuw.currentStep];
+  const duration = step.timer ? state.onuw.timerSec : 3; // 3 sec for non-timer steps
+
+  if (step.timer) {
+    let remaining = duration;
+    document.getElementById('onuw-n-timer-val').textContent = remaining;
+    const circumference = 2 * Math.PI * 37.5;
+    document.getElementById('onuw-timer-circle').style.strokeDasharray = circumference;
+    document.getElementById('onuw-timer-circle').style.strokeDashoffset = 0;
+
+    state.onuw.timerInterval = setInterval(() => {
+      remaining--;
+      document.getElementById('onuw-n-timer-val').textContent = remaining;
+      const offset = circumference * (1 - remaining / duration);
+      document.getElementById('onuw-timer-circle').style.strokeDashoffset = offset;
+
+      if (remaining <= 0) {
+        onuwNext();
+      }
+    }, 1000);
+  } else {
+    state.onuw.timerInterval = setTimeout(() => {
+      if (step.isFinal) {
+        goToONUWDay();
+      } else {
+        onuwNext();
+      }
+    }, duration * 1000);
+  }
+}
+
+function clearONUWTimer() {
+  if (state.onuw.timerInterval) {
+    clearInterval(state.onuw.timerInterval);
+    clearTimeout(state.onuw.timerInterval);
+    state.onuw.timerInterval = null;
+  }
+}
+
+function onuwToggleScript() {
+  const panel = document.getElementById('onuw-script-panel');
+  const btn = document.getElementById('onuw-script-toggle-btn');
+  panel.classList.toggle('hidden');
+  btn.textContent = panel.classList.contains('hidden') ? '📜 Show Full Script' : '📜 Hide Script';
+}
+
+function goToONUWDay() {
+  clearONUWTimer();
+  state.onuw.discussRemaining = state.onuw.discussMin * 60;
+  state.onuw.discussRunning = false;
+  showScreen('onuw-day');
+  updateONUWDiscussTime();
+  renderONUWVoteList();
+  document.getElementById('onuw-vote-section').classList.add('hidden');
+  vibrate(200);
+}
+
+function updateONUWDiscussTime() {
+  const min = Math.floor(state.onuw.discussRemaining / 60);
+  const sec = state.onuw.discussRemaining % 60;
+  document.getElementById('onuw-discuss-time').textContent = `${min}:${sec.toString().padStart(2, '0')}`;
+}
+
+function onuwDiscussToggle() {
+  const btn = document.getElementById('onuw-discuss-toggle');
+  if (state.onuw.discussRunning) {
+    clearInterval(state.onuw.discussInterval);
+    state.onuw.discussRunning = false;
+    btn.textContent = '▶️ Resume Timer';
+  } else {
+    state.onuw.discussRunning = true;
+    btn.textContent = '⏸ Pause Timer';
+    state.onuw.discussInterval = setInterval(() => {
+      state.onuw.discussRemaining--;
+      updateONUWDiscussTime();
+      if (state.onuw.discussRemaining <= 0) {
+        clearInterval(state.onuw.discussInterval);
+        state.onuw.discussRunning = false;
+        btn.textContent = '⏰ Time\'s Up!';
+        vibrate(500);
+      }
+    }, 1000);
+  }
+}
+
+function onuwGoToVote() {
+  clearInterval(state.onuw.discussInterval);
+  state.onuw.discussRunning = false;
+  document.getElementById('onuw-vote-section').classList.remove('hidden');
+}
+
+function renderONUWVoteList() {
+  state.onuw.votes = {};
+  state.onuw.players.forEach(p => state.onuw.votes[p] = 0);
+  const container = document.getElementById('onuw-vote-list');
+  container.innerHTML = state.onuw.players.map(p => `
+    <div class="vote-candidate" onclick="onuwAddVote('${p}')">
+      <span>${p}</span>
+      <span class="vote-count" id="onuw-vote-${p.replace(/\s/g, '_')}">0</span>
+    </div>
+  `).join('');
+}
+
+function onuwAddVote(player) {
+  state.onuw.votes[player]++;
+  document.getElementById('onuw-vote-' + player.replace(/\s/g, '_')).textContent = state.onuw.votes[player];
+  vibrate();
+}
+
+function onuwResolveVote() {
+  let maxVotes = 0;
+  let eliminated = [];
+  Object.entries(state.onuw.votes).forEach(([p, v]) => {
+    if (v > maxVotes) { maxVotes = v; eliminated = [p]; }
+    else if (v === maxVotes && v > 0) eliminated.push(p);
+  });
+
+  let msg = '';
+  if (maxVotes === 0 || eliminated.length === state.onuw.players.length) {
+    msg = 'No one was eliminated! (Tie or no votes)';
+  } else if (eliminated.length === 1) {
+    msg = `${eliminated[0]} was eliminated with ${maxVotes} vote(s)!`;
+  } else {
+    msg = `Tie! ${eliminated.join(' and ')} each had ${maxVotes} vote(s). You decide how to handle the tie.`;
+  }
+  alert(msg);
+}
+
+function endONUWNarrator() {
+  if (!confirm('End this game?')) return;
+  clearONUWTimer();
+  clearInterval(state.onuw.discussInterval);
+  speechSynthesis && speechSynthesis.cancel();
+  showScreen('onuw-setup');
+}
+
+function playStepAudio(audioKey, text) {
+  if (state.ttsEnabled) {
+    speakText(text);
+  }
+}
+
+// ========================================
+// CLASSIC WEREWOLF
+// ========================================
+function buildClassicNightScript(nightNum) {
+  const roles = state.classic.selectedRoles;
+  const steps = [];
+  const alive = state.classic.alive;
+
+  steps.push({
+    role: 'Everyone',
+    text: 'Everyone, close your eyes and put your heads down. No peeking, no talking.',
+    audioKey: 'everyone_close',
+    timer: false,
+  });
+
+  // Night 1 special: Cupid
+  if (nightNum === 1 && roles.cupid) {
+    steps.push({
+      role: 'Cupid',
+      text: 'Cupid, open your eyes. Choose two players to link as lovers. If one dies, both die.',
+      audioKey: 'cupid_wake',
+      timer: true,
+    });
+    steps.push({
+      role: 'Cupid',
+      text: 'Cupid, close your eyes.',
+      audioKey: 'cupid_close',
+      timer: false,
+    });
+  }
+
+  // 1. Werewolves
+  if (roles.werewolf) {
+    if (nightNum === 1) {
+      steps.push({
+        role: 'Werewolves',
+        text: 'Werewolves, open your eyes and look around. Recognize your teammates. Now silently choose someone to kill.',
+        note: 'Give them 10-15 seconds to point at their target.',
+        audioKey: 'werewolf_wake',
+        timer: true,
+      });
+    } else {
+      steps.push({
+        role: 'Werewolves',
+        text: 'Werewolves, open your eyes and choose your victim.',
+        audioKey: 'werewolf_wake',
+        timer: true,
+      });
+    }
+    steps.push({
+      role: 'Werewolves',
+      text: 'Werewolves, close your eyes.',
+      audioKey: 'werewolf_close',
+      timer: false,
+    });
+  }
+
+  // 2. Minion (Night 1 only)
+  if (nightNum === 1 && roles.minion) {
+    steps.push({
+      role: 'Minion',
+      text: 'Minion, open your eyes. Werewolves, give me a thumbs up so the Minion knows you.',
+      audioKey: 'minion_wake',
+      timer: true,
+    });
+    steps.push({
+      role: 'Minion',
+      text: 'Werewolves, thumbs down. Minion, close your eyes.',
+      audioKey: 'minion_close',
+      timer: false,
+    });
+  }
+
+  // 3. Seer
+  if (roles.seer) {
+    steps.push({
+      role: 'Seer',
+      text: 'Seer, open your eyes. Point to someone you want to investigate.',
+      note: 'Silently show thumbs up = Werewolf team, thumbs down = Village team, or show the card.',
+      audioKey: 'seer_wake',
+      timer: true,
+    });
+    steps.push({
+      role: 'Seer',
+      text: 'Seer, close your eyes.',
+      audioKey: 'seer_close',
+      timer: false,
+    });
+  }
+
+  // 4. Bodyguard
+  if (roles.bodyguard) {
+    steps.push({
+      role: 'Bodyguard',
+      text: 'Bodyguard, open your eyes. Who do you want to protect tonight?',
+      audioKey: 'bodyguard_wake',
+      timer: true,
+    });
+    steps.push({
+      role: 'Bodyguard',
+      text: 'Bodyguard, close your eyes.',
+      audioKey: 'bodyguard_close',
+      timer: false,
+    });
+  }
+
+  // 5. Doctor
+  if (roles.doctor) {
+    steps.push({
+      role: 'Doctor',
+      text: 'Doctor, open your eyes. The Werewolves have chosen their victim. Do you want to save them?',
+      note: 'Point at who the wolves picked so the Doctor can see.',
+      audioKey: 'doctor_wake',
+      timer: true,
+    });
+    steps.push({
+      role: 'Doctor',
+      text: 'Doctor, close your eyes.',
+      audioKey: 'doctor_close',
+      timer: false,
+    });
+  }
+
+  // 6. Witch
+  if (roles.witch) {
+    steps.push({
+      role: 'Witch',
+      text: 'Witch, open your eyes. Someone was targeted by the Werewolves. You have one save potion and one poison potion. Do you want to use either?',
+      audioKey: 'witch_wake',
+      timer: true,
+    });
+    steps.push({
+      role: 'Witch',
+      text: 'Witch, close your eyes.',
+      audioKey: 'witch_close',
+      timer: false,
+    });
+  }
+
+  // Wake everyone
+  steps.push({
+    role: 'Everyone',
+    text: 'Everyone, wake up!',
+    audioKey: 'everyone_wake',
+    timer: false,
+    isFinal: true,
+  });
+
+  return steps;
+}
+
+function startClassic() {
+  state.classic.nightNum = 1;
+  state.classic.alive = [...state.classic.players];
+  state.classic.dead = [];
+  state.classic.log = [];
+  state.classic.votes = {};
+  state.classic.phase = 'night';
+
+  state.classic.nightSteps = buildClassicNightScript(1);
+  state.classic.currentStep = 0;
+  state.classic.paused = false;
+
+  showScreen('classic-game');
+  renderClassicGame();
+  renderClassicNightStep();
+  renderClassicScriptList();
+
+  if (state.classic.autoNarrator) {
+    scheduleClassicAuto();
+  }
+}
+
+function renderClassicGame() {
+  document.getElementById('classic-phase-label').textContent =
+    state.classic.phase === 'night' ? `Night ${state.classic.nightNum}` : `Day ${state.classic.nightNum}`;
+  document.getElementById('classic-alive-count').textContent = state.classic.alive.length;
+
+  // Player grid
+  const grid = document.getElementById('classic-player-grid');
+  grid.innerHTML = state.classic.players.map(p => {
+    const isDead = state.classic.dead.includes(p);
+    return `
+      <div class="player-card-mini ${isDead ? 'dead' : ''}">
+        ${isDead ? '<div class="death-icon">💀</div>' : ''}
+        <div class="pname">${p}</div>
+        <div class="pstatus">${isDead ? 'Dead' : 'Alive'}</div>
+      </div>
+    `;
+  }).join('');
+
+  // Show/hide panels
+  const nightPanel = document.getElementById('classic-night-panel');
+  const dayPanel = document.getElementById('classic-day-panel');
+  const votePanel = document.getElementById('classic-vote-panel');
+
+  nightPanel.classList.toggle('hidden', state.classic.phase !== 'night');
+  dayPanel.classList.toggle('hidden', state.classic.phase !== 'day');
+  votePanel.classList.toggle('hidden', state.classic.phase !== 'vote');
+
+  // Log
+  renderClassicLog();
+}
+
+function renderClassicLog() {
+  const logEl = document.getElementById('classic-log');
+  const entries = state.classic.log.map(l =>
+    `<div class="log-entry"><span class="log-time">${l.time}</span>${l.text}</div>`
+  ).join('');
+  logEl.innerHTML = `<h3>Game Log</h3>${entries || '<div class="log-entry" style="color:var(--text-dim)">No events yet...</div>'}`;
+}
+
+function addClassicLog(text) {
+  const now = new Date();
+  state.classic.log.unshift({
+    time: `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`,
+    text
+  });
+}
+
+function renderClassicNightStep() {
+  const step = state.classic.nightSteps[state.classic.currentStep];
+  document.getElementById('classic-n-phase').textContent = `NIGHT ${state.classic.nightNum}`;
+  document.getElementById('classic-n-role').textContent = step.role;
+  let html = step.text;
+  if (step.note) html += `<span class="script-note">${step.note}</span>`;
+  document.getElementById('classic-n-text').innerHTML = html;
+
+  const timerWrap = document.getElementById('classic-n-timer-wrap');
+  if (step.timer) {
+    timerWrap.style.display = 'flex';
+    document.getElementById('classic-n-timer-val').textContent = state.classic.timerSec;
+  } else {
+    timerWrap.style.display = 'none';
+  }
+
+  document.querySelectorAll('#classic-script-list .script-step').forEach((el, i) => {
+    el.classList.remove('current', 'done');
+    if (i === state.classic.currentStep) el.classList.add('current');
+    if (i < state.classic.currentStep) el.classList.add('done');
+  });
+
+  vibrate();
+}
+
+function renderClassicScriptList() {
+  const container = document.getElementById('classic-script-list');
+  container.innerHTML = state.classic.nightSteps.map((step, i) => `
+    <div class="script-step ${i === state.classic.currentStep ? 'current' : ''} ${i < state.classic.currentStep ? 'done' : ''}" onclick="classicGoToStep(${i})">
+      <div class="step-role">${step.role}</div>
+      <div class="step-text">${step.text}</div>
+      ${step.note ? `<div class="step-note">${step.note}</div>` : ''}
+      <button class="step-audio-btn" onclick="event.stopPropagation();playStepAudio('${step.audioKey}','${step.text.replace(/'/g, "\\'")}')">▶</button>
+    </div>
+  `).join('');
+}
+
+function classicGoToStep(i) {
+  clearClassicTimer();
+  state.classic.currentStep = i;
+  renderClassicNightStep();
+  if (state.classic.autoNarrator && !state.classic.paused) scheduleClassicAuto();
+}
+
+function classicNext() {
+  clearClassicTimer();
+  if (state.classic.currentStep < state.classic.nightSteps.length - 1) {
+    state.classic.currentStep++;
+    renderClassicNightStep();
+    narrateStep(
+      state.classic.nightSteps[state.classic.currentStep].text,
+      state.classic.nightSteps[state.classic.currentStep].audioKey,
+      state.classic.soundOn
+    );
+    if (state.classic.autoNarrator && !state.classic.paused) scheduleClassicAuto();
+  } else {
+    goToClassicDay();
+  }
+}
+
+function classicPrev() {
+  clearClassicTimer();
+  if (state.classic.currentStep > 0) {
+    state.classic.currentStep--;
+    renderClassicNightStep();
+    if (state.classic.autoNarrator && !state.classic.paused) scheduleClassicAuto();
+  }
+}
+
+function classicPause() {
+  state.classic.paused = !state.classic.paused;
+  const btn = document.getElementById('classic-pause-btn');
+  btn.textContent = state.classic.paused ? '▶️ Resume' : '⏸ Pause';
+  if (state.classic.paused) {
+    clearClassicTimer();
+  } else {
+    if (state.classic.autoNarrator) scheduleClassicAuto();
+  }
+}
+
+function scheduleClassicAuto() {
+  clearClassicTimer();
+  const step = state.classic.nightSteps[state.classic.currentStep];
+  const duration = step.timer ? state.classic.timerSec : 3;
+
+  if (step.timer) {
+    let remaining = duration;
+    document.getElementById('classic-n-timer-val').textContent = remaining;
+    const circumference = 2 * Math.PI * 37.5;
+    document.getElementById('classic-timer-circle').style.strokeDasharray = circumference;
+    document.getElementById('classic-timer-circle').style.strokeDashoffset = 0;
+
+    state.classic.timerInterval = setInterval(() => {
+      remaining--;
+      document.getElementById('classic-n-timer-val').textContent = remaining;
+      const offset = circumference * (1 - remaining / duration);
+      document.getElementById('classic-timer-circle').style.strokeDashoffset = offset;
+      if (remaining <= 0) classicNext();
+    }, 1000);
+  } else {
+    state.classic.timerInterval = setTimeout(() => {
+      if (step.isFinal) {
+        goToClassicDay();
+      } else {
+        classicNext();
+      }
+    }, duration * 1000);
+  }
+}
+
+function clearClassicTimer() {
+  if (state.classic.timerInterval) {
+    clearInterval(state.classic.timerInterval);
+    clearTimeout(state.classic.timerInterval);
+    state.classic.timerInterval = null;
+  }
+}
+
+function classicToggleScript() {
+  const panel = document.getElementById('classic-script-panel');
+  const btn = document.getElementById('classic-script-toggle-btn');
+  panel.classList.toggle('hidden');
+  btn.textContent = panel.classList.contains('hidden') ? '📜 Show Full Script' : '📜 Hide Script';
+}
+
+function goToClassicDay() {
+  clearClassicTimer();
+  state.classic.phase = 'day';
+  state.classic.discussRemaining = state.classic.discussMin * 60;
+  state.classic.discussRunning = false;
+
+  addClassicLog(`Night ${state.classic.nightNum} ended.`);
+
+  // Announcement
+  const ann = document.getElementById('classic-day-announcement');
+  ann.innerHTML = `
+    <h3>☀️ Dawn Breaks</h3>
+    <p>The narrator should now reveal what happened during the night. Did someone die? Was someone saved?</p>
+    <p style="margin-top:8px;color:var(--text-dim);font-size:12px;">Use the player grid below to mark anyone who died — tap their card.</p>
+  `;
+  document.getElementById('classic-day-num').textContent = state.classic.nightNum;
+
+  renderClassicGame();
+  updateClassicDiscussTime();
+  vibrate(200);
+}
+
+function updateClassicDiscussTime() {
+  const min = Math.floor(state.classic.discussRemaining / 60);
+  const sec = state.classic.discussRemaining % 60;
+  document.getElementById('classic-discuss-time').textContent = `${min}:${sec.toString().padStart(2, '0')}`;
+}
+
+function classicDiscussToggle() {
+  const btn = document.getElementById('classic-discuss-toggle');
+  if (state.classic.discussRunning) {
+    clearInterval(state.classic.discussInterval);
+    state.classic.discussRunning = false;
+    btn.textContent = '▶️ Resume Timer';
+  } else {
+    state.classic.discussRunning = true;
+    btn.textContent = '⏸ Pause Timer';
+    state.classic.discussInterval = setInterval(() => {
+      state.classic.discussRemaining--;
+      updateClassicDiscussTime();
+      if (state.classic.discussRemaining <= 0) {
+        clearInterval(state.classic.discussInterval);
+        state.classic.discussRunning = false;
+        btn.textContent = '⏰ Time\'s Up!';
+        vibrate(500);
+      }
+    }, 1000);
+  }
+}
+
+function classicGoToVote() {
+  clearInterval(state.classic.discussInterval);
+  state.classic.discussRunning = false;
+  state.classic.phase = 'vote';
+
+  // Build vote list
+  state.classic.votes = {};
+  state.classic.alive.forEach(p => state.classic.votes[p] = 0);
+
+  const container = document.getElementById('classic-vote-list');
+  container.innerHTML = state.classic.alive.map(p => `
+    <div class="vote-candidate" onclick="classicAddVote('${p.replace(/'/g, "\\'")}')">
+      <span>${p}</span>
+      <span class="vote-count" id="classic-vote-${p.replace(/\s/g, '_').replace(/'/g, '')}">0</span>
+    </div>
+  `).join('');
+
+  renderClassicGame();
+}
+
+function classicAddVote(player) {
+  state.classic.votes[player]++;
+  const el = document.getElementById('classic-vote-' + player.replace(/\s/g, '_').replace(/'/g, ''));
+  if (el) el.textContent = state.classic.votes[player];
+  vibrate();
+}
+
+function classicSkipVote() {
+  addClassicLog(`Day ${state.classic.nightNum}: No one was eliminated (vote skipped).`);
+  startClassicNight();
+}
+
+function classicResolveVote() {
+  let maxVotes = 0;
+  let eliminated = [];
+  Object.entries(state.classic.votes).forEach(([p, v]) => {
+    if (v > maxVotes) { maxVotes = v; eliminated = [p]; }
+    else if (v === maxVotes && v > 0) eliminated.push(p);
+  });
+
+  if (maxVotes === 0) {
+    addClassicLog(`Day ${state.classic.nightNum}: No one was eliminated (no votes).`);
+  } else if (eliminated.length === 1) {
+    const dead = eliminated[0];
+    state.classic.alive = state.classic.alive.filter(p => p !== dead);
+    state.classic.dead.push(dead);
+    addClassicLog(`Day ${state.classic.nightNum}: ${dead} was eliminated with ${maxVotes} vote(s).`);
+    alert(`${dead} has been eliminated!`);
+  } else {
+    addClassicLog(`Day ${state.classic.nightNum}: Tie between ${eliminated.join(', ')} (${maxVotes} votes each). No elimination.`);
+    alert(`Tie! ${eliminated.join(' and ')} tied with ${maxVotes} votes. No elimination.`);
+  }
+
+  // Check win condition prompt
+  if (state.classic.alive.length <= 2) {
+    if (confirm('Very few players remain. Has a team won? End the game?')) {
+      endClassicGame();
+      return;
+    }
+  }
+
+  startClassicNight();
+}
+
+function classicKillPlayer(name) {
+  if (state.classic.dead.includes(name)) return;
+  if (!confirm(`Mark ${name} as dead?`)) return;
+  state.classic.alive = state.classic.alive.filter(p => p !== name);
+  state.classic.dead.push(name);
+  addClassicLog(`${name} was killed.`);
+  renderClassicGame();
+}
+
+function startClassicNight() {
+  state.classic.nightNum++;
+  state.classic.phase = 'night';
+  state.classic.nightSteps = buildClassicNightScript(state.classic.nightNum);
+  state.classic.currentStep = 0;
+  state.classic.paused = false;
+
+  renderClassicGame();
+  renderClassicNightStep();
+  renderClassicScriptList();
+
+  if (state.classic.autoNarrator) scheduleClassicAuto();
+}
+
+function endClassicGame() {
+  if (!confirm('End this game and return to setup?')) return;
+  clearClassicTimer();
+  clearInterval(state.classic.discussInterval);
+  speechSynthesis && speechSynthesis.cancel();
+  showScreen('classic-setup');
+}
+
+// ========================================
+// INIT
+// ========================================
+function init() {
+  initRoles();
+
+  // Request wake lock on start
+  (async () => {
+    try {
+      if ('wakeLock' in navigator) {
+        state.wakeLock = await navigator.wakeLock.request('screen');
+      }
+    } catch(e) {}
+  })();
+}
+
+init();
+</script>
+</body>
+</html>
