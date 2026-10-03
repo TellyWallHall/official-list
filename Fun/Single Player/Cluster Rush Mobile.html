@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>Cluster Rush - Mobile</title>
+<style>
+html, body, div, canvas { margin: 0; padding: 0; }
+html, body { width: 100%; height: 100%; font-family: Helvetica, Verdana, Arial, sans-serif; overflow:hidden; touch-action: none; }
+.template-wrap { position: absolute; top: 50%; left: 50%; -webkit-transform: translate(-50%, -50%); transform: translate(-50%, -50%); }
+.template-wrap canvas { margin: 0; position: relative; z-index: 9; }
+#background { background: #222C36; position: absolute; }
+#screen { position: absolute; top: 50%; left: 50%; -webkit-transform: translate(-50%, -50%); transform: translate(-50%, -50%); text-align: center; width: 100%; }
+
+/* --- MOBILE OVERLAY --- */
+#mobile-overlay {
+  position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+  z-index: 9999; pointer-events: none;
+  display: block;
+}
+.joystick-base {
+  position: absolute; left: 15%; bottom: 10%;
+  width: 300px; height: 300px;
+  background: #222;
+  border: 2px solid rgba(255,255,255,0.25);
+  border-radius: 50%; pointer-events: auto;
+  backdrop-filter: blur(4px);
+}
+.joystick-stick {
+  position: absolute; left: 50%; top: 50%;
+  width: 150px; height: 150px;
+  background: #999;
+  border-radius: 50%; transform: translate(-50%,-50%);
+  box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+}
+.action-btn {
+  position: absolute; right: 8%; bottom: 10%;
+  width: 260px; height: 260px;
+  background: #222;
+  border: 2px solid rgba(255,255,255,0.25);
+  border-radius: 50%; pointer-events: auto;
+  backdrop-filter: blur(4px);
+  display: flex; align-items: center; justify-content: center;
+  color: white; font-weight: 800; font-size: 22px; user-select: none;
+  -webkit-user-select: none;
+}
+.action-btn:active,.joystick-base.active { background: #bbbbbb22; border: solid 3px #222}
+</style>
+
+<script>
+function UnityProgress(dom) {
+  var root_path = ''; this.progress = 0.0; this.message = ""; this.dom = dom;
+  var parent = dom.parentNode;
+  var background = document.createElement("div"); background.setAttribute('id','background'); parent.appendChild(background); this.background=background;
+  var screen=document.createElement("div"); screen.setAttribute('id','screen'); background.appendChild(screen);
+  var logoImage=document.createElement("div"); logoImage.setAttribute('id','y8-logo'); screen.appendChild(logoImage); this.logoImage=logoImage;
+  var progressFrameLoader=document.createElement("div"); progressFrameLoader.setAttribute('id','progress-frame-loader'); screen.appendChild(progressFrameLoader);
+  var progressFrame=document.createElement("img"); progressFrame.setAttribute('id','progress-frame'); progressFrame.src=root_path+""; progressFrameLoader.appendChild(progressFrame); this.progressFrame=progressFrame;
+  var progressBarLoader=document.createElement("div"); progressBarLoader.setAttribute('id','progress-bar-loader'); screen.appendChild(progressBarLoader);
+  var progressBar=document.createElement("img"); progressBar.setAttribute('id','progress-bar'); progressBar.src=root_path+"/fullbar.png"; progressBarLoader.appendChild(progressBar); this.progressBar=progressBar;
+  var messageArea=document.createElement("p"); messageArea.setAttribute('id','message-area'); screen.appendChild(messageArea); this.messageArea=messageArea;
+  this.SetProgress=function(p){if(this.progress<p){this.progress=p;} if(p==1){this.SetMessage('Preparing...');} this.progressFrame.style.visibility="visible"; this.progressBar.style.display="inline"; this.Update();}
+  this.SetMessage=function(m){if(m=="Loading WebGL Player, Please wait..."){m+='<img src="'+root_path+'/gears.gif" />'}else if((mm=m.match(/^Downloading data... \(([0-9]+)\/([0-9]+)\)/))!==null){m=this.RewriteMessage(mm);} this.message=m; this.background.style.display="inline"; this.progressFrame.style.visibility="hidden"; this.progressBar.style.display="none"; this.Update();}
+  this.RewriteMessage=function(m){var d=this.FormatBytes(parseInt(m[1]),2); var t=this.FormatBytes(parseInt(m[2]),2); var message=m[0].replace(m[1],d); return message.replace(m[2],t);}
+  this.FormatBytes=function(b,dec){if(b==0){return'0 Byte';} var k=1000; var dm=dec+1||3; var sizes=['Bytes','KB','MB','GB','TB','PB','EB','ZB','YB']; var i=Math.floor(Math.log(b)/Math.log(k)); return (b/Math.pow(k,i)).toPrecision(dm)+' '+sizes[i];}
+  this.Clear=function(){this.background.style.display="none"; this.logoImage.style.display="none"; this.progressFrame.style.display="none"; this.progressBar.style.display="none";}
+  this.Update=function(){this.background.style.top=this.dom.offsetTop+'px'; this.background.style.left=this.dom.offsetLeft+'px'; this.background.style.width=this.dom.offsetWidth+'px'; this.background.style.height=this.dom.offsetHeight+'px'; var progressFrameImg=new Image(); progressFrameImg.src=this.progressFrame.src; this.progressBar.style.top=this.progressFrame.style.top; this.progressBar.style.left=this.progressFrame.style.left; this.progressBar.width=progressFrameImg.width*Math.min(this.progress,1); this.messageArea.innerHTML=this.message;} this.Update();
+}
+window.addEventListener("keydown", function(e) { if([8,32,37,38,39,40].indexOf(e.keyCode)>-1){ e.preventDefault(); } }, false);
+document.onmousedown = function(){ window.focus(); };
+document.addEventListener('DOMContentLoaded', function(){ updateCanvasDim(); }, false);
+window.addEventListener('resize', function(){ updateCanvasDim(); }, false);
+function updateCanvasDim(){ Game.resize(getQueryVariable('ratio_tolerant')); }
+function getQueryVariable(variable){ var query=window.location.search.substring(1); var vars=query.split("&"); for(var i=0;i<vars.length;i++){var pair=vars[i].split("="); if(pair[0]==variable){return pair[1];}} return(false);}
+var Game=new function(){ var self={ resize:function(ratio_tolerant){ var template=document.querySelector('.template-wrap'); var canvas=document.getElementById('canvas'); var bg=document.getElementById('background'); var item_size_ratio=canvas.getAttribute('width')/canvas.getAttribute('height'); var max_height=window.innerHeight; var max_width=window.innerWidth; var window_size_ratio=max_width/max_height; if(ratio_tolerant=='true'){ new_style={width:max_width,height:max_height}; self.update_style(canvas,new_style.width,new_style.height); self.update_style(bg,new_style.width,new_style.height);} else if(ratio_tolerant=='false'){ if(item_size_ratio>window_size_ratio){ new_style={width:max_width,height:max_width/item_size_ratio};} else{ new_style={width:max_height*item_size_ratio,height:max_height};} self.update_style(canvas,new_style.width,new_style.height); self.update_style(bg,new_style.width,new_style.height);} template.setAttribute('width',canvas.getAttribute('width')); template.style.width=canvas.getAttribute('width')+'px';}, update_style:function(element,width,height){element.setAttribute('width',width); element.setAttribute('height',height); element.style.width=width+'px'; element.style.height=height+'px';},} return self;}
+</script>
+</head>
+<body class="template">
+<div class="template-wrap clear" width="null">
+<canvas class="emscripten" id="canvas" oncontextmenu="event.preventDefault()" width="1106" height="872"></canvas>
+<div id="background" style="top:0;left:0;width:1106px;height:872px;display:none;"><div id="screen"><div id="y8-logo" style="display:none;"></div><div id="progress-frame-loader"><img id="progress-frame" src="" style="visibility:hidden;display:none;"></div><div id="progress-bar-loader"><img id="progress-bar" src="/fullbar.png" width="0" style="display:none;"></div><p id="message-area"></p></div></div>
+</div>
+
+<!-- JOYSTICK + BUTTON OVERLAY -->
+<div id="mobile-overlay">
+  <div class="joystick-base" id="joy-base"><div class="joystick-stick" id="joy-stick"></div></div>
+  <div class="action-btn" id="jump-btn">JUMP</div>
+</div>
+
+<script type="text/javascript">
+var Module = {
+  TOTAL_MEMORY: 268435456,
+  backgroundColor: "#222C36", splashStyle: "Dark",
+  dataUrl: "https://cdn.jsdelivr.net/gh/Angry512/nacho-cs.github.io@b7c6a3b8a640c1ce01c5c9e89b79c093fdab1f55/Release/NG.data",
+  codeUrl: "https://cdn.jsdelivr.net/gh/Angry512/nacho-cs.github.io@b7c6a3b8a640c1ce01c5c9e89b79c093fdab1f55/Release/NG.js",
+  asmUrl: "https://cdn.jsdelivr.net/gh/Angry512/nacho-cs.github.io@b7c6a3b8a640c1ce01c5c9e89b79c093fdab1f55/Release/NG.asm.js",
+  memUrl: "https://cdn.jsdelivr.net/gh/Angry512/nacho-cs.github.io@b7c6a3b8a640c1ce01c5c9e89b79c093fdab1f55/Release/NG.mem",
+};
+</script>
+<script src="https://cdn.jsdelivr.net/gh/Angry512/nacho-cs.github.io@b7c6a3b8a640c1ce01c5c9e89b79c093fdab1f55/Release/UnityLoader.js"></script>
+<script>
+// --- INPUT EMULATION FOR UNITY ---
+const keyMap = {
+  w: {key:'w', code:'KeyW', keyCode:87},
+  a: {key:'a', code:'KeyA', keyCode:65},
+  s: {key:'s', code:'KeyS', keyCode:83},
+  d: {key:'d', code:'KeyD', keyCode:68},
+  ' ': {key:' ', code:'Space', keyCode:32}
+};
+const pressed = new Set();
+
+function emit(type, k){
+  const m = keyMap[k];
+  if(!m) return;
+  const e = new KeyboardEvent(type, {key:m.key, code:m.code, keyCode:m.keyCode, which:m.keyCode, bubbles:true, cancelable:true});
+  // Unity sometimes checks window and canvas
+  window.dispatchEvent(e);
+  document.dispatchEvent(e);
+  const canvas = document.getElementById('canvas');
+  if(canvas) canvas.dispatchEvent(e);
+}
+function press(k){ if(!pressed.has(k)){ pressed.add(k); emit('keydown', k); } }
+function release(k){ if(pressed.has(k)){ pressed.delete(k); emit('keyup', k); } }
+
+// Joystick logic
+const base = document.getElementById('joy-base');
+const stick = document.getElementById('joy-stick');
+let active = false, baseRect, touchId = null;
+
+function handleJoy(x,y){
+  const cx = baseRect.left + baseRect.width/2;
+  const cy = baseRect.top + baseRect.height/2;
+  let dx = (x - cx) / (baseRect.width/2);
+  let dy = (y - cy) / (baseRect.height/2);
+  const dist = Math.min(2, Math.hypot(dx,dy));
+  const angle = Math.atan2(dy,dx);
+  dx = Math.cos(angle) * dist;
+  dy = Math.sin(angle) * dist;
+
+  stick.style.left = `calc(50% + ${dx * 80}px)`;
+  stick.style.top = `calc(50% + ${dy * 80}px)`;
+
+  // threshold 0.3
+  if(dy < -0.3) press('w'); else release('w');
+  if(dy > 0.3) press('s'); else release('s');
+  if(dx < -0.3) press('a'); else release('a');
+  if(dx > 0.3) press('d'); else release('d');
+}
+function resetJoy(){
+  stick.style.left='50%'; stick.style.top='50%';
+  release('w'); release('a'); release('s'); release('d');
+}
+
+base.addEventListener('touchstart', (e)=>{
+  e.preventDefault(); active=true; base.classList.add('active');
+  baseRect = base.getBoundingClientRect();
+  touchId = e.changedTouches[0].identifier;
+  handleJoy(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
+},{passive:false});
+window.addEventListener('touchmove', (e)=>{
+  if(!active) return;
+  for(let t of e.changedTouches){ if(t.identifier===touchId){
+    e.preventDefault(); handleJoy(t.clientX, t.clientY); break;
+  }}
+},{passive:false});
+window.addEventListener('touchend', (e)=>{
+  for(let t of e.changedTouches){ if(t.identifier===touchId){
+    active=false; base.classList.remove('active'); resetJoy(); touchId=null; break;
+  }}
+});
+// Mouse fallback for testing on PC
+base.addEventListener('mousedown', (e)=>{ active=true; baseRect=base.getBoundingClientRect(); base.classList.add('active'); handleJoy(e.clientX,e.clientY); });
+window.addEventListener('mousemove', (e)=>{ if(active && touchId===null) handleJoy(e.clientX,e.clientY); });
+window.addEventListener('mouseup', ()=>{ if(active && touchId===null){ active=false; base.classList.remove('active'); resetJoy(); }});
+
+// Jump button = SPACE
+const jumpBtn = document.getElementById('jump-btn');
+function jumpDown(e){ e.preventDefault(); press(' '); jumpBtn.style.transform='scale(0.9)'; }
+function jumpUp(e){ e.preventDefault(); release(' '); jumpBtn.style.transform='scale(1)'; }
+jumpBtn.addEventListener('touchstart', jumpDown, {passive:false});
+jumpBtn.addEventListener('touchend', jumpUp, {passive:false});
+jumpBtn.addEventListener('mousedown', jumpDown);
+jumpBtn.addEventListener('mouseup', jumpUp);
+jumpBtn.addEventListener('mouseleave', jumpUp);
+</script>
+</body>
+</html>
