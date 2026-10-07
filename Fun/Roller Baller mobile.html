@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+
+
+<!-- Ultimate Game Stash file--> 
+<!-- For the regularly updating doc go to https://docs.google.com/document/d/1_FmH3BlSBQI7FGgAQL59-ZPe8eCxs35wel6JUyVaG8Q/ -->
+
+
+<html lang="en-us">
+  <head>
+    <base href="https://rawcdn.githack.com/bubbls/UGS-Assets/9cd5428f10514bb52b31ffc44c99f216e310a447/roller%20baller/" />
+    <meta charset="utf-8"> 
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title>Unity WebGL Player | Roller Baller</title>
+    <script src="Build/UnityLoader.js"></script>
+    <script>
+      UnityLoader.instantiate("unityContainer", "Build/RollerBallerRelease.json");
+    </script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      html, body {
+        width: 100%;
+        height: 100%;
+        background-color: #333;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+
+      #unityContainer {
+        width: 800px;
+        height: 600px;
+      }
+
+      canvas {
+        width: 100% !important;
+        height: 100% !important;
+      }
+
+      /* Loading screen styles below */
+      div#loadingBox {
+        width: 100%;
+        height: 20px;
+        position: absolute;
+        top: 50%;
+        margin-top: -10px;
+        text-align: center;
+      }
+
+      div#bgBar {
+        display: none;
+        position: absolute;
+        width: 200px;
+        margin-left: -100px;
+        left: 50%;
+        height: 2px;
+        background-color: #FFF;
+        border-radius: 2px;
+      }
+
+      div#progressBar {
+        display: none;
+        left: 50%;
+        position: absolute;
+        margin-left: -100px;
+        width: 0px;
+        height: 2px;
+        background-color: #990000;
+        border-radius: 2px;
+      }
+
+      p#loadingInfo {
+        color: #FFF;
+        letter-spacing: 1px;
+        position: absolute;
+        width: 100%;
+        font-family: "Monaco", sans-serif;
+        text-transform: uppercase;
+        text-align: center;
+        font-size: 8px;
+        margin-top: 10px;
+      }
+
+      div#spinner {
+        position: absolute;
+        height: 2px;
+        left: 50%;
+        margin-left: -100px;
+        width: 200px;
+        position: relative;
+        overflow: hidden;
+        background-color: #FFF;
+      }
+
+      div#spinner:before {
+        display: block;
+        position: absolute;
+        content: "";
+        left: -200px;
+        width: 200px;
+        height: 4px;
+        background-color: #990000;
+        animation: loading 2s linear infinite;
+      }
+
+      @keyframes loading {
+        from {
+          left: -50%;
+          width: 30%;
+        }
+        50% {
+          width: 30%;
+        }
+        70% {
+          width: 70%;
+        }
+        80% {
+          left: 50%;
+        }
+        95% {
+          left: 120%;
+        }
+        to {
+          left: 100%;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <style>
+/* --- MOBILE OVERLAY --- */
+#mobile-overlay {
+  position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+  z-index: 9999; pointer-events: none;
+  display: block;
+}
+.joystick-base {
+  position: absolute; left: 15%; bottom: 10%;
+  width: 300px; height: 300px;
+  background: #222;
+  border: 2px solid rgba(255,255,255,0.25);
+  border-radius: 50%; pointer-events: auto;
+  backdrop-filter: blur(4px);
+}
+.joystick-stick {
+  position: absolute; left: 50%; top: 50%;
+  width: 150px; height: 150px;
+  background: #999;
+  border-radius: 50%; transform: translate(-50%,-50%);
+  box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+}
+.action-btn {
+  position: absolute; right: 8%; bottom: 10%;
+  width: 260px; height: 260px;
+  background: #222;
+  border: 2px solid rgba(255,255,255,0.25);
+  border-radius: 50%; pointer-events: auto;
+  backdrop-filter: blur(4px);
+  display: flex; align-items: center; justify-content: center;
+  color: white; font-weight: 800; font-size: 22px; user-select: none;
+  -webkit-user-select: none;
+}
+.action-btn:active,.joystick-base.active { background: #bbbbbb22; border: solid 3px #222}
+</style>
+<!-- JOYSTICK + BUTTON OVERLAY -->
+<div id="mobile-overlay">
+  <div class="joystick-base" id="joy-base"><div class="joystick-stick" id="joy-stick"></div></div>
+  <div class="action-btn" id="jump-btn">JUMP</div>
+</div>
+<script>
+// --- INPUT EMULATION FOR UNITY ---
+const keyMap = {
+  w: {key:'w', code:'KeyW', keyCode:87},
+  a: {key:'a', code:'KeyA', keyCode:65},
+  s: {key:'s', code:'KeyS', keyCode:83},
+  d: {key:'d', code:'KeyD', keyCode:68},
+  ' ': {key:' ', code:'Space', keyCode:32}
+};
+const pressed = new Set();
+
+function emit(type, k){
+  const m = keyMap[k];
+  if(!m) return;
+  const e = new KeyboardEvent(type, {key:m.key, code:m.code, keyCode:m.keyCode, which:m.keyCode, bubbles:true, cancelable:true});
+  // Unity sometimes checks window and canvas
+  window.dispatchEvent(e);
+  document.dispatchEvent(e);
+  const canvas = document.getElementById('canvas');
+  if(canvas) canvas.dispatchEvent(e);
+}
+function press(k){ if(!pressed.has(k)){ pressed.add(k); emit('keydown', k); } }
+function release(k){ if(pressed.has(k)){ pressed.delete(k); emit('keyup', k); } }
+
+// Joystick logic
+const base = document.getElementById('joy-base');
+const stick = document.getElementById('joy-stick');
+let active = false, baseRect, touchId = null;
+
+function handleJoy(x,y){
+  const cx = baseRect.left + baseRect.width/2;
+  const cy = baseRect.top + baseRect.height/2;
+  let dx = (x - cx) / (baseRect.width/2);
+  let dy = (y - cy) / (baseRect.height/2);
+  const dist = Math.min(2, Math.hypot(dx,dy));
+  const angle = Math.atan2(dy,dx);
+  dx = Math.cos(angle) * dist;
+  dy = Math.sin(angle) * dist;
+
+  stick.style.left = `calc(50% + ${dx * 80}px)`;
+  stick.style.top = `calc(50% + ${dy * 80}px)`;
+
+  // threshold 0.3
+  if(dy < -0.3) press('w'); else release('w');
+  if(dy > 0.3) press('s'); else release('s');
+  if(dx < -0.3) press('a'); else release('a');
+  if(dx > 0.3) press('d'); else release('d');
+}
+function resetJoy(){
+  stick.style.left='50%'; stick.style.top='50%';
+  release('w'); release('a'); release('s'); release('d');
+}
+
+base.addEventListener('touchstart', (e)=>{
+  e.preventDefault(); active=true; base.classList.add('active');
+  baseRect = base.getBoundingClientRect();
+  touchId = e.changedTouches[0].identifier;
+  handleJoy(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
+},{passive:false});
+window.addEventListener('touchmove', (e)=>{
+  if(!active) return;
+  for(let t of e.changedTouches){ if(t.identifier===touchId){
+    e.preventDefault(); handleJoy(t.clientX, t.clientY); break;
+  }}
+},{passive:false});
+window.addEventListener('touchend', (e)=>{
+  for(let t of e.changedTouches){ if(t.identifier===touchId){
+    active=false; base.classList.remove('active'); resetJoy(); touchId=null; break;
+  }}
+});
+// Mouse fallback for testing on PC
+base.addEventListener('mousedown', (e)=>{ active=true; baseRect=base.getBoundingClientRect(); base.classList.add('active'); handleJoy(e.clientX,e.clientY); });
+window.addEventListener('mousemove', (e)=>{ if(active && touchId===null) handleJoy(e.clientX,e.clientY); });
+window.addEventListener('mouseup', ()=>{ if(active && touchId===null){ active=false; base.classList.remove('active'); resetJoy(); }});
+
+// Jump button = SPACE
+const jumpBtn = document.getElementById('jump-btn');
+function jumpDown(e){ e.preventDefault(); press(' '); jumpBtn.style.transform='scale(0.9)'; }
+function jumpUp(e){ e.preventDefault(); release(' '); jumpBtn.style.transform='scale(1)'; }
+jumpBtn.addEventListener('touchstart', jumpDown, {passive:false});
+jumpBtn.addEventListener('touchend', jumpUp, {passive:false});
+jumpBtn.addEventListener('mousedown', jumpDown);
+jumpBtn.addEventListener('mouseup', jumpUp);
+jumpBtn.addEventListener('mouseleave', jumpUp);
+</script>
+    <div id="unityContainer"></div>
+  </body>
+</html>
