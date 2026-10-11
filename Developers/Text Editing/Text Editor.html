@@ -22707,7 +22707,7 @@ To add CSS/JS: CREATE_FILE the asset → SEARCH_REPLACE the HTML to add the tag.
         try {
           const snippet = await callAIRaw([{
               role: 'system',
-              content: 'You are a code snippet generator. Output ONLY the raw code — no explanation, no markdown fences, no prose. Just the snippet itself, nothing else.'
+              content: 'You are a CSS, JS, and HTML code snippet generator. Output ONLY the raw code — no explanation, no markdown fences, no prose. Just the snippet itself, nothing else.'
             },
             {
               role: 'user',
